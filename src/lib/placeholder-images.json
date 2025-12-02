@@ -1,0 +1,10 @@
+{
+  "placeholderImages": [
+    {
+      "id": "form-placeholder",
+      "description": "A placeholder image of a generic form to be scanned.",
+      "imageUrl": "https://images.unsplash.com/photo-1543281667-1fd37e8ad9fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxoYW5kd3JpdHRlbiUyMGZvcm18ZW58MHx8fHwxNzYxOTIyODc1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "handwritten form"
+    }
+  ]
+}

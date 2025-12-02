@@ -1,0 +1,72 @@
+/**
+ * @file Firebase Security Rules for FormScanAI.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for FormData. Each user can only
+ * access their own form data, ensuring data privacy and security.
+ *
+ * Data Structure:
+ * All FormData is nested under `/users/{userId}/formData/{formDataId}`, ensuring a
+ * clear hierarchical structure with user-specific access control.
+ *
+ * Key Security Decisions:
+ * - User listing is implicitly disallowed as there are no rules granting list access to the `/users` collection.
+ * - All write operations on FormData are restricted to the owner of the data.
+ * - Data consistency is enforced by matching the `userId` in the path with an `id` property inside each FormData document on creation and enforcing its immutability on updates.
+ *
+ * Denormalization for Authorization:
+ * - To ensure simpler, more performant rules, the `formDataId` is validated for immutability.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's ID matches the provided userId.
+     * @param {string} userId - The user ID to compare against.
+     * @return {bool} True if the user is signed in and the user ID matches, false otherwise.
+     * @example isOwner('someUserId') returns true if request.auth.uid == 'someUserId'.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the existing document.
+     * @param {string} userId - The user ID to compare against.
+     * @return {bool} True if the user is signed in, the user ID matches, and the document exists.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Security rules for FormData documents under a specific user.
+     * @path /users/{userId}/formData/{formDataId}
+     * @allow (create) - Authenticated user 'user123' can create a new FormData document under /users/user123/formData/form456 if request.auth.uid == 'user123' and request.resource.data.id == 'user123'.
+     * @allow (get, list) - Authenticated user 'user123' can read/list FormData documents under /users/user123/formData if request.auth.uid == 'user123'.
+     * @allow (update, delete) - Authenticated user 'user123' can update/delete a FormData document under /users/user123/formData/form456 if request.auth.uid == 'user123' and the document exists.
+     * @deny (create) - Authenticated user 'user456' cannot create a FormData document under /users/user123/formData/form456 because request.auth.uid != 'user123'.
+     * @deny (update) - Authenticated user 'user456' cannot update a FormData document under /users/user123/formData/form456 because request.auth.uid != 'user123'.
+     * @deny (delete) - Unauthenticated user cannot delete a FormData document.
+     * @principle Enforces document ownership for reads and writes. Validates relational integrity between user ID and FormData document.
+     */
+    match /users/{userId}/formData/{formDataId} {
+      // Read rules: Only the owner can get or list form data.
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      // Write rules: Only the owner can create, update, or delete form data.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}

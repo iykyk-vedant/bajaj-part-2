@@ -1,0 +1,21 @@
+
+{
+  "spareParts": [
+    { "code": "974267", "description": "MAIN PCB MAJESTY SLIM INDUCTION COOKER" },
+    { "code": "974268", "description": "CONTROL PCB MAJESTY SLIM INDUCTION" },
+    { "code": "974284", "description": "DISPLAY PCB ASSLY ICX 160 TS INDUCTION" },
+    { "code": "974290", "description": "DISPLAY PCB ASSLY ICX 190 TS INDUCTION" },
+    { "code": "974295", "description": "DISPLAY PCB ASSLY ICX 200 FP INDUCTION" },
+    { "code": "971054", "description": "MAIN PCB ASSLY SPLENDID 120 TS" },
+    { "code": "971055", "description": "DISPLAY PCB ASSLY SPLENDID 120 TS" },
+    { "code": "971064", "description": "MAIN PCB ASSLY SPLENDID 140 TS" },
+    { "code": "971065", "description": "DISPLAY PCB ASSLY SPLENDID 140 TS" },
+    { "code": "971039", "description": "MAIN PCB IRX 220F INFRARED COOKTOP" },
+    { "code": "971040", "description": "DISPLAY PCB IRX 220F INFRARED COOKTOP" },
+    { "code": "971084", "description": "DISPLAY PCB ICX 160 TS NEO" },
+    { "code": "971079", "description": "MAIN PCB ASSLY ICX 160 TS NEO" },
+    { "code": "971090", "description": "DISPLAY PCB ASSLY ICX 190 FS INDUCTION" },
+    { "code": "971089", "description": "MAIN PCB ASSLY ICX 190 FS INDUCTION" },
+    { "code": "9252950", "description": "MAIN PCB ASSLY CLASSICO SLEEK PLUS 1200" }
+  ]
+}

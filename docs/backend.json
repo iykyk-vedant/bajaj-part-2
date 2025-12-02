@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "FormData": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FormData",
+      "type": "object",
+      "description": "Represents a handwritten form and its extracted, structured data.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FormData entity."
+        },
+        "imageFilename": {
+          "type": "string",
+          "description": "The filename of the uploaded image."
+        },
+        "uploadTimestamp": {
+          "type": "string",
+          "description": "The date and time when the image was uploaded.",
+          "format": "date-time"
+        },
+        "branch": {
+          "type": "string",
+          "description": "The branch information extracted from the form."
+        },
+        "bccdName": {
+          "type": "string",
+          "description": "The BCCD name extracted from the form."
+        },
+        "productDescription": {
+          "type": "string",
+          "description": "The product description extracted from the form."
+        },
+        "productSrNo": {
+          "type": "string",
+          "description": "The product serial number extracted from the form."
+        },
+        "dateOfPurchase": {
+          "type": "string",
+          "description": "The date of purchase extracted from the form.",
+          "format": "date"
+        },
+        "complaintNo": {
+          "type": "string",
+          "description": "The complaint number extracted from the form."
+        },
+        "sparePartCode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "imageFilename",
+        "uploadTimestamp",
+        "branch",
+        "bccdName",
+        "productDescription",
+        "productSrNo",
+        "dateOfPurchase",
+        "complaintNo",
+        "sparePartCode"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "anonymous",
+      "google.com"
+    ]
+  }
+}

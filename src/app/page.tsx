@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { extractDataFromImage } from '@/app/actions';
 import type { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
 import { ImageUploader } from '@/components/image-uploader';
-import { DataForm } from '@/components/data-form';
+import { ValidateDataSection } from '@/components/validate-data-section';
 import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SheetOverview } from '@/components/sheet-overview';
@@ -124,8 +124,6 @@ export default function Home() {
 
     const result = await extractDataFromImage({
       photoDataUri: dataUrl,
-      sparePartCode: extractionContext?.sparePartCode,
-      productDescription: extractionContext?.productDescription,
     });
     
     if (result.error) {
@@ -155,9 +153,9 @@ export default function Home() {
       return;
     }
 
-    const activeSheet = sheets.find(s => s.id === activeSheetId);
+    const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     const isDuplicate = activeSheet?.data.some(
-      item => item.productSrNo && item.productSrNo === data.productSrNo
+      (item: ExtractDataOutput) => item.productSrNo && item.productSrNo === data.productSrNo
     );
 
     if (isDuplicate) {
@@ -169,8 +167,8 @@ export default function Home() {
   };
 
   const addConfirmedData = (data: ExtractDataOutput) => {
-    setSheets(prevSheets => 
-      prevSheets.map(sheet => 
+    setSheets((prevSheets: Sheet[]) => 
+      prevSheets.map((sheet: Sheet) => 
         sheet.id === activeSheetId 
           ? { ...sheet, data: [...sheet.data, data] }
           : sheet
@@ -207,7 +205,7 @@ export default function Home() {
       data: [],
       createdAt: new Date().toISOString(),
     };
-    setSheets(prev => [newSheet, ...prev]);
+    setSheets((prev: Sheet[]) => [newSheet, ...prev]);
     setActiveSheetId(newSheet.id);
     setIsCreateSheetDialogOpen(false);
     setNewSheetName('');
@@ -218,7 +216,7 @@ export default function Home() {
   };
 
   const handleOpenRenameSheetDialog = () => {
-    const activeSheet = sheets.find(s => s.id === activeSheetId);
+    const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (activeSheet) {
       setNewSheetName(activeSheet.name);
       setIsRenameSheetDialogOpen(true);
@@ -230,8 +228,8 @@ export default function Home() {
       toast({ variant: 'destructive', title: 'Invalid Name', description: 'Sheet name cannot be empty.' });
       return;
     }
-    setSheets(prevSheets =>
-      prevSheets.map(sheet =>
+    setSheets((prevSheets: Sheet[]) =>
+      prevSheets.map((sheet: Sheet) =>
         sheet.id === activeSheetId ? { ...sheet, name: newSheetName } : sheet
       )
     );
@@ -243,13 +241,13 @@ export default function Home() {
   const handleDeleteSheet = () => {
     if (!activeSheetId) return;
 
-    const sheetToDelete = sheets.find(s => s.id === activeSheetId);
+    const sheetToDelete = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (!sheetToDelete) return;
     
-    setSheets(prev => prev.filter(s => s.id !== activeSheetId));
+    setSheets((prev: Sheet[]) => prev.filter((s: Sheet) => s.id !== activeSheetId));
     
     // Set new active sheet
-    const remainingSheets = sheets.filter(s => s.id !== activeSheetId);
+    const remainingSheets = sheets.filter((s: Sheet) => s.id !== activeSheetId);
     if (remainingSheets.length > 0) {
       setActiveSheetId(remainingSheets[0].id);
     } else {
@@ -265,7 +263,7 @@ export default function Home() {
   };
 
   const exportToCSV = () => {
-    const activeSheet = sheets.find(s => s.id === activeSheetId);
+    const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (!activeSheet || activeSheet.data.length === 0) {
       toast({
         variant: 'destructive',
@@ -277,7 +275,7 @@ export default function Home() {
 
     const headers = ['Sr. No.', ...Object.keys(activeSheet.data[0]).filter(key => key !== 'others')].join(',');
     
-    const values = activeSheet.data.map((item, index) => {
+    const values = activeSheet.data.map((item: ExtractDataOutput, index: number) => {
       const rowData = Object.entries(item)
         .filter(([key]) => key !== 'others')
         .map(([, val]) => `"${String(val ?? '').replace(/"/g, '""')}"`)
@@ -302,8 +300,8 @@ export default function Home() {
   };
 
   const handleUpdateSheetData = (rowIndex: number, columnId: string, value: any) => {
-    setSheets(prevSheets =>
-      prevSheets.map(sheet => {
+    setSheets((prevSheets: Sheet[]) =>
+      prevSheets.map((sheet: Sheet) => {
         if (sheet.id === activeSheetId) {
           const newData = [...sheet.data];
           if (newData[rowIndex]) {
@@ -317,8 +315,8 @@ export default function Home() {
   };
   
   const handleRemoveRow = (rowIndex: number) => {
-    setSheets(prevSheets =>
-      prevSheets.map(sheet =>
+    setSheets((prevSheets: Sheet[]) =>
+      prevSheets.map((sheet: Sheet) =>
         sheet.id === activeSheetId
           ? { ...sheet, data: sheet.data.filter((_, index) => index !== rowIndex) }
           : sheet
@@ -327,7 +325,7 @@ export default function Home() {
     toast({ title: 'Row Removed', description: 'The selected entry has been removed from the sheet.' });
   };
   
-  const activeSheet = sheets.find(s => s.id === activeSheetId);
+  const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -411,7 +409,7 @@ export default function Home() {
             />
           </div>
           <div className="lg:w-3/5 xl:w-2/3">
-            <DataForm 
+            <ValidateDataSection 
               initialData={currentExtractedData} 
               isLoading={isLoading}
               onSave={handleAddToSheet}

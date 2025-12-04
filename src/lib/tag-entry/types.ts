@@ -1,0 +1,40 @@
+export interface TagEntry {
+  id?: string;
+  srNo: string;
+  dcNo: string;
+  branch: string;
+  bccdName: string;
+  productDescription: string;
+  productSrNo: string;
+  dateOfPurchase: string;
+  complaintNo: string;
+  partCode: string;
+  natureOfDefect: string;
+  visitingTechName: string;
+  mfgMonthYear: string;
+  pcbSrNo: string;
+}
+
+export interface ConsumptionEntry {
+  id?: string;
+  repairDate: string;
+  testing: string;
+  failure: string;
+  status: string;
+  pcbSrNo: string;
+  rfObservation: string;
+  analysis: string;
+  validationResult: string;
+  componentChange: string;
+  enggName: string;
+  dispatchDate: string;
+}
+
+export interface Settings {
+  dcNo: string;
+  partCode: string;
+  userId: string;
+  password: string;
+  userStatus: string;
+  engineerName: string;
+}

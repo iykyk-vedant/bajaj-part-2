@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -29,60 +30,6 @@ import {
 import { translateExtractedData } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { spareParts, type SparePart } from '@/lib/spare-parts';
-
-// Helper function to convert various date formats to yyyy-MM-dd
-function convertToHtmlDateFormat(dateString: string): string {
-  if (!dateString) return '';
-  
-  // If it's already in the correct format, return as is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return dateString;
-  }
-  
-  // Handle MM/dd/yy or MM/dd/yyyy format
-  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(dateString)) {
-    const parts = dateString.split('/');
-    let month = parts[0];
-    let day = parts[1];
-    let year = parts[2];
-    
-    // Pad month and day with leading zeros if needed
-    month = month.padStart(2, '0');
-    day = day.padStart(2, '0');
-    
-    // Handle 2-digit years
-    if (year.length === 2) {
-      const currentYear = new Date().getFullYear();
-      const currentCentury = Math.floor(currentYear / 100) * 100;
-      const yearNumber = parseInt(year, 10);
-      // Assume years <= 50 are 20xx, and years > 50 are 19xx
-      year = yearNumber <= 50 ? (currentCentury + yearNumber).toString() : (currentCentury - 100 + yearNumber).toString();
-    }
-    
-    return `${year}-${month}-${day}`;
-  }
-  
-  // Handle dd-MM-yyyy format
-  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateString)) {
-    const parts = dateString.split('-');
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = parts[2];
-    return `${year}-${month}-${day}`;
-  }
-  
-  // If we can't parse it, try to create a Date object and format it properly
-  const dateObj = new Date(dateString);
-  if (!isNaN(dateObj.getTime())) {
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-  
-  // If all else fails, return empty string
-  return '';
-}
 
 const formSchema = z.object({
   branch: z.string().optional(),
@@ -147,20 +94,8 @@ export function DataForm({ initialData, isLoading, onSave, sheetActive, onFormCh
 
   useEffect(() => {
     if (initialData) {
-      const formattedDate = convertToHtmlDateFormat(initialData.dateOfPurchase || '');
-      
-      form.reset({
-        branch: initialData.branch ?? '',
-        bccdName: initialData.bccdName ?? '',
-        productDescription: initialData.productDescription ?? '',
-        productSrNo: initialData.productSrNo ?? '',
-        dateOfPurchase: formattedDate,
-        complaintNo: initialData.complaintNo ?? '',
-        sparePartCode: initialData.sparePartCode ?? '',
-        natureOfDefect: initialData.natureOfDefect ?? '',
-        technicianName: initialData.technicianName ?? '',
-      });
-      setOtherText(initialData.others ?? '');
+      form.reset(initialData);
+      setOtherText(initialData.others || '');
     } else {
       // Clear form when there is no data, but preserve spare part selection
       const currentSparePartCode = form.getValues('sparePartCode');

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { extractDataFromImage } from '@/app/actions';
 import type { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
@@ -10,6 +10,7 @@ import { ValidateDataSection } from '@/components/validate-data-section';
 import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SheetOverview } from '@/components/sheet-overview';
+import * as XLSX from 'xlsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,11 +35,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { TagEntry, ConsumptionEntry } from '@/lib/tag-entry/types';
+
+// Define a union type that can hold either ExtractDataOutput, TagEntry, or ConsumptionEntry data
+type SheetDataItem = ExtractDataOutput | TagEntry | ConsumptionEntry;
 
 export type Sheet = {
   id: string;
   name: string;
-  data: ExtractDataOutput[];
+  data: SheetDataItem[];
   createdAt: string;
 }
 
@@ -157,7 +162,7 @@ export default function Home() {
 
     const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     const isDuplicate = activeSheet?.data.some(
-      (item: ExtractDataOutput) => item.productSrNo && item.productSrNo === data.productSrNo
+      (item: SheetDataItem) => 'productSrNo' in item && item.productSrNo && item.productSrNo === data.productSrNo
     );
 
     if (isDuplicate) {
@@ -275,14 +280,64 @@ export default function Home() {
       return;
     }
 
-    const headers = ['Sr. No.', ...Object.keys(activeSheet.data[0]).filter(key => key !== 'others')].join(',');
-    
-    const values = activeSheet.data.map((item: ExtractDataOutput, index: number) => {
-      const rowData = Object.entries(item)
-        .filter(([key]) => key !== 'others')
-        .map(([, val]) => `"${String(val ?? '').replace(/"/g, '""')}"`)
-        .join(',');
-      return `${index + 1},${rowData}`;
+    // Define the column headers to match the Excel file structure
+    const headers = [
+      'Sr_No', 'DC_No', 'DC_Date', 'Branch', 'BCCD_Name', 'Product_Description', 
+      'Product_Sr_No', 'Date_of_Purchase', 'Complaint_No', 'PartCode', 'Defect', 
+      'Visiting_Tech_Name', 'Mfg_Month_Year', 'Repair_Date', 'Defect_Age', 
+      'PCB_Sr_No', 'RF_Observation', 'Testing', 'Failuer', 'Analysis', 
+      'Component_Consumption', 'Status', 'Send_Date', 'Engg_Name', 'Tag_Entry', 
+      'Tag_Entry_Date', 'Consumption_Entry', 'Consumption_Entry_Date'
+    ].join(',');
+
+    // Map the data to match the Excel structure
+    const values = activeSheet.data.map((item: SheetDataItem, index: number) => {
+      // Create an array with empty values for all columns
+      const row = Array(headers.split(',').length).fill('');
+      
+      // Check what type of data we have and map accordingly
+      if ('srNo' in item) {
+        // This is a TagEntry
+        row[0] = `"${index + 1}"`; // Sr_No
+        row[1] = `"${item.dcNo || ''}"`; // DC_No
+        row[3] = `"${item.branch || ''}"`; // Branch
+        row[4] = `"${item.bccdName || ''}"`; // BCCD_Name
+        row[5] = `"${item.productDescription || ''}"`; // Product_Description
+        row[6] = `"${item.productSrNo || ''}"`; // Product_Sr_No
+        row[7] = `"${item.dateOfPurchase || ''}"`; // Date_of_Purchase
+        row[8] = `"${item.complaintNo || ''}"`; // Complaint_No
+        row[9] = `"${item.partCode || ''}"`; // PartCode
+        row[10] = `"${item.natureOfDefect || ''}"`; // Defect
+        row[11] = `"${item.visitingTechName || ''}"`; // Visiting_Tech_Name
+        row[12] = `"${item.mfgMonthYear || ''}"`; // Mfg_Month_Year
+        row[15] = `"${item.pcbSrNo || ''}"`; // PCB_Sr_No
+      } else if ('repairDate' in item) {
+        // This is a ConsumptionEntry
+        row[0] = `"${index + 1}"`; // Sr_No
+        row[13] = `"${item.repairDate || ''}"`; // Repair_Date
+        row[16] = `"${item.rfObservation || ''}"`; // RF_Observation
+        row[17] = `"${item.testing || ''}"`; // Testing
+        row[18] = `"${item.failure || ''}"`; // Failuer
+        row[19] = `"${item.analysis || ''}"`; // Analysis
+        row[20] = `"${item.componentChange || ''}"`; // Component_Consumption
+        row[21] = `"${item.status || ''}"`; // Status
+        row[22] = `"${item.dispatchDate || ''}"`; // Send_Date
+        row[23] = `"${item.enggName || ''}"`; // Engg_Name
+        row[24] = `"${item.pcbSrNo || ''}"`; // PCB_Sr_No (shared field)
+      } else {
+        // This is an ExtractDataOutput (from AI extraction)
+        row[0] = `"${index + 1}"`; // Sr_No
+        row[3] = `"${item.branch || ''}"`; // Branch
+        row[4] = `"${item.bccdName || ''}"`; // BCCD_Name
+        row[5] = `"${item.productDescription || ''}"`; // Product_Description
+        row[6] = `"${item.productSrNo || ''}"`; // Product_Sr_No
+        row[7] = `"${item.dateOfPurchase || ''}"`; // Date_of_Purchase
+        row[8] = `"${item.complaintNo || ''}"`; // Complaint_No
+        row[9] = `"${item.sparePartCode || ''}"`; // PartCode
+        row[10] = `"${item.natureOfDefect || ''}"`; // Defect
+      }
+      
+      return row.join(',');
     }).join('\n');
 
     const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + values;
@@ -298,6 +353,124 @@ export default function Home() {
     toast({
       title: 'Export Successful',
       description: `The sheet "${activeSheet.name}" has been exported to CSV.`,
+    });
+  };
+
+  const exportToExcel = () => {
+    const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
+    if (!activeSheet || activeSheet.data.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: 'There is no data in the active Excel sheet to export.',
+      });
+      return;
+    }
+
+    // Define the column headers to match the Excel file structure
+    const headers = [
+      'Sr_No', 'DC_No', 'DC_Date', 'Branch', 'BCCD_Name', 'Product_Description', 
+      'Product_Sr_No', 'Date_of_Purchase', 'Complaint_No', 'PartCode', 'Defect', 
+      'Visiting_Tech_Name', 'Mfg_Month_Year', 'Repair_Date', 'Defect_Age', 
+      'PCB_Sr_No', 'RF_Observation', 'Testing', 'Failuer', 'Analysis', 
+      'Component_Consumption', 'Status', 'Send_Date', 'Engg_Name', 'Tag_Entry', 
+      'Tag_Entry_Date', 'Consumption_Entry', 'Consumption_Entry_Date'
+    ];
+
+    // Map the data to match the Excel structure
+    const data = activeSheet.data.map((item: SheetDataItem, index: number) => {
+      const row: Record<string, string> = {
+        Sr_No: '',
+        DC_No: '',
+        DC_Date: '',
+        Branch: '',
+        BCCD_Name: '',
+        Product_Description: '',
+        Product_Sr_No: '',
+        Date_of_Purchase: '',
+        Complaint_No: '',
+        PartCode: '',
+        Defect: '',
+        Visiting_Tech_Name: '',
+        Mfg_Month_Year: '',
+        Repair_Date: '',
+        Defect_Age: '',
+        PCB_Sr_No: '',
+        RF_Observation: '',
+        Testing: '',
+        Failuer: '',
+        Analysis: '',
+        Component_Consumption: '',
+        Status: '',
+        Send_Date: '',
+        Engg_Name: '',
+        Tag_Entry: '',
+        Tag_Entry_Date: '',
+        Consumption_Entry: '',
+        Consumption_Entry_Date: ''
+      };
+      
+      // Check what type of data we have and map accordingly
+      if ('srNo' in item) {
+        // This is a TagEntry
+        row.Sr_No = (index + 1).toString();
+        row.DC_No = item.dcNo || '';
+        row.Branch = item.branch || '';
+        row.BCCD_Name = item.bccdName || '';
+        row.Product_Description = item.productDescription || '';
+        row.Product_Sr_No = item.productSrNo || '';
+        row.Date_of_Purchase = item.dateOfPurchase || '';
+        row.Complaint_No = item.complaintNo || '';
+        row.PartCode = item.partCode || '';
+        row.Defect = item.natureOfDefect || '';
+        row.Visiting_Tech_Name = item.visitingTechName || '';
+        row.Mfg_Month_Year = item.mfgMonthYear || '';
+        row.PCB_Sr_No = item.pcbSrNo || '';
+      } else if ('repairDate' in item) {
+        // This is a ConsumptionEntry
+        row.Sr_No = (index + 1).toString();
+        row.Repair_Date = item.repairDate || '';
+        row.RF_Observation = item.rfObservation || '';
+        row.Testing = item.testing || '';
+        row.Failuer = item.failure || '';
+        row.Analysis = item.analysis || '';
+        row.Component_Consumption = item.componentChange || '';
+        row.Status = item.status || '';
+        row.Send_Date = item.dispatchDate || '';
+        row.Engg_Name = item.enggName || '';
+        row.Tag_Entry = item.pcbSrNo || ''; // Shared field
+      } else {
+        // This is an ExtractDataOutput (from AI extraction)
+        row.Sr_No = (index + 1).toString();
+        row.Branch = item.branch || '';
+        row.BCCD_Name = item.bccdName || '';
+        row.Product_Description = item.productDescription || '';
+        row.Product_Sr_No = item.productSrNo || '';
+        row.Date_of_Purchase = item.dateOfPurchase || '';
+        row.Complaint_No = item.complaintNo || '';
+        row.PartCode = item.sparePartCode || '';
+        row.Defect = item.natureOfDefect || '';
+      }
+      
+      return row;
+    });
+
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(data);
+    
+    // Add headers as the first row
+    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: "A1" });
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, activeSheet.name.substring(0, 31)); // Excel sheet names max 31 chars
+    
+    // Export to file
+    XLSX.writeFile(wb, `${activeSheet.name.replace(/ /g, '_')}.xlsx`);
+
+    toast({
+      title: 'Export Successful',
+      description: `The sheet "${activeSheet.name}" has been exported to Excel.`,
     });
   };
 
@@ -327,7 +500,12 @@ export default function Home() {
     toast({ title: 'Row Removed', description: 'The selected entry has been removed from the sheet.' });
   };
   
-  const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
+  const activeSheet = useMemo(() => sheets.find((s: Sheet) => s.id === activeSheetId), [sheets, activeSheetId]);
+
+  // Create a helper function to check if export should be enabled
+  const isExportEnabled = useCallback((): boolean => {
+    return !!activeSheet && activeSheet.data.length > 0;
+  }, [activeSheet]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -341,14 +519,18 @@ export default function Home() {
              <Button 
                 variant="outline" 
                 onClick={() => setIsSheetOverviewOpen(true)} 
-                disabled={!activeSheet || activeSheet.data.length === 0}
+                disabled={!isExportEnabled()}
               >
               <History className="mr-2 h-4 w-4" />
               View Excel Sheet ({activeSheet?.data.length || 0})
             </Button>
-            <Button onClick={exportToCSV} disabled={!activeSheet || activeSheet.data.length === 0}>
+            <Button onClick={exportToCSV} disabled={!isExportEnabled()}>
               <Download className="mr-2 h-4 w-4" />
               Export CSV
+            </Button>
+            <Button onClick={exportToExcel} disabled={!isExportEnabled()} variant="secondary">
+              <Download className="mr-2 h-4 w-4" />
+              Export Excel
             </Button>
             
             <DropdownMenu>

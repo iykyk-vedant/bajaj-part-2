@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useState, useRef, useEffect, ChangeEvent } from 'react';
 import type { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
+import type { TagEntry, ConsumptionEntry } from '@/lib/tag-entry/types';
 import {
   Sheet,
   SheetContent,
@@ -25,10 +25,13 @@ import { Trash2, Expand, Shrink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
+// Define a union type that can hold either ExtractDataOutput, TagEntry, or ConsumptionEntry data
+type SheetDataItem = ExtractDataOutput | TagEntry | ConsumptionEntry;
+
 type SheetOverviewProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  sheetData: ExtractDataOutput[];
+  sheetData: SheetDataItem[];
   onClearSheet: () => void;
   onUpdateData: (rowIndex: number, columnId: string, value: any) => void;
   onRemoveRow: (rowIndex: number) => void;
@@ -102,9 +105,33 @@ export function SheetOverview({
 }: SheetOverviewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const headers = sheetData.length > 0
-    ? ['Sr. No.', ...Object.keys(sheetData[0]).filter(key => key !== 'others')]
-    : [];
+  // Get all possible headers from all data types
+  const getAllHeaders = () => {
+    const headers = new Set(['Sr. No.']);
+    
+    sheetData.forEach(item => {
+      if ('srNo' in item) {
+        // TagEntry
+        Object.keys(item).forEach(key => {
+          if (key !== 'id') headers.add(key);
+        });
+      } else if ('repairDate' in item) {
+        // ConsumptionEntry
+        Object.keys(item).forEach(key => {
+          if (key !== 'id') headers.add(key);
+        });
+      } else {
+        // ExtractDataOutput
+        Object.keys(item).forEach(key => {
+          if (key !== 'others') headers.add(key);
+        });
+      }
+    });
+    
+    return Array.from(headers);
+  };
+
+  const headers = sheetData.length > 0 ? getAllHeaders() : [];
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -146,16 +173,22 @@ export function SheetOverview({
                   {sheetData.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell className="text-center font-medium">{index + 1}</TableCell>
-                      {headers.slice(1).map(header => (
-                        <TableCell key={header} className="p-0">
-                          <EditableCell
-                            value={item[header as keyof typeof item]}
-                            rowIndex={index}
-                            columnId={header}
-                            onUpdateData={onUpdateData}
-                          />
-                        </TableCell>
-                      ))}
+                      {headers.slice(1).map(header => {
+                        // Convert header to camelCase to match object keys
+                        const camelCaseHeader = header.replace(/_([a-z])/g, (g) => g[1].toUpperCase())
+                                                     .replace(/ ([a-z])/g, (g) => g[1].toUpperCase());
+                        
+                        return (
+                          <TableCell key={header} className="p-0">
+                            <EditableCell
+                              value={item[camelCaseHeader as keyof typeof item]}
+                              rowIndex={index}
+                              columnId={camelCaseHeader}
+                              onUpdateData={onUpdateData}
+                            />
+                          </TableCell>
+                        );
+                      })}
                       <TableCell className="text-center">
                         <Button
                           variant="ghost"

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { TagEntryForm } from './tag-entry/TagEntryForm';
 import { ConsumptionTab } from './tag-entry/ConsumptionTab';
 import { SettingsTab } from './tag-entry/SettingsTab';
-import { FindPCBSection } from './tag-entry/FindPCBSection';
 import { StatusBar } from './tag-entry/StatusBar';
 
 interface ValidateDataSectionProps {
@@ -91,9 +90,6 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
           Logout
         </button>
       </div>
-
-      {/* Find PCB Section */}
-      <FindPCBSection />
 
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200 mb-6">

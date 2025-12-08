@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { TagEntryForm } from '../../components/tag-entry/TagEntryForm';
 import { ConsumptionTab } from '../../components/tag-entry/ConsumptionTab';
 import { SettingsTab } from '../../components/tag-entry/SettingsTab';
-import { FindPCBSection } from '../../components/tag-entry/FindPCBSection';
 import { StatusBar } from '../../components/tag-entry/StatusBar';
 
 export default function TagEntryPage() {
@@ -47,9 +46,6 @@ export default function TagEntryPage() {
             Logout
           </button>
         </div>
-
-        {/* Find PCB Section */}
-        <FindPCBSection />
 
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-6">

@@ -3,51 +3,25 @@
 import { useState } from 'react';
 
 export function FindPCBSection() {
-  const [dcNo, setDcNo] = useState('');
-  const [partCode, setPartCode] = useState('');
-  const [srNo, setSrNo] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleFind = () => {
     // Implementation for finding PCB
-    console.log('Finding PCB with:', { dcNo, partCode, srNo });
+    console.log('Finding PCB with search term:', searchTerm);
   };
 
   return (
     <div className="bg-blue-500 text-white p-4 rounded-lg mb-6">
       <h2 className="text-lg font-bold mb-3">Find PCB</h2>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">DC No.</label>
-          <select
-            value={dcNo}
-            onChange={(e) => setDcNo(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded text-gray-800"
-          >
-            <option value="">Select DC No.</option>
-            <option value="DC001">DC001</option>
-            <option value="DC002">DC002</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Part Code</label>
-          <select
-            value={partCode}
-            onChange={(e) => setPartCode(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded text-gray-800"
-          >
-            <option value="">Select Part Code</option>
-            <option value="PC1001">PC1001</option>
-            <option value="PC1002">PC1002</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Sr No.</label>
+          <label className="block text-sm font-medium mb-1">Search</label>
           <input
             type="text"
-            value={srNo}
-            onChange={(e) => setSrNo(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded text-gray-800"
-            placeholder="Enter Serial No."
+            placeholder="Enter search term"
           />
         </div>
         <div className="flex items-end">

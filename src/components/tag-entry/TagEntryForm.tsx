@@ -6,6 +6,60 @@ interface TagEntryFormProps {
   initialData?: any;
 }
 
+// Helper function to convert various date formats to yyyy-MM-dd
+function convertToHtmlDateFormat(dateString: string): string {
+  if (!dateString) return '';
+  
+  // If it's already in the correct format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+  
+  // Handle MM/dd/yy or MM/dd/yyyy format
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(dateString)) {
+    const parts = dateString.split('/');
+    let month = parts[0];
+    let day = parts[1];
+    let year = parts[2];
+    
+    // Pad month and day with leading zeros if needed
+    month = month.padStart(2, '0');
+    day = day.padStart(2, '0');
+    
+    // Handle 2-digit years
+    if (year.length === 2) {
+      const currentYear = new Date().getFullYear();
+      const currentCentury = Math.floor(currentYear / 100) * 100;
+      const yearNumber = parseInt(year, 10);
+      // Assume years <= 50 are 20xx, and years > 50 are 19xx
+      year = yearNumber <= 50 ? (currentCentury + yearNumber).toString() : (currentCentury - 100 + yearNumber).toString();
+    }
+    
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Handle dd-MM-yyyy format
+  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateString)) {
+    const parts = dateString.split('-');
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${year}-${month}-${day}`;
+  }
+  
+  // If we can't parse it, try to create a Date object and format it properly
+  const dateObj = new Date(dateString);
+  if (!isNaN(dateObj.getTime())) {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  
+  // If all else fails, return empty string
+  return '';
+}
+
 export function TagEntryForm({ initialData }: TagEntryFormProps) {
   const [formData, setFormData] = useState({
     srNo: '001',
@@ -32,7 +86,7 @@ export function TagEntryForm({ initialData }: TagEntryFormProps) {
         bccdName: initialData.bccdName || 'BCCD-001', // Default to BCCD-001 if not provided
         productDescription: initialData.productDescription || '',
         productSrNo: initialData.productSrNo || '',
-        dateOfPurchase: initialData.dateOfPurchase || '',
+        dateOfPurchase: convertToHtmlDateFormat(initialData.dateOfPurchase || ''),
         complaintNo: initialData.complaintNo || '',
         partCode: initialData.sparePartCode || '',
         natureOfDefect: initialData.natureOfDefect || '', // Populate from image
@@ -239,7 +293,7 @@ export function TagEntryForm({ initialData }: TagEntryFormProps) {
                 const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
                 const date = new Date();
                 const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure numeric month format
                 const year = String(date.getFullYear()).slice(-2);
                 const serial = Math.floor(Math.random() * 9000) + 1000;
                 setFormData(prev => ({

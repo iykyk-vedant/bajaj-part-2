@@ -124,6 +124,8 @@ export default function Home() {
 
     const result = await extractDataFromImage({
       photoDataUri: dataUrl,
+      sparePartCode: extractionContext.sparePartCode,
+      productDescription: extractionContext.productDescription,
     });
     
     if (result.error) {

@@ -1,4 +1,3 @@
-
 // src/ai/flows/extract-data-from-handwritten-form.ts
 'use server';
 
@@ -54,6 +53,56 @@ const extractDataPrompt = ai.definePrompt({
   `,
 });
 
+// Retry utility with exponential backoff
+async function retryWithExponentialBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Check if this is a retryable error (503 or model overload)
+      const isRetryable = 
+        (error.message && 
+         (error.message.includes('503 Service Unavailable') || 
+          error.message.includes('model is overloaded'))) ||
+        (error.cause && 
+         (error.cause.message?.includes('503 Service Unavailable') || 
+          error.cause.message?.includes('model is overloaded')));
+      
+      // If not retryable, throw immediately
+      if (!isRetryable) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff (baseDelay * 2^attempt)
+      const delay = baseDelay * Math.pow(2, attempt);
+      
+      // Add jitter to prevent thundering herd
+      const jitter = Math.random() * 0.1 * delay;
+      const totalDelay = delay + jitter;
+      
+      console.log(`Attempt ${attempt + 1} failed. Retrying in ${Math.round(totalDelay)}ms...`);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, totalDelay));
+    }
+  }
+  
+  throw lastError!;
+}
+
 // Define the Genkit flow
 const extractDataFlow = ai.defineFlow(
   {
@@ -62,13 +111,17 @@ const extractDataFlow = ai.defineFlow(
     outputSchema: ExtractDataOutputSchema,
   },
   async input => {
-    const {output} = await extractDataPrompt(input);
+    const {output} = await retryWithExponentialBackoff(
+      () => extractDataPrompt(input),
+      3, // max retries
+      1000 // base delay in ms
+    );
     
     // If a spare part code was passed in from the form *before* upload,
     // let's trust that as the ground truth and overwrite whatever the AI extracted.
     if (input.sparePartCode && output) {
       output.sparePartCode = input.sparePartCode;
-      output.productDescription = input.productDescription;
+      output.productDescription = input.productDescription || '';
     }
     
     return output!;

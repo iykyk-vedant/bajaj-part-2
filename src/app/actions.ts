@@ -1,4 +1,3 @@
-
 'use server';
 
 import { extractData } from '@/ai/flows/extract-data-from-handwritten-form';

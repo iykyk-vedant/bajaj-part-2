@@ -7,6 +7,8 @@ export const ExtractDataInputSchema = z.object({
     .describe(
       "A photo of a handwritten form, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  sparePartCode: z.string().optional().describe('Pre-selected spare part code for context.'),
+  productDescription: z.string().optional().describe('Pre-selected product description for context.'),
 });
 export type ExtractDataInput = z.infer<typeof ExtractDataInputSchema>;
 

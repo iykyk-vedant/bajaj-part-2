@@ -1,13 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { TagEntryForm } from '../../components/tag-entry/TagEntryForm';
-import { ConsumptionTab } from '../../components/tag-entry/ConsumptionTab';
-import { SettingsTab } from '../../components/tag-entry/SettingsTab';
-import { StatusBar } from '../../components/tag-entry/StatusBar';
+import { useState, useEffect } from "react";
+import { TagEntryForm } from "../../components/tag-entry/TagEntryForm";
+import { ConsumptionTab } from "../../components/tag-entry/ConsumptionTab";
+import { SettingsTab } from "../../components/tag-entry/SettingsTab";
+import { FindTab } from "../../components/tag-entry/FindTab";
+import { StatusBar } from "../../components/tag-entry/StatusBar";
 
 export default function TagEntryPage() {
-  const [activeTab, setActiveTab] = useState<'tag-entry' | 'consumption' | 'settings'>('tag-entry');
+  const [activeTab, setActiveTab] = useState<
+    "tag-entry" | "consumption" | "settings" | "find"
+  >("tag-entry");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
@@ -19,20 +22,20 @@ export default function TagEntryPage() {
 
     // Check caps lock status
     const handleKeyDown = (e: KeyboardEvent) => {
-      setIsCapsLockOn(e.getModifierState('CapsLock'));
+      setIsCapsLockOn(e.getModifierState("CapsLock"));
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      setIsCapsLockOn(e.getModifierState('CapsLock'));
+      setIsCapsLockOn(e.getModifierState("CapsLock"));
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 
     return () => {
       clearInterval(timer);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
   }, []);
 
@@ -51,48 +54,59 @@ export default function TagEntryPage() {
         <div className="flex border-b border-gray-200 mb-6">
           <button
             className={`py-2 px-4 font-medium text-sm ${
-              activeTab === 'tag-entry'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+              activeTab === "tag-entry"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab('tag-entry')}
+            onClick={() => setActiveTab("tag-entry")}
           >
             Tag Entry
           </button>
           <button
             className={`py-2 px-4 font-medium text-sm ${
-              activeTab === 'consumption'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+              activeTab === "consumption"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab('consumption')}
+            onClick={() => setActiveTab("consumption")}
           >
             Consumption
           </button>
           <button
             className={`py-2 px-4 font-medium text-sm ${
-              activeTab === 'settings'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+              activeTab === "settings"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => setActiveTab("settings")}
           >
             Settings
+          </button>
+          <button
+            className={`py-2 px-4 font-medium text-sm ${
+              activeTab === "find"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("find")}
+          >
+            Find
           </button>
         </div>
 
         {/* Tab Content */}
         <div className="mb-6">
-          {activeTab === 'tag-entry' && <TagEntryForm />}
-          {activeTab === 'consumption' && <ConsumptionTab />}
-          {activeTab === 'settings' && <SettingsTab />}
+          {activeTab === "tag-entry" && <TagEntryForm />}
+          {activeTab === "consumption" && <ConsumptionTab />}
+          {activeTab === "settings" && <SettingsTab />}
+          {activeTab === "find" && <FindTab />}
         </div>
 
         {/* Status Bar */}
-        <StatusBar 
-          currentTime={currentTime} 
-          isCapsLockOn={isCapsLockOn} 
-          isOnline={true} 
+        <StatusBar
+          currentTime={currentTime}
+          isCapsLockOn={isCapsLockOn}
+          isOnline={true}
         />
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { TagEntryForm } from './tag-entry/TagEntryForm';
 import { ConsumptionTab } from './tag-entry/ConsumptionTab';
 import { SettingsTab } from './tag-entry/SettingsTab';
+import { FindTab } from './tag-entry/FindTab';
 import { StatusBar } from './tag-entry/StatusBar';
 
 interface ValidateDataSectionProps {
@@ -15,7 +16,7 @@ interface ValidateDataSectionProps {
 }
 
 export function ValidateDataSection({ initialData, isLoading, onSave, sheetActive, onFormChange }: ValidateDataSectionProps) {
-  const [activeTab, setActiveTab] = useState<'tag-entry' | 'consumption' | 'settings'>('tag-entry');
+  const [activeTab, setActiveTab] = useState<'tag-entry' | 'consumption' | 'settings' | 'find'>('tag-entry');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
@@ -123,6 +124,16 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
         >
           Settings
         </button>
+        <button
+          className={`py-2 px-4 font-medium text-sm ${
+            activeTab === 'find'
+              ? 'border-b-2 border-blue-500 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => setActiveTab('find')}
+        >
+          Find
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -130,6 +141,7 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
         {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} />}
         {activeTab === 'consumption' && <ConsumptionTab />}
         {activeTab === 'settings' && <SettingsTab />}
+        {activeTab === 'find' && <FindTab />}
       </div>
 
       {/* Status Bar */}

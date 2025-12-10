@@ -9,6 +9,44 @@ interface TagEntryFormProps {
 }
 
 const STORAGE_KEY = 'tag-entries';
+const PCB_COUNTER_KEY = 'pcb-serial-counter';
+
+// Returns month code letter (A-L) for a given month index (0-based)
+const getMonthCode = (monthIndex: number) => {
+  const codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+  return codes[monthIndex] ?? 'A';
+};
+
+// Generates PCB number using provided DC No. and an incrementing counter
+const generatePcbNumber = (dcNo: string) => {
+  if (!dcNo) throw new Error('Please select a DC No. before generating PCB number');
+
+  // Strip RC prefix and non-digits
+  const dcDigits = dcNo.replace(/^RC/i, '').replace(/\D/g, '');
+
+  // Middle part: first 4 digits after RC (pad with zeros if short)
+  const middle = dcDigits.slice(0, 4).padEnd(4, '0');
+
+  // Last 4 digits of DC No.
+  const last4 = dcDigits.slice(-4).padStart(4, '0');
+
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0'); // 01-31
+  const monthCode = getMonthCode(now.getMonth()); // A-L
+  const year = String(now.getFullYear()).slice(-2); // YY
+
+  // Counter: persist in localStorage, increment per generation
+  let counter = 1;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(PCB_COUNTER_KEY);
+    counter = stored ? Math.min(9999, Math.max(1, parseInt(stored, 10) || 1)) : 1;
+    localStorage.setItem(PCB_COUNTER_KEY, String(Math.min(9999, counter + 1)));
+  }
+  const counterStr = String(counter).padStart(4, '0');
+
+  // Final format: ES + middle + last4 + day + monthCode + year + counter
+  return `ES${middle}${last4}${day}${monthCode}${year}${counterStr}`;
+};
 
 export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: TagEntryFormProps) {
   const [formData, setFormData] = useState({
@@ -510,17 +548,15 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
               type="button"
               className="bg-gray-200 p-2 border border-l-0 border-gray-300 rounded-r hover:bg-gray-300"
               onClick={() => {
-                const prefixes = ['EC', 'PC', 'MC'];
-                const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-                const date = new Date();
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const year = String(date.getFullYear()).slice(-2);
-                const serial = Math.floor(Math.random() * 9000) + 1000;
-                setFormData(prev => ({
-                  ...prev,
-                  pcbSrNo: `${prefix}${day}${month}${year}${serial}`
-                }));
+                try {
+                  const pcb = generatePcbNumber(formData.dcNo);
+                  setFormData(prev => ({
+                    ...prev,
+                    pcbSrNo: pcb,
+                  }));
+                } catch (err) {
+                  alert(err instanceof Error ? err.message : 'Failed to generate PCB number');
+                }
               }}
             >
               Generate

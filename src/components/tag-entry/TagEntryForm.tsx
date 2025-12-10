@@ -308,87 +308,6 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
-      {/* Search Bar */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by DC No., Complaint No., Product Sr No., or PCB Sr No."
-            className="flex-1 p-2 border border-gray-300 rounded"
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSearch();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleSearch}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Search
-          </button>
-        </div>
-        
-        {/* Search Results */}
-        {showSearchResults && filteredResults.length > 0 && (
-          <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
-            <div className="p-2 bg-gray-200 font-medium text-sm">Search Results ({filteredResults.length})</div>
-            {filteredResults.map((entry) => (
-              <div
-                key={entry.id}
-                onClick={() => loadEntry(entry)}
-                className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 last:border-b-0"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">DC: {entry.dcNo}</span> | 
-                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
-                    <span className="ml-2">Product Sr: {entry.productSrNo}</span>
-                  </div>
-                  <span className="text-sm text-gray-500">Click to load</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* All Entries List (for Update button) */}
-        {showAllEntries && savedEntries.length > 0 && (
-          <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
-            <div className="p-2 bg-yellow-100 font-medium text-sm flex justify-between items-center">
-              <span>All Entries ({savedEntries.length}) - Click to load</span>
-              <button
-                type="button"
-                onClick={() => setShowAllEntries(false)}
-                className="text-xs bg-gray-300 px-2 py-1 rounded hover:bg-gray-400"
-              >
-                Close
-              </button>
-            </div>
-            {savedEntries.map((entry) => (
-              <div
-                key={entry.id}
-                onClick={() => loadEntry(entry)}
-                className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-200 last:border-b-0"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">Sr. No: {entry.srNo}</span> | 
-                    <span className="ml-2">DC: {entry.dcNo}</span> | 
-                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
-                    <span className="ml-2">Product Sr: {entry.productSrNo}</span>
-                  </div>
-                  <span className="text-sm text-gray-500">Click to load</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Sr. No.:</label>
@@ -594,6 +513,88 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
         >
           Save
         </button>
+      </div>
+
+      {/* Search Bar (moved below action buttons) */}
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by DC No., Complaint No., Product Sr No., or PCB Sr No."
+            className="flex-1 p-2 border border-gray-300 rounded"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSearch();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleSearch}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Search
+          </button>
+        </div>
+        
+        {/* Search Results */}
+        {showSearchResults && filteredResults.length > 0 && (
+          <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
+            <div className="p-2 bg-gray-200 font-medium text-sm">Search Results ({filteredResults.length})</div>
+            {filteredResults.map((entry) => (
+              <div
+                key={entry.id}
+                onClick={() => loadEntry(entry)}
+                className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 last:border-b-0"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-medium">DC: {entry.dcNo}</span> | 
+                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
+                    <span className="ml-2">Product Sr: {entry.productSrNo}</span>
+                  </div>
+                  <span className="text-sm text-gray-500">Click to load</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* All Entries List (for Update button) */}
+        {showAllEntries && savedEntries.length > 0 && (
+          <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
+            <div className="p-2 bg-yellow-100 font-medium text-sm flex justify-between items-center">
+              <span>All Entries ({savedEntries.length}) - Click to load</span>
+              <button
+                type="button"
+                onClick={() => setShowAllEntries(false)}
+                className="text-xs bg-gray-300 px-2 py-1 rounded hover:bg-gray-400"
+              >
+                Close
+              </button>
+            </div>
+            {savedEntries.map((entry) => (
+              <div
+                key={entry.id}
+                onClick={() => loadEntry(entry)}
+                className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-200 last:border-b-0"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-medium">Sr. No: {entry.srNo}</span> | 
+                    <span className="ml-2">DC: {entry.dcNo}</span> | 
+                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
+                    <span className="ml-2">Product Sr: {entry.productSrNo}</span>
+                  </div>
+                  <span className="text-sm text-gray-500">Click to load</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </form>
   );

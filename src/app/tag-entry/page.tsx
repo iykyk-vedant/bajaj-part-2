@@ -81,7 +81,7 @@ export default function TagEntryPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Navbar */}
-      <header className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between shadow">
+      {/* <header className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between shadow">
         <h1 className="text-2xl font-bold">Bajaj Electronics - Tag Entry</h1>
         <div className="flex gap-3">
           <button 
@@ -98,7 +98,7 @@ export default function TagEntryPage() {
             Logout
           </button>
         </div>
-      </header>
+      </header> */}
 
       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6">
 

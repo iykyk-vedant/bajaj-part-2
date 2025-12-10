@@ -114,9 +114,9 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
   return (
     <div className="flex-1 bg-white rounded-lg shadow-md p-6">
       {/* Header */}
-      <div className="bg-gray-800 text-white p-4 rounded-lg mb-6">
+      {/* <div className="bg-gray-800 text-white p-4 rounded-lg mb-6">
         <h1 className="text-2xl font-bold">Bajaj Electronics - Tag Entry</h1>
-      </div>
+      </div> */}
 
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200 mb-6">

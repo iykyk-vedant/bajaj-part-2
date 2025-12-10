@@ -349,7 +349,7 @@ export default function Home() {
             <h1 className="text-2xl font-bold font-headline text-primary">NexScan</h1>
           </div>
           <div className="flex items-center gap-2">
-             <Button 
+             {/* <Button 
                 variant="outline" 
                 onClick={() => setIsSheetOverviewOpen(true)} 
                 disabled={!activeSheet || activeSheet.data.length === 0}
@@ -360,7 +360,7 @@ export default function Home() {
             <Button onClick={exportToCSV} disabled={!activeSheet || activeSheet.data.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Export CSV
-            </Button>
+            </Button> */}
             <Button 
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={handleExportExcel}

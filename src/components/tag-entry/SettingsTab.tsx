@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 
-export function SettingsTab() {
+interface SettingsTabProps {
+  dcNumbers: string[];
+  onAddDcNumber: (dcNo: string) => void;
+}
+
+export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [userId, setUserId] = useState('');
@@ -11,8 +16,22 @@ export function SettingsTab() {
   const [engineerName, setEngineerName] = useState('');
 
   const handleCreateDC = () => {
-    // Implementation for creating DC
-    console.log('Creating DC with:', { dcNo, partCode });
+    if (dcNo.trim()) {
+      onAddDcNumber(dcNo.trim());
+      setDcNo('');
+      setPartCode('');
+      // Show success message
+      alert(`DC Number "${dcNo.trim()}" has been created successfully!`);
+    } else {
+      alert('Please enter a DC Number');
+    }
+  };
+
+  const handleResetPcbCounter = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pcb-serial-counter', '1');
+      alert('PCB serial counter reset to 0001. Next generated PCB number will start from 1.');
+    }
   };
 
   const handleAddUser = () => {
@@ -159,6 +178,12 @@ export function SettingsTab() {
             >
               Export
             </button>
+            <button
+              onClick={handleResetPcbCounter}
+              className="w-full bg-slate-600 hover:bg-slate-700 text-white p-2 rounded"
+            >
+              Reset PCB Serial Counter
+            </button>
           </div>
         </div>
 
@@ -170,7 +195,9 @@ export function SettingsTab() {
               <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
               <select className="w-full p-2 border border-gray-300 rounded">
                 <option value="">Select DC No.</option>
-                <option value="RC00123">RC00123</option>
+                {dcNumbers.map((dc) => (
+                  <option key={dc} value={dc}>{dc}</option>
+                ))}
               </select>
             </div>
             <div>

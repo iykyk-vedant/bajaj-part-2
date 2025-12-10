@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { TagEntryForm } from './tag-entry/TagEntryForm';
 import { ConsumptionTab } from './tag-entry/ConsumptionTab';
 import { SettingsTab } from './tag-entry/SettingsTab';
-import { FindPCBSection } from './tag-entry/FindPCBSection';
+import { FindTab } from './tag-entry/FindTab';
 import { StatusBar } from './tag-entry/StatusBar';
 
 interface ValidateDataSectionProps {
@@ -16,9 +16,38 @@ interface ValidateDataSectionProps {
 }
 
 export function ValidateDataSection({ initialData, isLoading, onSave, sheetActive, onFormChange }: ValidateDataSectionProps) {
-  const [activeTab, setActiveTab] = useState<'tag-entry' | 'consumption' | 'settings'>('tag-entry');
+  const [activeTab, setActiveTab] = useState<'tag-entry' | 'consumption' | 'settings' | 'find'>('tag-entry');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  
+  // Initialize DC numbers from localStorage or use default values
+  const [dcNumbers, setDcNumbers] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('dc-numbers');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          return ['DC001', 'DC002'];
+        }
+      }
+    }
+    return ['DC001', 'DC002'];
+  });
+
+  // Save DC numbers to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
+    }
+  }, [dcNumbers]);
+
+  // Function to add a new DC number
+  const addDcNumber = (dcNo: string) => {
+    if (dcNo && !dcNumbers.includes(dcNo)) {
+      setDcNumbers(prev => [...prev, dcNo]);
+    }
+  };
 
   useEffect(() => {
     // Update current time every second
@@ -85,15 +114,9 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
   return (
     <div className="flex-1 bg-white rounded-lg shadow-md p-6">
       {/* Header */}
-      <div className="bg-gray-800 text-white p-4 rounded-lg mb-6 flex justify-between items-center">
+      {/* <div className="bg-gray-800 text-white p-4 rounded-lg mb-6">
         <h1 className="text-2xl font-bold">Bajaj Electronics - Tag Entry</h1>
-        <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
-          Logout
-        </button>
-      </div>
-
-      {/* Find PCB Section */}
-      <FindPCBSection />
+      </div> */}
 
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200 mb-6">
@@ -127,13 +150,24 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
         >
           Settings
         </button>
+        <button
+          className={`py-2 px-4 font-medium text-sm ${
+            activeTab === 'find'
+              ? 'border-b-2 border-blue-500 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => setActiveTab('find')}
+        >
+          Find
+        </button>
       </div>
 
       {/* Tab Content */}
       <div className="mb-6">
-        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} />}
+        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={dcNumbers} />}
         {activeTab === 'consumption' && <ConsumptionTab />}
-        {activeTab === 'settings' && <SettingsTab />}
+        {activeTab === 'settings' && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
+        {activeTab === 'find' && <FindTab dcNumbers={dcNumbers} />}
       </div>
 
       {/* Status Bar */}

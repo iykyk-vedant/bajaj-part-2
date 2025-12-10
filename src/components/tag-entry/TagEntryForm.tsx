@@ -1,14 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { TagEntry } from '@/lib/tag-entry/types';
 
 interface TagEntryFormProps {
   initialData?: any;
   dcNumbers?: string[];
 }
 
+const STORAGE_KEY = 'tag-entries';
+
 export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: TagEntryFormProps) {
   const [formData, setFormData] = useState({
+    id: '',
     srNo: '001',
     dcNo: '',
     branch: 'Mumbai', // Set default branch
@@ -23,6 +27,36 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
     mfgMonthYear: '',
     pcbSrNo: 'EC0112234567',
   });
+
+  const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showAllEntries, setShowAllEntries] = useState(false);
+
+  // Load saved entries from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          setSavedEntries(JSON.parse(stored));
+        } catch (e) {
+          console.error('Error loading entries:', e);
+        }
+      }
+    }
+  }, []);
+
+  // Get next serial number based on existing entries
+  useEffect(() => {
+    if (savedEntries.length > 0 && !formData.id) {
+      const maxSrNo = Math.max(
+        ...savedEntries.map(entry => parseInt(entry.srNo) || 0)
+      );
+      const nextSrNo = String(maxSrNo + 1).padStart(3, '0');
+      setFormData(prev => ({ ...prev, srNo: nextSrNo }));
+    }
+  }, [savedEntries, formData.id]);
 
   // Update form data when initialData changes
   useEffect(() => {
@@ -54,30 +88,269 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implementation for saving data
-    console.log('Saving data:', formData);
+    
+    // Validate required fields
+    if (!formData.dcNo || !formData.productSrNo || !formData.complaintNo) {
+      alert('Please fill in all required fields: DC No., Product Sr No., and Complaint No.');
+      return;
+    }
+
+    const entryToSave: TagEntry = {
+      id: formData.id || Date.now().toString(),
+      srNo: formData.srNo,
+      dcNo: formData.dcNo,
+      branch: formData.branch,
+      bccdName: formData.bccdName,
+      productDescription: formData.productDescription,
+      productSrNo: formData.productSrNo,
+      dateOfPurchase: formData.dateOfPurchase,
+      complaintNo: formData.complaintNo,
+      partCode: formData.partCode,
+      natureOfDefect: formData.natureOfDefect,
+      visitingTechName: formData.visitingTechName,
+      mfgMonthYear: formData.mfgMonthYear,
+      pcbSrNo: formData.pcbSrNo,
+    };
+
+    let updatedEntries: TagEntry[];
+    if (formData.id) {
+      // Update existing entry
+      updatedEntries = savedEntries.map(entry => 
+        entry.id === formData.id ? entryToSave : entry
+      );
+      alert('Entry updated successfully!');
+    } else {
+      // Create new entry
+      updatedEntries = [...savedEntries, entryToSave];
+      alert('Entry saved successfully!');
+    }
+
+    setSavedEntries(updatedEntries);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
+    }
+
+    // Reset form after save
+    handleClear();
+  };
+
+  const handleUpdate = () => {
+    if (savedEntries.length === 0) {
+      alert('No saved entries found. Please save an entry first.');
+      return;
+    }
+    
+    // Show all entries for selection
+    setShowAllEntries(true);
+    setShowSearchResults(false);
+  };
+
+  const handleDelete = () => {
+    if (!formData.id) {
+      alert('Please search and select an entry to delete first.');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this entry?')) {
+      return;
+    }
+
+    const updatedEntries = savedEntries.filter(entry => entry.id !== formData.id);
+    setSavedEntries(updatedEntries);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
+    }
+
+    alert('Entry deleted successfully!');
+    handleClear();
   };
 
   const handleClear = () => {
+    const nextSrNo = savedEntries.length > 0 
+      ? String(Math.max(...savedEntries.map(e => parseInt(e.srNo) || 0)) + 1).padStart(3, '0')
+      : '001';
+    
     setFormData({
-      srNo: '001',
+      id: '',
+      srNo: nextSrNo,
       dcNo: '',
-      branch: 'Mumbai', // Reset to default branch
-      bccdName: 'BCCD-001', // Reset to default BCCD name
+      branch: 'Mumbai',
+      bccdName: 'BCCD-001',
       productDescription: '',
       productSrNo: '',
       dateOfPurchase: '',
       complaintNo: '',
       partCode: '',
-      natureOfDefect: '', // Reset to empty
+      natureOfDefect: '',
       visitingTechName: '',
       mfgMonthYear: '',
       pcbSrNo: 'EC0112234567',
     });
+    setShowSearchResults(false);
+    setShowAllEntries(false);
+    setSearchQuery('');
   };
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      alert('Please enter a search term (DC No., Complaint No., or Product Sr No.)');
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    const results = savedEntries.filter(entry =>
+      entry.dcNo.toLowerCase().includes(query) ||
+      entry.complaintNo.toLowerCase().includes(query) ||
+      entry.productSrNo.toLowerCase().includes(query) ||
+      entry.pcbSrNo.toLowerCase().includes(query)
+    );
+
+    if (results.length === 0) {
+      alert('No entries found matching your search.');
+      return;
+    }
+
+    // If only one result, load it directly
+    if (results.length === 1) {
+      const entry = results[0];
+      setFormData({
+        id: entry.id || '',
+        srNo: entry.srNo,
+        dcNo: entry.dcNo,
+        branch: entry.branch,
+        bccdName: entry.bccdName,
+        productDescription: entry.productDescription,
+        productSrNo: entry.productSrNo,
+        dateOfPurchase: entry.dateOfPurchase,
+        complaintNo: entry.complaintNo,
+        partCode: entry.partCode,
+        natureOfDefect: entry.natureOfDefect,
+        visitingTechName: entry.visitingTechName,
+        mfgMonthYear: entry.mfgMonthYear,
+        pcbSrNo: entry.pcbSrNo,
+      });
+      setShowSearchResults(false);
+      setSearchQuery('');
+      alert('Entry loaded successfully!');
+    } else {
+      // Show multiple results - user can select
+      setShowSearchResults(true);
+    }
+  };
+
+  const loadEntry = (entry: TagEntry) => {
+    setFormData({
+      id: entry.id || '',
+      srNo: entry.srNo,
+      dcNo: entry.dcNo,
+      branch: entry.branch,
+      bccdName: entry.bccdName,
+      productDescription: entry.productDescription,
+      productSrNo: entry.productSrNo,
+      dateOfPurchase: entry.dateOfPurchase,
+      complaintNo: entry.complaintNo,
+      partCode: entry.partCode,
+      natureOfDefect: entry.natureOfDefect,
+      visitingTechName: entry.visitingTechName,
+      mfgMonthYear: entry.mfgMonthYear,
+      pcbSrNo: entry.pcbSrNo,
+    });
+    setShowSearchResults(false);
+    setShowAllEntries(false);
+    setSearchQuery('');
+  };
+
+  const filteredResults = savedEntries.filter(entry =>
+    searchQuery.toLowerCase().trim() === '' ||
+    entry.dcNo.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+    entry.complaintNo.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+    entry.productSrNo.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+    entry.pcbSrNo.toLowerCase().includes(searchQuery.toLowerCase().trim())
+  );
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
+      {/* Search Bar */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by DC No., Complaint No., Product Sr No., or PCB Sr No."
+            className="flex-1 p-2 border border-gray-300 rounded"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSearch();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleSearch}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Search
+          </button>
+        </div>
+        
+        {/* Search Results */}
+        {showSearchResults && filteredResults.length > 0 && (
+          <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
+            <div className="p-2 bg-gray-200 font-medium text-sm">Search Results ({filteredResults.length})</div>
+            {filteredResults.map((entry) => (
+              <div
+                key={entry.id}
+                onClick={() => loadEntry(entry)}
+                className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 last:border-b-0"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-medium">DC: {entry.dcNo}</span> | 
+                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
+                    <span className="ml-2">Product Sr: {entry.productSrNo}</span>
+                  </div>
+                  <span className="text-sm text-gray-500">Click to load</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* All Entries List (for Update button) */}
+        {showAllEntries && savedEntries.length > 0 && (
+          <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
+            <div className="p-2 bg-yellow-100 font-medium text-sm flex justify-between items-center">
+              <span>All Entries ({savedEntries.length}) - Click to load</span>
+              <button
+                type="button"
+                onClick={() => setShowAllEntries(false)}
+                className="text-xs bg-gray-300 px-2 py-1 rounded hover:bg-gray-400"
+              >
+                Close
+              </button>
+            </div>
+            {savedEntries.map((entry) => (
+              <div
+                key={entry.id}
+                onClick={() => loadEntry(entry)}
+                className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-200 last:border-b-0"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-medium">Sr. No: {entry.srNo}</span> | 
+                    <span className="ml-2">DC: {entry.dcNo}</span> | 
+                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
+                    <span className="ml-2">Product Sr: {entry.productSrNo}</span>
+                  </div>
+                  <span className="text-sm text-gray-500">Click to load</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Sr. No.:</label>
@@ -266,13 +539,16 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
         </button>
         <button
           type="button"
+          onClick={handleUpdate}
           className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
         >
           Update
         </button>
         <button
           type="button"
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          onClick={handleDelete}
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          disabled={!formData.id}
         >
           Delete
         </button>

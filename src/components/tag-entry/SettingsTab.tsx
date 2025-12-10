@@ -27,6 +27,13 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
     }
   };
 
+  const handleResetPcbCounter = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pcb-serial-counter', '1');
+      alert('PCB serial counter reset to 0001. Next generated PCB number will start from 1.');
+    }
+  };
+
   const handleAddUser = () => {
     // Implementation for adding user
     console.log('Adding user with:', { userId, password, userStatus });
@@ -170,6 +177,12 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
               className="w-full bg-orange-500 hover:bg-orange-600 text-white p-2 rounded"
             >
               Export
+            </button>
+            <button
+              onClick={handleResetPcbCounter}
+              className="w-full bg-slate-600 hover:bg-slate-700 text-white p-2 rounded"
+            >
+              Reset PCB Serial Counter
             </button>
           </div>
         </div>

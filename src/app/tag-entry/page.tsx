@@ -79,27 +79,28 @@ export default function TagEntryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6">
-        {/* Header */}
-        <div className="bg-gray-800 text-white p-4 rounded-lg mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Bajaj Electronics - Tag Entry</h1>
-          <div className="flex gap-2">
-            <button 
-              onClick={handleExportExcel}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
-              title="Export all tag entries to Excel"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export Excel
-            </button>
-            <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
-              Logout
-            </button>
-          </div>
+    <div className="min-h-screen bg-gray-100">
+      {/* Navbar */}
+      <header className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between shadow">
+        <h1 className="text-2xl font-bold">Bajaj Electronics - Tag Entry</h1>
+        <div className="flex gap-3">
+          <button 
+            onClick={handleExportExcel}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
+            title="Export all tag entries to Excel"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export Excel
+          </button>
+          <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+            Logout
+          </button>
         </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6">
 
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-6">

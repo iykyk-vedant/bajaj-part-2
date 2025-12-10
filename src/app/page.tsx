@@ -10,6 +10,7 @@ import { ValidateDataSection } from '@/components/validate-data-section';
 import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SheetOverview } from '@/components/sheet-overview';
+import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -327,6 +328,18 @@ export default function Home() {
   
   const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
 
+  const handleExportExcel = async () => {
+    try {
+      await exportTagEntriesToExcel();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Export failed',
+        description: error instanceof Error ? error.message : 'Failed to export Excel file',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="p-4 border-b bg-card/50 backdrop-blur-lg sticky top-0 z-20">
@@ -347,6 +360,13 @@ export default function Home() {
             <Button onClick={exportToCSV} disabled={!activeSheet || activeSheet.data.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Export CSV
+            </Button>
+            <Button 
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleExportExcel}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export Excel
             </Button>
             
             <DropdownMenu>

@@ -69,7 +69,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
   const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [showAllEntries, setShowAllEntries] = useState(false);
+  const [showSavedList, setShowSavedList] = useState(false);
 
   // Load saved entries from localStorage
   useEffect(() => {
@@ -170,6 +170,9 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
 
     // Reset form after save
     handleClear();
+    // Show saved list after save
+    setShowSavedList(true);
+    setShowSearchResults(false);
   };
 
   const handleUpdate = () => {
@@ -179,7 +182,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
     }
     
     // Show all entries for selection
-    setShowAllEntries(true);
+    setShowSavedList(true);
     setShowSearchResults(false);
   };
 
@@ -225,7 +228,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
       pcbSrNo: 'EC0112234567',
     });
     setShowSearchResults(false);
-    setShowAllEntries(false);
+    setShowSavedList(false);
     setSearchQuery('');
   };
 
@@ -294,7 +297,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
       pcbSrNo: entry.pcbSrNo,
     });
     setShowSearchResults(false);
-    setShowAllEntries(false);
+    setShowSavedList(false);
     setSearchQuery('');
   };
 
@@ -515,29 +518,46 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
         </button>
       </div>
 
-      {/* Search Bar (moved below action buttons) */}
+      {/* Search Bar (below action buttons) */}
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by DC No., Complaint No., Product Sr No., or PCB Sr No."
-            className="flex-1 p-2 border border-gray-300 rounded"
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSearch();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleSearch}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Search
-          </button>
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by DC No., Complaint No., Product Sr No., or PCB Sr No."
+              className="flex-1 p-2 border border-gray-300 rounded"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Search
+            </button>
+          </div>
+
+          <div className="flex gap-2 items-center">
+            <button
+              type="button"
+              onClick={() => setShowSavedList(prev => !prev)}
+              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+            >
+              {showSavedList ? 'Hide saved list' : 'Show saved list'}
+            </button>
+            {savedEntries.length > 0 && !showSavedList && (
+              <span className="text-sm text-gray-600">
+                Saved entries: {savedEntries.length}
+              </span>
+            )}
+          </div>
         </div>
         
         {/* Search Results */}
@@ -563,14 +583,14 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
           </div>
         )}
 
-        {/* All Entries List (for Update button) */}
-        {showAllEntries && savedEntries.length > 0 && (
+        {/* Saved Entries List */}
+        {showSavedList && savedEntries.length > 0 && (
           <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
             <div className="p-2 bg-yellow-100 font-medium text-sm flex justify-between items-center">
               <span>All Entries ({savedEntries.length}) - Click to load</span>
               <button
                 type="button"
-                onClick={() => setShowAllEntries(false)}
+                onClick={() => setShowSavedList(false)}
                 className="text-xs bg-gray-300 px-2 py-1 rounded hover:bg-gray-400"
               >
                 Close

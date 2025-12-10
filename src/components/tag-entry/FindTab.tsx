@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 
-export function FindTab() {
+interface FindTabProps {
+  dcNumbers?: string[];
+}
+
+export function FindTab({ dcNumbers = ['DC001', 'DC002', 'DC003', 'DC004'] }: FindTabProps) {
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [srNo, setSrNo] = useState('');
@@ -25,10 +29,9 @@ export function FindTab() {
             className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select DC No.</option>
-            <option value="DC001">DC001</option>
-            <option value="DC002">DC002</option>
-            <option value="DC003">DC003</option>
-            <option value="DC004">DC004</option>
+            {dcNumbers.map((dc) => (
+              <option key={dc} value={dc}>{dc}</option>
+            ))}
           </select>
         </div>
         <div>

@@ -19,6 +19,35 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
   const [activeTab, setActiveTab] = useState<'tag-entry' | 'consumption' | 'settings' | 'find'>('tag-entry');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  
+  // Initialize DC numbers from localStorage or use default values
+  const [dcNumbers, setDcNumbers] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('dc-numbers');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          return ['DC001', 'DC002'];
+        }
+      }
+    }
+    return ['DC001', 'DC002'];
+  });
+
+  // Save DC numbers to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
+    }
+  }, [dcNumbers]);
+
+  // Function to add a new DC number
+  const addDcNumber = (dcNo: string) => {
+    if (dcNo && !dcNumbers.includes(dcNo)) {
+      setDcNumbers(prev => [...prev, dcNo]);
+    }
+  };
 
   useEffect(() => {
     // Update current time every second
@@ -138,10 +167,10 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
 
       {/* Tab Content */}
       <div className="mb-6">
-        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} />}
+        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={dcNumbers} />}
         {activeTab === 'consumption' && <ConsumptionTab />}
-        {activeTab === 'settings' && <SettingsTab />}
-        {activeTab === 'find' && <FindTab />}
+        {activeTab === 'settings' && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
+        {activeTab === 'find' && <FindTab dcNumbers={dcNumbers} />}
       </div>
 
       {/* Status Bar */}

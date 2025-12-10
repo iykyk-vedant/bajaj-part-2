@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 
 interface TagEntryFormProps {
   initialData?: any;
+  dcNumbers?: string[];
 }
 
-export function TagEntryForm({ initialData }: TagEntryFormProps) {
+export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: TagEntryFormProps) {
   const [formData, setFormData] = useState({
     srNo: '001',
     dcNo: '',
@@ -97,8 +98,9 @@ export function TagEntryForm({ initialData }: TagEntryFormProps) {
             className="w-full p-2 border border-gray-300 rounded"
           >
             <option value="">Select DC No.</option>
-            <option value="DC001">DC001</option>
-            <option value="DC002">DC002</option>
+            {dcNumbers.map((dc) => (
+              <option key={dc} value={dc}>{dc}</option>
+            ))}
           </select>
         </div>
         <div>

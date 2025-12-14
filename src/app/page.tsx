@@ -369,6 +369,13 @@ export default function Home() {
               Export Excel
             </Button>
             
+            <Button 
+              variant="outline"
+              onClick={() => window.location.href = '/consumption'}
+            >
+              Consumption
+            </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -386,7 +393,7 @@ export default function Home() {
                   <Edit className="mr-2 h-4 w-4" />
                   <span>Rename Current Sheet</span>
                 </DropdownMenuItem>
-                 <DropdownMenuSub>
+                <DropdownMenuSub>
                   <DropdownMenuSubTrigger disabled={sheets.length === 0}>
                     <span>Switch Sheet</span>
                   </DropdownMenuSubTrigger>
@@ -395,13 +402,17 @@ export default function Home() {
                       <DropdownMenuLabel>Select a sheet</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {sheets.map(sheet => (
-                         <DropdownMenuItem key={sheet.id} onClick={() => setActiveSheetId(sheet.id)} disabled={sheet.id === activeSheetId}>
+                        <DropdownMenuItem key={sheet.id} onClick={() => setActiveSheetId(sheet.id)} disabled={sheet.id === activeSheetId}>
                           {sheet.name}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.location.href = '/tag-entry'}>
+                  <span>Tag Entry</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} disabled={!activeSheet} className="text-red-500 focus:text-red-500">
                   <Trash2 className="mr-2 h-4 w-4" />

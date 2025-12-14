@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { TagEntryForm } from './tag-entry/TagEntryForm';
 import { ConsumptionTab } from './tag-entry/ConsumptionTab';
 import { SettingsTab } from './tag-entry/SettingsTab';
-import { FindTab } from './tag-entry/FindTab';
 import { StatusBar } from './tag-entry/StatusBar';
 
 interface ValidateDataSectionProps {
@@ -16,24 +15,27 @@ interface ValidateDataSectionProps {
 }
 
 export function ValidateDataSection({ initialData, isLoading, onSave, sheetActive, onFormChange }: ValidateDataSectionProps) {
-  const [activeTab, setActiveTab] = useState<'tag-entry' | 'consumption' | 'settings' | 'find'>('tag-entry');
+  const [activeTab, setActiveTab] = useState<'tag-entry' | 'settings'>('tag-entry');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   
-  // Initialize DC numbers from localStorage or use default values
-  const [dcNumbers, setDcNumbers] = useState<string[]>(() => {
+  // Initialize DC numbers - use default values initially
+  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+
+  // Load DC numbers from localStorage after mount
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('dc-numbers');
       if (stored) {
         try {
-          return JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          setDcNumbers(parsed);
         } catch (e) {
-          return ['DC001', 'DC002'];
+          // Keep default values if parsing fails
         }
       }
     }
-    return ['DC001', 'DC002'];
-  });
+  }, []);
 
   // Save DC numbers to localStorage whenever they change
   useEffect(() => {
@@ -132,16 +134,6 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
         </button>
         <button
           className={`py-2 px-4 font-medium text-sm ${
-            activeTab === 'consumption'
-              ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => setActiveTab('consumption')}
-        >
-          Consumption
-        </button>
-        <button
-          className={`py-2 px-4 font-medium text-sm ${
             activeTab === 'settings'
               ? 'border-b-2 border-blue-500 text-blue-600'
               : 'text-gray-500 hover:text-gray-700'
@@ -150,24 +142,12 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
         >
           Settings
         </button>
-        <button
-          className={`py-2 px-4 font-medium text-sm ${
-            activeTab === 'find'
-              ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => setActiveTab('find')}
-        >
-          Find
-        </button>
       </div>
 
       {/* Tab Content */}
       <div className="mb-6">
         {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={dcNumbers} />}
-        {activeTab === 'consumption' && <ConsumptionTab />}
         {activeTab === 'settings' && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
-        {activeTab === 'find' && <FindTab dcNumbers={dcNumbers} />}
       </div>
 
       {/* Status Bar */}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { TagEntryForm } from "../../components/tag-entry/TagEntryForm";
-import { ConsumptionTab } from "../../components/tag-entry/ConsumptionTab";
 import { SettingsTab } from "../../components/tag-entry/SettingsTab";
 import { FindTab } from "../../components/tag-entry/FindTab";
 import { StatusBar } from "../../components/tag-entry/StatusBar";
@@ -10,25 +9,28 @@ import { exportTagEntriesToExcel } from "@/lib/tag-entry/export-utils";
 
 export default function TagEntryPage() {
   const [activeTab, setActiveTab] = useState<
-    "tag-entry" | "consumption" | "settings" | "find"
+    "tag-entry" | "settings" | "find"
   >("tag-entry");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   
-  // Initialize DC numbers from localStorage or use default values
-  const [dcNumbers, setDcNumbers] = useState<string[]>(() => {
+  // Initialize DC numbers - use default values initially
+  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+
+  // Load DC numbers from localStorage after mount
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('dc-numbers');
       if (stored) {
         try {
-          return JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          setDcNumbers(parsed);
         } catch (e) {
-          return ['DC001', 'DC002'];
+          // Keep default values if parsing fails
         }
       }
     }
-    return ['DC001', 'DC002'];
-  });
+  }, []);
 
   // Save DC numbers to localStorage whenever they change
   useEffect(() => {
@@ -101,7 +103,6 @@ export default function TagEntryPage() {
       </header> */}
 
       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6">
-
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-6">
           <button
@@ -116,13 +117,13 @@ export default function TagEntryPage() {
           </button>
           <button
             className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "consumption"
+              activeTab === "find"
                 ? "border-b-2 border-blue-500 text-blue-600"
                 : "text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab("consumption")}
+            onClick={() => setActiveTab("find")}
           >
-            Consumption
+            Find
           </button>
           <button
             className={`py-2 px-4 font-medium text-sm ${
@@ -134,24 +135,13 @@ export default function TagEntryPage() {
           >
             Settings
           </button>
-          <button
-            className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "find"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("find")}
-          >
-            Find
-          </button>
         </div>
 
         {/* Tab Content */}
         <div className="mb-6">
           {activeTab === "tag-entry" && <TagEntryForm dcNumbers={dcNumbers} />}
-          {activeTab === "consumption" && <ConsumptionTab />}
-          {activeTab === "settings" && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
           {activeTab === "find" && <FindTab dcNumbers={dcNumbers} />}
+          {activeTab === "settings" && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
         </div>
 
         {/* Status Bar */}

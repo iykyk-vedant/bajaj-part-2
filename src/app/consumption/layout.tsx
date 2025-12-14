@@ -4,7 +4,7 @@ export default function ConsumptionLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="w-full h-screen overflow-hidden">
+    <div className="w-full h-screen overflow-auto">
       {children}
     </div>
   );

@@ -18,7 +18,10 @@ export default function TagEntryPage() {
   const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
   
   // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
+    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
+    'DC002': ['PCB-004', 'PCB-005']
+  });
 
   // Load DC numbers and mappings from localStorage after mount
   useEffect(() => {
@@ -69,12 +72,15 @@ export default function TagEntryPage() {
     if (partCode) {
       setDcPartCodes(prev => {
         const currentPartCodes = prev[dcNo] || [];
+        
+        // Only add the part code if it doesn't already exist
         if (!currentPartCodes.includes(partCode)) {
           return {
             ...prev,
             [dcNo]: [...currentPartCodes, partCode]
           };
         }
+        // If part code already exists, return the previous state
         return prev;
       });
     }

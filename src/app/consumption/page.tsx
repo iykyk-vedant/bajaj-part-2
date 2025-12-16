@@ -12,7 +12,10 @@ export default function ConsumptionPage() {
   const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
   
   // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
+    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
+    'DC002': ['PCB-004', 'PCB-005']
+  });
 
   // Load DC numbers and mappings from localStorage after mount
   useEffect(() => {

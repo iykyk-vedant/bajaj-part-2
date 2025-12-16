@@ -234,7 +234,7 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
               <select className="w-full p-2 border border-gray-300 rounded">
                 <option value="">Select Part Code</option>
-                <option value="1001">1001</option>
+                {/* TODO: Implement dynamic Part Code selection based on selected DC */}
               </select>
             </div>
             <div className="flex items-end">

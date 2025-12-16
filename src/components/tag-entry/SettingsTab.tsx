@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface SettingsTabProps {
   dcNumbers: string[];
-  onAddDcNumber: (dcNo: string) => void;
+  onAddDcNumber: (dcNo: string, partCode: string) => void;
 }
 
 export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
@@ -17,20 +17,13 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
 
   const handleCreateDC = () => {
     if (dcNo.trim()) {
-      onAddDcNumber(dcNo.trim());
+      onAddDcNumber(dcNo.trim(), partCode.trim());
       setDcNo('');
       setPartCode('');
       // Show success message
-      alert(`DC Number "${dcNo.trim()}" has been created successfully!`);
+      alert(`DC Number "${dcNo.trim()}" with Part Code "${partCode.trim()}" has been created successfully!`);
     } else {
       alert('Please enter a DC Number');
-    }
-  };
-
-  const handleResetPcbCounter = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('pcb-serial-counter', '1');
-      alert('PCB serial counter reset to 0001. Next generated PCB number will start from 1.');
     }
   };
 
@@ -54,10 +47,47 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
     console.log('Exporting data');
   };
 
+  const handleResetPcbCounter = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pcb-serial-counter', '1');
+      alert('PCB serial counter reset to 0001. Next generated PCB number will start from 1.');
+    }
+  };
+
   const handleDispatch = () => {
     // Implementation for dispatching
     console.log('Dispatching');
   };
+
+  // Keyboard shortcut handler for Settings form
+  const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
+    // Only handle Alt key combinations
+    if (!e.altKey) return;
+    
+    // Prevent browser default behavior for these shortcuts
+    switch (e.key.toLowerCase()) {
+      case 's':
+        e.preventDefault();
+        handleCreateTable();
+        break;
+      case 'e':
+        e.preventDefault();
+        handleExport();
+        break;
+      default:
+        break;
+    }
+  }, []);
+
+  // Add keyboard event listener
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyboardShortcut as EventListener);
+      return () => {
+        window.removeEventListener('keydown', handleKeyboardShortcut as EventListener);
+      };
+    }
+  }, [handleKeyboardShortcut]);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
@@ -170,13 +200,13 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
               onClick={handleCreateTable}
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded"
             >
-              CreateTable
+              CreateTable (Alt+S)
             </button>
             <button
               onClick={handleExport}
               className="w-full bg-orange-500 hover:bg-orange-600 text-white p-2 rounded"
             >
-              Export
+              Export (Alt+E)
             </button>
             <button
               onClick={handleResetPcbCounter}

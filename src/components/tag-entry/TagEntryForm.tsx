@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TagEntry } from '@/lib/tag-entry/types';
 
 interface TagEntryFormProps {
   initialData?: any;
   dcNumbers?: string[];
+  dcPartCodes?: Record<string, string[]>;
 }
 
 const STORAGE_KEY = 'tag-entries';
@@ -48,7 +49,7 @@ const generatePcbNumber = (dcNo: string) => {
   return `ES${middle}${last4}${day}${monthCode}${year}${counterStr}`;
 };
 
-export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: TagEntryFormProps) {
+export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPartCodes = {} }: TagEntryFormProps) {
   const [formData, setFormData] = useState({
     id: '',
     srNo: '001',
@@ -99,6 +100,13 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
   // Update form data when initialData changes
   useEffect(() => {
     if (initialData) {
+      // Convert mfgMonthYear format if needed (from YYYY-MM to MM/YYYY)
+      let mfgMonthYear = initialData.mfgMonthYear || '';
+      if (mfgMonthYear && mfgMonthYear.length === 7 && mfgMonthYear[4] === '-') {
+        const [year, month] = mfgMonthYear.split('-');
+        mfgMonthYear = `${month}/${year}`;
+      }
+      
       setFormData(prev => ({
         ...prev,
         branch: initialData.branch || 'Mumbai', // Default to Mumbai if not provided
@@ -110,7 +118,8 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
         partCode: initialData.sparePartCode || '',
         natureOfDefect: initialData.natureOfDefect || '', // Populate from image
         visitingTechName: initialData.technicianName || '',
-        // Note: dcNo, mfgMonthYear, and pcbSrNo are not in the extraction schema
+        mfgMonthYear: mfgMonthYear,
+        // Note: dcNo, and pcbSrNo are not in the extraction schema
         // They will retain their default values or user input
       }));
     }
@@ -118,10 +127,37 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Handle mfgMonthYear field specially to validate and format MM/YYYY
+    if (name === 'mfgMonthYear') {
+      // Allow only digits and forward slash
+      if (!/^[0-9\/]*$/.test(value) && value !== '') {
+        return; // Don't update if invalid characters
+      }
+      
+      let formattedValue = value;
+      
+      // Auto-format as user types
+      if (value.length === 2 && !value.includes('/')) {
+        formattedValue = value + '/';
+      } else if (value.length === 3 && !value.endsWith('/')) {
+        // Handle case where user pastes 3 digits without slash
+        formattedValue = value.substring(0, 2) + '/' + value.substring(2);
+      } else if (value.length > 7) {
+        // Limit to MM/YYYY format (7 characters max)
+        formattedValue = value.substring(0, 7);
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: formattedValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -132,7 +168,35 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
       alert('Please fill in all required fields: DC No., Product Sr No., and Complaint No.');
       return;
     }
-
+    
+    // Validate Mfg Month/Year format if provided
+    if (formData.mfgMonthYear) {
+      const parts = formData.mfgMonthYear.split('/');
+      if (parts.length !== 2) {
+        alert('Mfg Month/Year must be in MM/YYYY format');
+        return;
+      }
+      
+      const [month, year] = parts;
+      const monthNum = parseInt(month, 10);
+      const yearNum = parseInt(year, 10);
+      
+      if (isNaN(monthNum) || isNaN(yearNum) || month.length !== 2 || year.length !== 4) {
+        alert('Mfg Month/Year must be in MM/YYYY format (e.g., 05/2025)');
+        return;
+      }
+      
+      if (monthNum < 1 || monthNum > 12) {
+        alert('Month must be between 01 and 12');
+        return;
+      }
+      
+      if (yearNum < 1900 || yearNum > 2100) {
+        alert('Year must be between 1900 and 2100');
+        return;
+      }
+    }
+    
     const entryToSave: TagEntry = {
       id: formData.id || Date.now().toString(),
       srNo: formData.srNo,
@@ -280,6 +344,13 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
   };
 
   const loadEntry = (entry: TagEntry) => {
+    // Convert mfgMonthYear format if needed (from YYYY-MM to MM/YYYY)
+    let mfgMonthYear = entry.mfgMonthYear || '';
+    if (mfgMonthYear && mfgMonthYear.length === 7 && mfgMonthYear[4] === '-') {
+      const [year, month] = mfgMonthYear.split('-');
+      mfgMonthYear = `${month}/${year}`;
+    }
+    
     setFormData({
       id: entry.id || '',
       srNo: entry.srNo,
@@ -293,7 +364,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
       partCode: entry.partCode,
       natureOfDefect: entry.natureOfDefect,
       visitingTechName: entry.visitingTechName,
-      mfgMonthYear: entry.mfgMonthYear,
+      mfgMonthYear: mfgMonthYear,
       pcbSrNo: entry.pcbSrNo,
     });
     setShowSearchResults(false);
@@ -308,6 +379,46 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
     entry.productSrNo.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
     entry.pcbSrNo.toLowerCase().includes(searchQuery.toLowerCase().trim())
   );
+
+  // Keyboard shortcut handler
+  const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
+    // Only handle Alt key combinations
+    if (!e.altKey) return;
+    
+    // Prevent browser default behavior for these shortcuts
+    switch (e.key.toLowerCase()) {
+      case 's':
+        e.preventDefault();
+        handleSubmit(e as unknown as React.FormEvent);
+        break;
+      case 'd':
+        e.preventDefault();
+        if (formData.id) {
+          handleDelete();
+        }
+        break;
+      case 'c':
+        e.preventDefault();
+        handleClear();
+        break;
+      case 'u':
+        e.preventDefault();
+        handleUpdate();
+        break;
+      default:
+        break;
+    }
+  }, [formData.id]);
+
+  // Add keyboard event listener
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyboardShortcut as EventListener);
+      return () => {
+        window.removeEventListener('keydown', handleKeyboardShortcut as EventListener);
+      };
+    }
+  }, [handleKeyboardShortcut]);
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
@@ -411,13 +522,17 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Part Code:</label>
-          <input
-            type="text"
+          <select
             name="partCode"
             value={formData.partCode}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
-          />
+          >
+            <option value="">Select Part Code</option>
+            {(dcPartCodes[formData.dcNo] || []).map((code) => (
+              <option key={code} value={code}>{code}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -446,11 +561,13 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Mfg Month/Year:</label>
           <input
-            type="month"
+            type="text"
             name="mfgMonthYear"
             value={formData.mfgMonthYear}
             onChange={handleChange}
+            placeholder="MM/YYYY"
             className="w-full p-2 border border-gray-300 rounded"
+            maxLength={7}
           />
         </div>
       </div>
@@ -493,14 +610,14 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
           onClick={handleClear}
           className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
         >
-          Clear
+          Clear (Alt+C)
         </button>
         <button
           type="button"
           onClick={handleUpdate}
           className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
         >
-          Update
+          Update (Alt+U)
         </button>
         <button
           type="button"
@@ -508,13 +625,13 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'] }: Ta
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           disabled={!formData.id}
         >
-          Delete
+          Delete (Alt+D)
         </button>
         <button
           type="submit"
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          Save
+          Save (Alt+S)
         </button>
       </div>
 

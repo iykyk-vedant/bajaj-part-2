@@ -36,6 +36,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+// Import MySQL service
+import { 
+  getAllSheets, 
+  createSheet, 
+  updateSheetName, 
+  deleteSheet, 
+  addDataToSheet, 
+  updateSheetData 
+} from '@/lib/sheet-service';
+import { Sheet as MySQLSheet } from '@/lib/sheet-service';
 export type Sheet = {
   id: string;
   name: string;
@@ -43,8 +53,8 @@ export type Sheet = {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'nexscan-sheets';
-
+// Remove localStorage key since we're using MySQL
+// const STORAGE_KEY = 'nexscan-sheets';
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentExtractedData, setCurrentExtractedData] = useState<ExtractDataOutput | null>(null);
@@ -68,42 +78,30 @@ export default function Home() {
 
   const { toast } = useToast();
 
-  // Load sheets from local storage on initial render
+  // Load sheets from MySQL database on initial render
   useEffect(() => {
-    try {
-      const savedSheets = localStorage.getItem(STORAGE_KEY);
-      if (savedSheets) {
-        const parsedSheets: Sheet[] = JSON.parse(savedSheets);
-        setSheets(parsedSheets);
-        if (parsedSheets.length > 0) {
+    const loadSheets = async () => {
+      try {
+        const loadedSheets = await getAllSheets();
+        setSheets(loadedSheets);
+        if (loadedSheets.length > 0) {
           // Activate the most recently created sheet
-          setActiveSheetId(parsedSheets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].id);
+          setActiveSheetId(loadedSheets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].id);
         }
+      } catch (error) {
+        console.error("Failed to load sheets from database:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Could not load data',
+          description: 'There was an error loading your saved sheets from the database.',
+        });
       }
-    } catch (error) {
-      console.error("Failed to load sheets from local storage:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Could not load data',
-        description: 'There was an error loading your saved sheets.',
-      });
-    }
-  }, [toast]);
+    };
 
-  // Save sheets to local storage whenever they change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sheets));
-    } catch (error) {
-      console.error("Failed to save sheets to local storage:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Could not save data',
-        description: 'Your changes might not be saved across sessions.',
-      });
-    }
-  }, [sheets, toast]);
-  
+    loadSheets();
+  }, [toast]);
+  // We no longer need to save to localStorage since we're using MySQL
+  // The save operations are now handled by individual database calls  
 
   const handleImageReady = async (dataUrl: string) => {
     // Clear previous extraction results when a new image is uploaded
@@ -167,22 +165,35 @@ export default function Home() {
     }
   };
 
-  const addConfirmedData = (data: ExtractDataOutput) => {
-    setSheets((prevSheets: Sheet[]) => 
-      prevSheets.map((sheet: Sheet) => 
-        sheet.id === activeSheetId 
-          ? { ...sheet, data: [...sheet.data, data] }
-          : sheet
-      )
-    );
-    setCurrentExtractedData(null); // Clear the form after adding
-    toast({
-      title: 'Form Added',
-      description: `The form data has been added to the sheet: ${activeSheet?.name}.`,
-    });
-  };
-
-  const confirmAddDuplicate = () => {
+  const addConfirmedData = async (data: ExtractDataOutput) => {
+    if (!activeSheetId) return;
+    
+    try {
+      // Add data to MySQL database
+      await addDataToSheet(activeSheetId, data);
+      
+      // Update local state
+      setSheets((prevSheets: Sheet[]) => 
+        prevSheets.map((sheet: Sheet) => 
+          sheet.id === activeSheetId 
+            ? { ...sheet, data: [...sheet.data, data] }
+            : sheet
+        )
+      );
+      setCurrentExtractedData(null); // Clear the form after adding
+      toast({
+        title: 'Form Added',
+        description: `The form data has been added to the sheet: ${activeSheet?.name}.`,
+      });
+    } catch (error) {
+      console.error("Failed to add data to sheet in database:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Add Failed',
+        description: 'There was an error adding data to your sheet in the database.',
+      });
+    }
+  };  const confirmAddDuplicate = () => {
     if (pendingData) {
       addConfirmedData(pendingData);
     }
@@ -195,28 +206,39 @@ export default function Home() {
     setIsCreateSheetDialogOpen(true);
   };
   
-  const handleCreateNewSheet = () => {
+  const handleCreateNewSheet = async () => {
     if (!newSheetName.trim()) {
       toast({ variant: 'destructive', title: 'Invalid Name', description: 'Sheet name cannot be empty.' });
       return;
     }
-    const newSheet: Sheet = {
+    const newSheet = {
       id: `sheet-${Date.now()}`,
       name: newSheetName,
-      data: [],
       createdAt: new Date().toISOString(),
     };
-    setSheets((prev: Sheet[]) => [newSheet, ...prev]);
-    setActiveSheetId(newSheet.id);
-    setIsCreateSheetDialogOpen(false);
-    setNewSheetName('');
-    toast({
-      title: 'New Sheet Created',
-      description: `"${newSheet.name}" is now the active sheet.`,
-    });
-  };
 
-  const handleOpenRenameSheetDialog = () => {
+    try {
+      // Save to MySQL database
+      await createSheet(newSheet);
+      
+      // Update local state
+      setSheets((prev: Sheet[]) => [{ ...newSheet, data: [] }, ...prev]);
+      setActiveSheetId(newSheet.id);
+      setIsCreateSheetDialogOpen(false);
+      setNewSheetName('');
+      toast({
+        title: 'New Sheet Created',
+        description: `"${newSheet.name}" is now the active sheet.`,
+      });
+    } catch (error) {
+      console.error("Failed to create sheet in database:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Creation Failed',
+        description: 'There was an error creating your sheet in the database.',
+      });
+    }
+  };  const handleOpenRenameSheetDialog = () => {
     const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (activeSheet) {
       setNewSheetName(activeSheet.name);
@@ -224,46 +246,72 @@ export default function Home() {
     }
   };
 
-  const handleRenameSheet = () => {
+  const handleRenameSheet = async () => {
     if (!newSheetName.trim()) {
       toast({ variant: 'destructive', title: 'Invalid Name', description: 'Sheet name cannot be empty.' });
       return;
     }
-    setSheets((prevSheets: Sheet[]) =>
-      prevSheets.map((sheet: Sheet) =>
-        sheet.id === activeSheetId ? { ...sheet, name: newSheetName } : sheet
-      )
-    );
-    setIsRenameSheetDialogOpen(false);
-    setNewSheetName('');
-    toast({ title: 'Sheet Renamed', description: `Sheet successfully renamed to "${newSheetName}".` });
-  };
-  
-  const handleDeleteSheet = () => {
+
+    try {
+      // Update in MySQL database
+      if (activeSheetId) {
+        await updateSheetName(activeSheetId, newSheetName);
+      }
+
+      // Update local state
+      setSheets((prevSheets: Sheet[]) =>
+        prevSheets.map((sheet: Sheet) =>
+          sheet.id === activeSheetId ? { ...sheet, name: newSheetName } : sheet
+        )
+      );
+      setIsRenameSheetDialogOpen(false);
+      setNewSheetName('');
+      toast({ title: 'Sheet Renamed', description: `Sheet successfully renamed to "${newSheetName}".` });
+    } catch (error) {
+      console.error("Failed to rename sheet in database:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Rename Failed',
+        description: 'There was an error renaming your sheet in the database.',
+      });
+    }
+  };  
+  const handleDeleteSheet = async () => {
     if (!activeSheetId) return;
 
     const sheetToDelete = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (!sheetToDelete) return;
     
-    setSheets((prev: Sheet[]) => prev.filter((s: Sheet) => s.id !== activeSheetId));
-    
-    // Set new active sheet
-    const remainingSheets = sheets.filter((s: Sheet) => s.id !== activeSheetId);
-    if (remainingSheets.length > 0) {
-      setActiveSheetId(remainingSheets[0].id);
-    } else {
-      setActiveSheetId(null);
+    try {
+      // Delete from MySQL database
+      await deleteSheet(activeSheetId);
+      
+      // Update local state
+      setSheets((prev: Sheet[]) => prev.filter((s: Sheet) => s.id !== activeSheetId));
+      
+      // Set new active sheet
+      const remainingSheets = sheets.filter((s: Sheet) => s.id !== activeSheetId);
+      if (remainingSheets.length > 0) {
+        setActiveSheetId(remainingSheets[0].id);
+      } else {
+        setActiveSheetId(null);
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Sheet Deleted',
+        description: `"${sheetToDelete.name}" has been removed.`,
+      });
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to delete sheet from database:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Deletion Failed',
+        description: 'There was an error deleting your sheet from the database.',
+      });
     }
-    
-    toast({
-      variant: 'destructive',
-      title: 'Sheet Deleted',
-      description: `"${sheetToDelete.name}" has been removed.`,
-    });
-    setIsDeleteDialogOpen(false);
-  };
-
-  const exportToCSV = () => {
+  };  const exportToCSV = () => {
     const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (!activeSheet || activeSheet.data.length === 0) {
       toast({
@@ -300,7 +348,8 @@ export default function Home() {
     });
   };
 
-  const handleUpdateSheetData = (rowIndex: number, columnId: string, value: any) => {
+  const handleUpdateSheetData = async (rowIndex: number, columnId: string, value: any) => {
+    // Update local state first
     setSheets((prevSheets: Sheet[]) =>
       prevSheets.map((sheet: Sheet) => {
         if (sheet.id === activeSheetId) {
@@ -313,19 +362,50 @@ export default function Home() {
         return sheet;
       })
     );
-  };
-  
-  const handleRemoveRow = (rowIndex: number) => {
-    setSheets((prevSheets: Sheet[]) =>
+
+    // Update in MySQL database
+    if (activeSheetId) {
+      const updatedSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
+      if (updatedSheet) {
+        try {
+          await updateSheetData(activeSheetId, updatedSheet.data);
+        } catch (error) {
+          console.error("Failed to update sheet data in database:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Update Failed',
+            description: 'There was an error updating your sheet data in the database.',
+          });
+        }
+      }
+    }
+  };  
+  const handleRemoveRow = async (rowIndex: number) => {    setSheets((prevSheets: Sheet[]) =>
       prevSheets.map((sheet: Sheet) =>
         sheet.id === activeSheetId
           ? { ...sheet, data: sheet.data.filter((_, index) => index !== rowIndex) }
           : sheet
       )
     );
-    toast({ title: 'Row Removed', description: 'The selected entry has been removed from the sheet.' });
-  };
-  
+    
+    // Update in MySQL database
+    if (activeSheetId) {
+      const updatedSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
+      if (updatedSheet) {
+        try {
+          await updateSheetData(activeSheetId, updatedSheet.data);
+          toast({ title: 'Row Removed', description: 'The selected entry has been removed from the sheet.' });
+        } catch (error) {
+          console.error("Failed to update sheet data in database:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Update Failed',
+            description: 'There was an error updating your sheet data in the database.',
+          });
+        }
+      }
+    }
+  };  
   const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
 
   const handleExportExcel = async () => {
@@ -458,12 +538,26 @@ export default function Home() {
           sheetData={activeSheet.data}
           onUpdateData={handleUpdateSheetData}
           onRemoveRow={handleRemoveRow}
-          onClearSheet={() => {
+          onClearSheet={async () => {
+            // Update local state
             setSheets(prev => prev.map(s => s.id === activeSheetId ? {...s, data: []} : s));
-            setIsSheetOverviewOpen(false);
-            toast({ title: 'Excel Sheet Cleared' });
-          }}
-        />
+            
+            // Update in MySQL database
+            if (activeSheetId) {
+              try {
+                await updateSheetData(activeSheetId, []);
+                setIsSheetOverviewOpen(false);
+                toast({ title: 'Excel Sheet Cleared' });
+              } catch (error) {
+                console.error("Failed to clear sheet data in database:", error);
+                toast({
+                  variant: 'destructive',
+                  title: 'Clear Failed',
+                  description: 'There was an error clearing your sheet data in the database.',
+                });
+              }
+            }
+          }}        />
       )}
 
       {/* Delete Sheet Dialog */}

@@ -1,0 +1,57 @@
+[
+  {
+    "part_code": "RES-001",
+    "location": "R1",
+    "description": "1K Ohm Resistor"
+  },
+  {
+    "part_code": "RES-002",
+    "location": "R2",
+    "description": "2K Ohm Resistor"
+  },
+  {
+    "part_code": "RES-003",
+    "location": "R3",
+    "description": "3K Ohm Resistor"
+  },
+  {
+    "part_code": "CAP-001",
+    "location": "C1",
+    "description": "10uF Capacitor"
+  },
+  {
+    "part_code": "CAP-002",
+    "location": "C2",
+    "description": "20uF Capacitor"
+  },
+  {
+    "part_code": "IC-001",
+    "location": "U1",
+    "description": "Microcontroller"
+  },
+  {
+    "part_code": "IC-002",
+    "location": "U2",
+    "description": "Op-Amp"
+  },
+  {
+    "part_code": "LED-001",
+    "location": "D1",
+    "description": "Red LED"
+  },
+  {
+    "part_code": "LED-002",
+    "location": "D2",
+    "description": "Green LED"
+  },
+  {
+    "part_code": "CONN-001",
+    "location": "J1",
+    "description": "Power Connector"
+  },
+  {
+    "part_code": "CONN-002",
+    "location": "J2",
+    "description": "Signal Connector"
+  }
+]

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useLockStore } from '@/store/lockStore';
+import { LockButton } from './LockButton';
 
 interface SettingsTabProps {
   dcNumbers: string[];
@@ -8,6 +10,7 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
+  const { isDcLocked } = useLockStore();
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [userId, setUserId] = useState('');
@@ -98,21 +101,26 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
-              <input
-                type="text"
-                value={dcNo}
-                onChange={(e) => setDcNo(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
-                placeholder="Enter DC No."
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={isDcLocked ? useLockStore.getState().lockedDcNo : dcNo}
+                  onChange={(e) => setDcNo(e.target.value)}
+                  disabled={isDcLocked}
+                  className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                  placeholder="Enter DC No."
+                />
+                <LockButton dcNo={dcNo} partCode={partCode} />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
               <input
                 type="text"
-                value={partCode}
+                value={isDcLocked ? useLockStore.getState().lockedPartCode : partCode}
                 onChange={(e) => setPartCode(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
+                disabled={isDcLocked}
+                className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
                 placeholder="Enter Part Code"
               />
             </div>
@@ -223,7 +231,11 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
-              <select className="w-full p-2 border border-gray-300 rounded">
+              <select 
+                defaultValue={isDcLocked ? useLockStore.getState().lockedDcNo : ''}
+                className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                disabled={isDcLocked}
+              >
                 <option value="">Select DC No.</option>
                 {dcNumbers.map((dc) => (
                   <option key={dc} value={dc}>{dc}</option>
@@ -232,7 +244,11 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
-              <select className="w-full p-2 border border-gray-300 rounded">
+              <select 
+                defaultValue={isDcLocked ? useLockStore.getState().lockedPartCode : ''}
+                className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                disabled={isDcLocked}
+              >
                 <option value="">Select Part Code</option>
                 {/* TODO: Implement dynamic Part Code selection based on selected DC */}
               </select>

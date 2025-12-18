@@ -21,8 +21,14 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
   
   // Initialize DC numbers - use default values initially
   const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+  
+  // Initialize DC-PartCode mappings
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
+    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
+    'DC002': ['PCB-004', 'PCB-005']
+  });
 
-  // Load DC numbers from localStorage after mount
+  // Load DC numbers and mappings from localStorage after mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('dc-numbers');
@@ -30,6 +36,16 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
         try {
           const parsed = JSON.parse(stored);
           setDcNumbers(parsed);
+        } catch (e) {
+          // Keep default values if parsing fails
+        }
+      }
+      
+      const storedMappings = localStorage.getItem('dc-partcode-mappings');
+      if (storedMappings) {
+        try {
+          const parsed = JSON.parse(storedMappings);
+          setDcPartCodes(parsed);
         } catch (e) {
           // Keep default values if parsing fails
         }
@@ -43,6 +59,13 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
       localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
     }
   }, [dcNumbers]);
+  
+  // Save DC-PartCode mappings to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dc-partcode-mappings', JSON.stringify(dcPartCodes));
+    }
+  }, [dcPartCodes]);
 
   // Function to add a new DC number
   const addDcNumber = (dcNo: string) => {
@@ -146,7 +169,7 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
 
       {/* Tab Content */}
       <div className="mb-6">
-        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={dcNumbers} />}
+        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />}
         {activeTab === 'settings' && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
       </div>
 

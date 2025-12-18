@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useLockStore } from '@/store/lockStore';
+import { LockButton } from './LockButton';
 
 interface FindTabProps {
   dcNumbers?: string[];
 }
 
 export function FindTab({ dcNumbers = ['DC001', 'DC002', 'DC003', 'DC004'] }: FindTabProps) {
+  const { isDcLocked } = useLockStore();
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [srNo, setSrNo] = useState('');
@@ -23,23 +26,28 @@ export function FindTab({ dcNumbers = ['DC001', 'DC002', 'DC003', 'DC004'] }: Fi
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">DC No.</label>
-          <select
-            value={dcNo}
-            onChange={(e) => setDcNo(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select DC No.</option>
-            {dcNumbers.map((dc) => (
-              <option key={dc} value={dc}>{dc}</option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              value={isDcLocked ? useLockStore.getState().lockedDcNo : dcNo}
+              onChange={(e) => setDcNo(e.target.value)}
+              disabled={isDcLocked}
+              className={`flex-1 p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDcLocked ? 'bg-gray-100' : ''}`}
+            >
+              <option value="">Select DC No.</option>
+              {dcNumbers.map((dc) => (
+                <option key={dc} value={dc}>{dc}</option>
+              ))}
+            </select>
+            <LockButton dcNo={dcNo} partCode={partCode} />
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Part Code</label>
           <select
-            value={partCode}
+            value={isDcLocked ? useLockStore.getState().lockedPartCode : partCode}
             onChange={(e) => setPartCode(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isDcLocked}
+            className={`w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDcLocked ? 'bg-gray-100' : ''}`}
           >
             <option value="">Select Part Code</option>
             <option value="PC1001">PC1001</option>

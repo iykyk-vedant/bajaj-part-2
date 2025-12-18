@@ -1,4 +1,3 @@
-
 // src/ai/flows/extract-data-from-handwritten-form.ts
 'use server';
 
@@ -28,12 +27,6 @@ const extractDataPrompt = ai.definePrompt({
   output: {schema: ExtractDataOutputSchema},
   prompt: `You are an expert data extraction specialist. Your task is to extract data from a handwritten form image.
   
-  {{#if sparePartCode}}
-  The user has pre-selected the following information. You can use this as helpful context to improve your accuracy for other fields.
-  - Spare Part Code: {{{sparePartCode}}}
-  - Product Description: {{{productDescription}}}
-  {{/if}}
-
   Analyze the image and extract the following fields. You must attempt to extract every field.
   - Branch
   - BCCD Name
@@ -62,15 +55,19 @@ const extractDataFlow = ai.defineFlow(
     outputSchema: ExtractDataOutputSchema,
   },
   async input => {
-    const {output} = await extractDataPrompt(input);
-    
-    // If a spare part code was passed in from the form *before* upload,
-    // let's trust that as the ground truth and overwrite whatever the AI extracted.
-    if (input.sparePartCode && output) {
-      output.sparePartCode = input.sparePartCode;
-      output.productDescription = input.productDescription;
+    try {
+      const {output} = await extractDataPrompt(input);
+      return output!;
+    } catch (error) {
+      // Re-throw the error with additional context
+      if (error instanceof Error) {
+        // Check if it's a service unavailable error
+        if (error.message.includes('503') || error.message.includes('Service Unavailable') || error.message.includes('overloaded')) {
+          throw new Error('The AI service is currently overloaded. Please try again in a few minutes.');
+        }
+        throw error;
+      }
+      throw new Error('An unknown error occurred during data extraction.');
     }
-    
-    return output!;
   }
 );

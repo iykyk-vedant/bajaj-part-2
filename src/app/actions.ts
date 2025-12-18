@@ -1,4 +1,3 @@
-
 'use server';
 
 import { extractData } from '@/ai/flows/extract-data-from-handwritten-form';
@@ -22,7 +21,17 @@ export async function extractDataFromImage(
     return { data: extractedData, error: null };
   } catch (e) {
     console.error('Error extracting data from image:', e);
-    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred during data extraction.';
+    let errorMessage = 'An unknown error occurred during data extraction.';
+    
+    if (e instanceof Error) {
+      // Check if it's a service unavailable error
+      if (e.message.includes('503') || e.message.includes('Service Unavailable') || e.message.includes('overloaded')) {
+        errorMessage = 'The AI service is currently overloaded. Please try again in a few minutes.';
+      } else {
+        errorMessage = e.message;
+      }
+    }
+    
     return { data: null, error: errorMessage };
   }
 }
@@ -40,7 +49,17 @@ export async function translateExtractedData(
     return { data: translatedData, error: null };
   } catch (e) {
     console.error('Error translating data:', e);
-    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred during translation.';
+    let errorMessage = 'An unknown error occurred during translation.';
+    
+    if (e instanceof Error) {
+      // Check if it's a service unavailable error
+      if (e.message.includes('503') || e.message.includes('Service Unavailable') || e.message.includes('overloaded')) {
+        errorMessage = 'The translation service is currently overloaded. Please try again in a few minutes.';
+      } else {
+        errorMessage = e.message;
+      }
+    }
+    
     return { data: null, error: errorMessage };
   }
 }

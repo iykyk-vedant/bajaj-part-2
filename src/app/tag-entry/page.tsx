@@ -6,6 +6,7 @@ import { SettingsTab } from "../../components/tag-entry/SettingsTab";
 import { FindTab } from "../../components/tag-entry/FindTab";
 import { StatusBar } from "../../components/tag-entry/StatusBar";
 import { exportTagEntriesToExcel } from "@/lib/tag-entry/export-utils";
+import { loadDcNumbers, loadDcPartCodes, saveDcNumbers, saveDcPartCodes, addDcNumberWithPartCode } from "@/lib/dc-data-sync";
 
 export default function TagEntryPage() {
   const [activeTab, setActiveTab] = useState<
@@ -15,75 +16,41 @@ export default function TagEntryPage() {
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   
   // Initialize DC numbers - use default values initially
-  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+  const [dcNumbers, setDcNumbers] = useState<string[]>(loadDcNumbers());
   
   // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
-    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
-    'DC002': ['PCB-004', 'PCB-005']
-  });
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>(loadDcPartCodes());
 
   // Load DC numbers and mappings from localStorage after mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dc-numbers');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setDcNumbers(parsed);
-        } catch (e) {
-          // Keep default values if parsing fails
-        }
-      }
-      
-      const storedMappings = localStorage.getItem('dc-partcode-mappings');
-      if (storedMappings) {
-        try {
-          const parsed = JSON.parse(storedMappings);
-          setDcPartCodes(parsed);
-        } catch (e) {
-          // Keep empty object if parsing fails
-        }
-      }
-    }
+    const loadedDcNumbers = loadDcNumbers();
+    const loadedDcPartCodes = loadDcPartCodes();
+    
+    setDcNumbers(loadedDcNumbers);
+    setDcPartCodes(loadedDcPartCodes);
   }, []);
 
   // Save DC numbers to localStorage whenever they change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
-    }
+    saveDcNumbers(dcNumbers);
   }, [dcNumbers]);
   
   // Save DC-PartCode mappings to localStorage whenever they change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('dc-partcode-mappings', JSON.stringify(dcPartCodes));
-    }
+    saveDcPartCodes(dcPartCodes);
   }, [dcPartCodes]);
 
   // Function to add a new DC number with Part Code
   const addDcNumber = (dcNo: string, partCode: string) => {
-    if (dcNo && !dcNumbers.includes(dcNo)) {
-      setDcNumbers(prev => [...prev, dcNo]);
-    }
+    const { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } = addDcNumberWithPartCode(
+      dcNo,
+      partCode,
+      dcNumbers,
+      dcPartCodes
+    );
     
-    // Add Part Code mapping
-    if (partCode) {
-      setDcPartCodes(prev => {
-        const currentPartCodes = prev[dcNo] || [];
-        
-        // Only add the part code if it doesn't already exist
-        if (!currentPartCodes.includes(partCode)) {
-          return {
-            ...prev,
-            [dcNo]: [...currentPartCodes, partCode]
-          };
-        }
-        // If part code already exists, return the previous state
-        return prev;
-      });
-    }
+    setDcNumbers(updatedDcNumbers);
+    setDcPartCodes(updatedDcPartCodes);
   };
 
   useEffect(() => {

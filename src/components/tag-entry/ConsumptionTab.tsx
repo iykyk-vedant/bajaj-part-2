@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-// FindTab import has been removed since we're integrating its fields directly
+import { useRouter } from 'next/navigation';
+import { useLockStore } from '@/store/lockStore';
+import { LockButton } from './LockButton';
 
 interface ConsumptionTabProps {
   dcNumbers?: string[];
@@ -69,6 +71,9 @@ interface TableRow {
 }
 
 export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {} }: ConsumptionTabProps) {
+  const { isDcLocked } = useLockStore();
+  const router = useRouter();
+  
   // State for Find fields
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
@@ -132,10 +137,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         }
       }
 
-      // Debug log to see what data we have
-      console.log('Loaded tag entries:', tagEntries);
-      console.log('Loaded consumption entries:', loadedConsumptionEntries);
-
       // Combine both datasets into unified table data
       const combinedData: TableRow[] = [
         ...tagEntries.map(entry => ({
@@ -197,9 +198,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         }))
       ];
 
-      // Debug log to see combined data
-      console.log('Combined table data:', combinedData);
-      
       setTableData(combinedData);
     }
   }, []);
@@ -209,9 +207,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     if (typeof window !== 'undefined') {
       localStorage.setItem('consumption-entries', JSON.stringify(consumptionEntries));
     }
-    
-    // Debug log to see updated consumption entries
-    console.log('Updated consumption entries:', consumptionEntries);
     
     // Update tableData when consumptionEntries change
     // Load tag entries from localStorage
@@ -288,9 +283,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       }))
     ];
 
-    // Debug log to see updated combined data
-    console.log('Updated combined table data:', combinedData);
-    
     setTableData(combinedData);
   }, [consumptionEntries]);
 
@@ -320,16 +312,24 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     
     setIsPcbFound(true);
     setIsSearching(false);
-    
-    console.log('PCB found with data:', { dcNo, partCode, srNo });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Special handling for Analysis field - convert / to newlines in validation result
+    if (name === 'analysis') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        validationResult: value.replaceAll('/', '\n')
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleConsume = (e: React.FormEvent) => {
@@ -348,7 +348,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
     
     // Implementation for consuming data
-    console.log('Consuming data:', formData);
     alert('Data consumed successfully!');
   };
 
@@ -420,6 +419,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       enggName: '',
       dispatchDate: '',
     });
+    
+    // Reset workflow state
+    setIsPcbFound(false);
+    setDcNo('');
+    setPartCode('');
+    setSrNo('');
   };
 
   const handleClear = () => {
@@ -429,7 +434,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
       // In a real app, this would redirect to login page
-      alert('Logged out successfully!');
+      router.push('/');
     }
   };
 
@@ -561,25 +566,28 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">DC No.</label>
-              <select
-                value={dcNo}
-                onChange={(e) => setDcNo(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isPcbFound}
-              >
-                <option value="">Select DC No.</option>
-                {dcNumbers.map((dc) => (
-                  <option key={dc} value={dc}>{dc}</option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={isDcLocked ? useLockStore.getState().lockedDcNo : dcNo}
+                  onChange={(e) => setDcNo(e.target.value)}
+                  className={`flex-1 p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''}`}
+                  disabled={isDcLocked || isPcbFound}
+                >
+                  <option value="">Select DC No.</option>
+                  {dcNumbers.map((dc) => (
+                    <option key={dc} value={dc}>{dc}</option>
+                  ))}
+                </select>
+                <LockButton dcNo={dcNo} partCode={partCode} />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Part Code</label>
               <select
-                value={partCode}
+                value={isDcLocked ? useLockStore.getState().lockedPartCode : partCode}
                 onChange={(e) => setPartCode(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isPcbFound}
+                className={`w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''}`}
+                disabled={isDcLocked || isPcbFound}
               >
                 <option value="">Select Part Code</option>
                 {(dcPartCodes[dcNo] || []).map((code) => (
@@ -593,7 +601,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 type="text"
                 value={srNo}
                 onChange={(e) => setSrNo(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isPcbFound ? 'bg-gray-100' : ''}`}
                 placeholder="Enter Serial No."
                 disabled={isPcbFound}
               />
@@ -800,9 +808,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                     key={entry.id} 
                     className={`cursor-pointer ${selectedEntryId === entry.id ? 'bg-blue-100' : 'hover:bg-gray-50'}`}
                     onClick={() => {
-                      // Debug log to confirm data exists
-                      console.log('Row data:', entry);
-                      
                       // Populate form with selected entry data
                       setFormData({
                         repairDate: entry.repairDate || '',

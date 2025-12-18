@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { TagEntry } from '@/lib/tag-entry/types';
+import { useLockStore } from '@/store/lockStore';
+import { LockButton } from './LockButton';
 
 interface TagEntryFormProps {
   initialData?: any;
@@ -50,77 +52,79 @@ const generatePcbNumber = (dcNo: string) => {
 };
 
 export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPartCodes = {} }: TagEntryFormProps) {
-  const [formData, setFormData] = useState({
+  const { isDcLocked } = useLockStore();
+  const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showSavedList, setShowSavedList] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const STORAGE_KEY = 'tag-entries';
+
+  const [formData, setFormData] = useState<TagEntry>({
     id: '',
     srNo: '001',
     dcNo: '',
-    branch: 'Mumbai', // Set default branch
-    bccdName: 'BCCD-001', // Set default BCCD name
+    branch: 'Mumbai',
+    bccdName: 'BCCD-001',
     productDescription: '',
     productSrNo: '',
     dateOfPurchase: '',
     complaintNo: '',
     partCode: '',
-    natureOfDefect: '', // Will be populated from image
+    natureOfDefect: '',
     visitingTechName: '',
     mfgMonthYear: '',
     pcbSrNo: 'EC0112234567',
   });
 
-  const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [showSavedList, setShowSavedList] = useState(false);
-
-  // Load saved entries from localStorage
+  // Load saved entries from localStorage on component mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         try {
-          setSavedEntries(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          setSavedEntries(parsed);
+          
+          // Update serial number if there are existing entries
+          if (parsed.length > 0) {
+            const maxSrNo = Math.max(...parsed.map((e: TagEntry) => parseInt(e.srNo) || 0));
+            setFormData(prev => ({
+              ...prev,
+              srNo: String(maxSrNo + 1).padStart(3, '0')
+            }));
+          }
         } catch (e) {
-          console.error('Error loading entries:', e);
+          console.error('Error parsing saved entries:', e);
         }
       }
     }
   }, []);
 
-  // Get next serial number based on existing entries
-  useEffect(() => {
-    if (savedEntries.length > 0 && !formData.id) {
-      const maxSrNo = Math.max(
-        ...savedEntries.map(entry => parseInt(entry.srNo) || 0)
-      );
-      const nextSrNo = String(maxSrNo + 1).padStart(3, '0');
-      setFormData(prev => ({ ...prev, srNo: nextSrNo }));
-    }
-  }, [savedEntries, formData.id]);
-
-  // Update form data when initialData changes
+  // Populate form with initial data when it changes (from image extraction)
   useEffect(() => {
     if (initialData) {
-      // Convert mfgMonthYear format if needed (from YYYY-MM to MM/YYYY)
+      // Convert mfgMonthYear from YYYY-MM to MM/YYYY format if needed
       let mfgMonthYear = initialData.mfgMonthYear || '';
-      if (mfgMonthYear && mfgMonthYear.length === 7 && mfgMonthYear[4] === '-') {
+      if (mfgMonthYear && mfgMonthYear.includes('-')) {
         const [year, month] = mfgMonthYear.split('-');
         mfgMonthYear = `${month}/${year}`;
       }
       
       setFormData(prev => ({
-        ...prev,
-        branch: initialData.branch || 'Mumbai', // Default to Mumbai if not provided
-        bccdName: initialData.bccdName || 'BCCD-001', // Default to BCCD-001 if not provided
-        productDescription: initialData.productDescription || '',
-        productSrNo: initialData.productSrNo || '',
-        dateOfPurchase: initialData.dateOfPurchase || '',
-        complaintNo: initialData.complaintNo || '',
-        partCode: initialData.sparePartCode || '',
-        natureOfDefect: initialData.natureOfDefect || '', // Populate from image
-        visitingTechName: initialData.technicianName || '',
-        mfgMonthYear: mfgMonthYear,
-        // Note: dcNo, and pcbSrNo are not in the extraction schema
-        // They will retain their default values or user input
+        id: initialData.id || prev.id,
+        srNo: initialData.srNo || prev.srNo,
+        dcNo: initialData.dcNo || prev.dcNo,
+        branch: initialData.branch || prev.branch,
+        bccdName: initialData.bccdName || prev.bccdName,
+        productDescription: initialData.productDescription || prev.productDescription,
+        productSrNo: initialData.productSrNo || prev.productSrNo,
+        dateOfPurchase: initialData.dateOfPurchase || prev.dateOfPurchase,
+        complaintNo: initialData.complaintNo || prev.complaintNo,
+        partCode: initialData.sparePartCode || prev.partCode,
+        natureOfDefect: initialData.natureOfDefect || prev.natureOfDefect,
+        visitingTechName: initialData.technicianName || prev.visitingTechName,
+        mfgMonthYear: mfgMonthYear || prev.mfgMonthYear,
+        pcbSrNo: initialData.pcbSrNo || prev.pcbSrNo,
       }));
     }
   }, [initialData]);
@@ -157,6 +161,16 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
         ...prev,
         [name]: value
       }));
+      
+      // Update locked values if lock is active and we're changing DC No or Part Code
+      if (isDcLocked && (name === 'dcNo' || name === 'partCode')) {
+        const { lockedDcNo, lockedPartCode } = useLockStore.getState();
+        if (name === 'dcNo') {
+          useLockStore.getState().setLockedValues(value, lockedPartCode);
+        } else if (name === 'partCode') {
+          useLockStore.getState().setLockedValues(lockedDcNo, value);
+        }
+      }
     }
   };
 
@@ -428,24 +442,28 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="text"
             name="srNo"
-            value={formData.srNo}
+            value={formData.srNo || ''}
             readOnly
             className="w-full p-2 border border-gray-300 rounded bg-gray-100"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">DC No:</label>
-          <select
-            name="dcNo"
-            value={formData.dcNo}
-            onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
-          >
-            <option value="">Select DC No.</option>
-            {dcNumbers.map((dc) => (
-              <option key={dc} value={dc}>{dc}</option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              name="dcNo"
+              value={isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo || ''}
+              onChange={handleChange}
+              disabled={isDcLocked}
+              className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+            >
+              <option value="">Select DC No.</option>
+              {dcNumbers.map((dc) => (
+                <option key={dc} value={dc}>{dc}</option>
+              ))}
+            </select>
+            <LockButton dcNo={formData.dcNo} partCode={formData.partCode} />
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Branch:</label>
@@ -453,7 +471,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="text"
             name="branch"
-            value={formData.branch}
+            value={formData.branch || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
           />
@@ -467,7 +485,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="text"
             name="bccdName"
-            value={formData.bccdName}
+            value={formData.bccdName || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
           />
@@ -477,7 +495,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="text"
             name="productDescription"
-            value={formData.productDescription}
+            value={formData.productDescription || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
           />
@@ -488,12 +506,12 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             <input
               type="text"
               name="productSrNo"
-              value={formData.productSrNo}
+              value={formData.productSrNo || ''}
               onChange={handleChange}
               className="flex-1 p-2 border border-gray-300 rounded-l"
             />
             <div className="bg-gray-200 p-2 border border-l-0 border-gray-300 rounded-r">
-              {formData.productSrNo.length}/20
+              {(formData.productSrNo || '').length}/20
             </div>
           </div>
         </div>
@@ -505,7 +523,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="date"
             name="dateOfPurchase"
-            value={formData.dateOfPurchase}
+            value={formData.dateOfPurchase || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
           />
@@ -515,7 +533,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="text"
             name="complaintNo"
-            value={formData.complaintNo}
+            value={formData.complaintNo || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
           />
@@ -524,9 +542,10 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <label className="block text-sm font-medium text-gray-700 mb-1">Part Code:</label>
           <select
             name="partCode"
-            value={formData.partCode}
+            value={isDcLocked ? useLockStore.getState().lockedPartCode : formData.partCode || ''}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
+            disabled={isDcLocked}
+            className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
           >
             <option value="">Select Part Code</option>
             {(dcPartCodes[formData.dcNo] || []).map((code) => (
@@ -543,7 +562,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="text"
             name="natureOfDefect"
-            value={formData.natureOfDefect}
+            value={formData.natureOfDefect || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
           />
@@ -553,7 +572,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="text"
             name="visitingTechName"
-            value={formData.visitingTechName}
+            value={formData.visitingTechName || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
           />
@@ -563,7 +582,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           <input
             type="text"
             name="mfgMonthYear"
-            value={formData.mfgMonthYear}
+            value={formData.mfgMonthYear || ''}
             onChange={handleChange}
             placeholder="MM/YYYY"
             className="w-full p-2 border border-gray-300 rounded"
@@ -579,7 +598,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             <input
               type="text"
               name="pcbSrNo"
-              value={formData.pcbSrNo}
+              value={formData.pcbSrNo || ''}
               onChange={handleChange}
               className="flex-1 p-2 border border-gray-300 rounded-l"
             />
@@ -588,7 +607,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
               className="bg-gray-200 p-2 border border-l-0 border-gray-300 rounded-r hover:bg-gray-300"
               onClick={() => {
                 try {
-                  const pcb = generatePcbNumber(formData.dcNo);
+                  const pcb = generatePcbNumber(formData.dcNo || '');
                   setFormData(prev => ({
                     ...prev,
                     pcbSrNo: pcb,

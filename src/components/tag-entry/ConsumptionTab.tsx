@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { validateConsumption, saveConsumptionEntry } from '@/app/actions/consumption-actions';
 // FindTab import has been removed since we're integrating its fields directly
 
 interface ConsumptionTabProps {
@@ -21,8 +22,11 @@ interface ConsumptionEntry {
   componentChange: string;
   enggName: string;
   dispatchDate: string;
+  // New fields for consumption validation
+  componentConsumption?: string;
+  consumptionEntry?: string;
+  consumptionEntryDate?: string;
 }
-
 interface TagEntry {
   id?: string;
   srNo: string;
@@ -66,8 +70,11 @@ interface TableRow {
   componentChange?: string;
   enggName?: string;
   dispatchDate?: string;
+  // New fields for consumption validation
+  componentConsumption?: string;
+  consumptionEntry?: string;
+  consumptionEntryDate?: string;
 }
-
 export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {} }: ConsumptionTabProps) {
   // State for Find fields
   const [dcNo, setDcNo] = useState('');
@@ -87,8 +94,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     componentChange: '',
     enggName: '',
     dispatchDate: '',
+    // New fields for consumption validation
+    componentConsumption: '',
+    consumptionEntry: '',
+    consumptionEntryDate: '',
   });
-
   // Consumption entries state
   const [consumptionEntries, setConsumptionEntries] = useState<ConsumptionEntry[]>([]);
   
@@ -99,6 +109,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   // Workflow state
   const [isPcbFound, setIsPcbFound] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  
+  // Validation state
+  const [isValidationInProgress, setIsValidationInProgress] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Transform / to \n for display in Validation Result and Consume tab
   const transformedAnalysisText = useMemo(
@@ -194,6 +208,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           componentChange: entry.componentChange,
           enggName: entry.enggName,
           dispatchDate: entry.dispatchDate,
+          // New fields for consumption validation
+          componentConsumption: entry.componentConsumption || '',
+          consumptionEntry: entry.consumptionEntry || '',
+          consumptionEntryDate: entry.consumptionEntryDate || '',
         }))
       ];
 
@@ -285,6 +303,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         componentChange: entry.componentChange,
         enggName: entry.enggName,
         dispatchDate: entry.dispatchDate,
+        // New fields for consumption validation
+        componentConsumption: entry.componentConsumption || '',
+        consumptionEntry: entry.consumptionEntry || '',
+        consumptionEntryDate: entry.consumptionEntryDate || '',
       }))
     ];
 
@@ -332,6 +354,42 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }));
   };
 
+  // Handle analysis change with real-time validation
+  const handleAnalysisChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Perform real-time validation as user types (with debounce)
+    if (name === 'analysis' && value.length > 3) {
+      // Clear any previous validation error
+      setValidationError(null);
+      
+      // Perform validation
+      try {
+        const result = await validateConsumption(value);
+        
+        if (result.success) {
+          setFormData(prev => ({
+            ...prev,
+            componentConsumption: result.data!.formattedComponents,
+            validationResult: result.data!.formattedComponents
+          }));
+          
+          if (!result.data!.isValid) {
+            setValidationError(result.data!.errorMessage || 'Some components failed validation');
+          }
+        } else {
+          setValidationError((result as any).error || 'An error occurred during validation');
+        }
+      } catch (error) {
+        console.error('Error during real-time validation:', error);
+      }
+    }
+  };
+
   const handleConsume = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -352,20 +410,49 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     alert('Data consumed successfully!');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate required fields
     if (!formData.repairDate || !formData.testing || !formData.failure || !formData.status) {
       alert('Please fill in all required fields: Repair Date, Testing, Failure, and Status.');
       return;
     }
-    
+
+    // Check if consumption has been validated
+    if (!formData.componentConsumption) {
+      alert('Please validate components first using the Consumption button.');
+      return;
+    }
+
     const newEntry: ConsumptionEntry = {
       ...formData,
       id: Date.now().toString(), // Simple ID generation
     };
-    
-    setConsumptionEntries(prev => [...prev, newEntry]);
-    alert('Consumption entry saved successfully!');
+
+    // Save to database
+    const saveResult = await saveConsumptionEntry({
+      id: newEntry.id!,
+      repairDate: newEntry.repairDate,
+      testing: newEntry.testing,
+      failure: newEntry.failure,
+      status: newEntry.status,
+      pcbSrNo: newEntry.pcbSrNo,
+      rfObservation: newEntry.rfObservation,
+      analysis: newEntry.analysis,
+      validationResult: newEntry.validationResult,
+      componentChange: newEntry.componentChange,
+      enggName: newEntry.enggName,
+      dispatchDate: newEntry.dispatchDate,
+      componentConsumption: newEntry.componentConsumption,
+      consumptionEntry: newEntry.consumptionEntry,
+      consumptionEntryDate: newEntry.consumptionEntryDate,
+    });
+
+    if (saveResult.success) {
+      setConsumptionEntries(prev => [...prev, newEntry]);
+      alert('Consumption entry saved successfully!');
+    } else {
+      alert(`Failed to save consumption entry: ${(saveResult as any).error}`);
+    }
   };
 
   const handleUpdate = () => {
@@ -419,6 +506,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       componentChange: '',
       enggName: '',
       dispatchDate: '',
+      // New fields
+      componentConsumption: '',
+      consumptionEntry: '',
+      consumptionEntryDate: '',
     });
   };
 
@@ -499,8 +590,53 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       componentChange: entry.componentChange,
       enggName: entry.enggName,
       dispatchDate: entry.dispatchDate,
+      // New fields
+      componentConsumption: entry.componentConsumption || '',
+      consumptionEntry: entry.consumptionEntry || '',
+      consumptionEntryDate: entry.consumptionEntryDate || '',
     });
     setSelectedEntryId(entry.id || null);
+  };
+
+  // Handle consumption validation button click
+  const handleConsumptionValidation = async () => {
+    if (!formData.analysis) {
+      setValidationError('Please enter component analysis first');
+      return;
+    }
+
+    setIsValidationInProgress(true);
+    setValidationError(null);
+
+    try {
+      const result = await validateConsumption(formData.analysis);
+      
+      if (result.success) {
+        if (result.data!.isValid) {
+          setFormData(prev => ({
+            ...prev,
+            componentConsumption: result.data!.formattedComponents,
+            validationResult: result.data!.formattedComponents,
+            consumptionEntry: 'Current User', // In a real app, this would be the actual user
+            consumptionEntryDate: new Date().toISOString()
+          }));
+          
+          alert('All components validated successfully!');
+        } else {
+          setValidationError(result.data!.errorMessage || 'Some components failed validation');
+          alert(`Validation failed: ${result.data!.errorMessage}`);
+        }
+      } else {
+        setValidationError((result as any).error || 'An error occurred during validation');
+        alert('An error occurred during validation');
+      }
+    } catch (error) {
+      console.error('Error during consumption validation:', error);
+      setValidationError('An error occurred during validation');
+      alert('An error occurred during validation');
+    } finally {
+      setIsValidationInProgress(false);
+    }
   };
 
   // Keyboard shortcut handler for Consumption form
@@ -725,9 +861,37 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             <textarea
               name="analysis"
               value={formData.analysis} // Keep original text with / characters
-              onChange={handleChange}
+              onChange={handleAnalysisChange}
               rows={3}
               className="w-full p-2 border border-gray-300 rounded"
+            />
+            {validationError && (
+              <div className="text-red-500 text-sm mt-1">{validationError}</div>
+            )}
+          </div>
+
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-gray-700">Component Consumption:</label>
+              <button
+                type="button"
+                onClick={handleConsumptionValidation}
+                disabled={isValidationInProgress || !formData.analysis}
+                className={`px-3 py-1 text-sm rounded ${
+                  isValidationInProgress || !formData.analysis
+                    ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                {isValidationInProgress ? 'Validating...' : 'Consumption'}
+              </button>
+            </div>
+            <textarea
+              name="componentConsumption"
+              value={formData.componentConsumption}
+              readOnly
+              rows={3}
+              className="w-full p-2 border border-gray-300 rounded bg-gray-100"
             />
           </div>
           <div className="mb-6">
@@ -808,6 +972,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                         componentChange: entry.componentChange || '',
                         enggName: entry.enggName || '',
                         dispatchDate: entry.dispatchDate || '',
+                        // New fields - provide default empty values
+                        componentConsumption: entry.componentConsumption || '',
+                        consumptionEntry: entry.consumptionEntry || '',
+                        consumptionEntryDate: entry.consumptionEntryDate || '',
                       });
                       setSelectedEntryId(entry.id || null);
                     }}

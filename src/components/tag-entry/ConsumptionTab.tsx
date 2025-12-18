@@ -689,7 +689,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={formData.enggName}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
-                disabled={!isPcbFound}
               >
                 <option value="">Select Engineer</option>
                 <option value="Engineer 1">Engineer 1</option>
@@ -707,7 +706,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={formData.rfObservation}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
-                disabled={!isPcbFound}
               />
             </div>
             <div>
@@ -718,7 +716,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={formData.dispatchDate}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
-                disabled={!isPcbFound}
               />
             </div>
           </div>
@@ -731,10 +728,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               onChange={handleChange}
               rows={3}
               className="w-full p-2 border border-gray-300 rounded"
-              disabled={!isPcbFound}
             />
           </div>
-
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-1">Validation Result:</label>
             <textarea
@@ -754,11 +749,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               onChange={handleChange}
               rows={3}
               className="w-full p-2 border border-gray-300 rounded"
-              disabled={!isPcbFound}
             />
-          </div>
-
-          <div className="flex justify-end">
+          </div>          <div className="flex justify-end">
             <button
               type="submit"
               disabled={!isPcbFound}

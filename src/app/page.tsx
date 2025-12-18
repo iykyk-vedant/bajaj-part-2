@@ -36,17 +36,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-// Import MySQL service
+// Import server actions for sheet operations
 import { 
-  getAllSheets, 
-  createSheet, 
-  updateSheetName, 
-  deleteSheet, 
-  addDataToSheet, 
-  updateSheetData 
-} from '@/lib/sheet-service';
-import { Sheet as MySQLSheet } from '@/lib/sheet-service';
-export type Sheet = {
+  getAllSheetsAction, 
+  createSheetAction, 
+  updateSheetNameAction, 
+  deleteSheetAction, 
+  addDataToSheetAction, 
+  updateSheetDataAction 
+} from '@/app/actions';export type Sheet = {
   id: string;
   name: string;
   data: ExtractDataOutput[];
@@ -82,7 +80,10 @@ export default function Home() {
   useEffect(() => {
     const loadSheets = async () => {
       try {
-        const loadedSheets = await getAllSheets();
+        const { sheets: loadedSheets, error } = await getAllSheetsAction();
+        if (error) {
+          throw new Error(error);
+        }
         setSheets(loadedSheets);
         if (loadedSheets.length > 0) {
           // Activate the most recently created sheet
@@ -99,8 +100,7 @@ export default function Home() {
     };
 
     loadSheets();
-  }, [toast]);
-  // We no longer need to save to localStorage since we're using MySQL
+  }, [toast]);  // We no longer need to save to localStorage since we're using MySQL
   // The save operations are now handled by individual database calls  
 
   const handleImageReady = async (dataUrl: string) => {
@@ -169,8 +169,11 @@ export default function Home() {
     if (!activeSheetId) return;
     
     try {
-      // Add data to MySQL database
-      await addDataToSheet(activeSheetId, data);
+      // Add data to MySQL database using server action
+      const { error } = await addDataToSheetAction(activeSheetId, data);
+      if (error) {
+        throw new Error(error);
+      }
       
       // Update local state
       setSheets((prevSheets: Sheet[]) => 
@@ -183,7 +186,7 @@ export default function Home() {
       setCurrentExtractedData(null); // Clear the form after adding
       toast({
         title: 'Form Added',
-        description: `The form data has been added to the sheet: ${activeSheet?.name}.`,
+        description: `The form data has been added to the sheet: ${sheets.find(s => s.id === activeSheetId)?.name}.`,
       });
     } catch (error) {
       console.error("Failed to add data to sheet in database:", error);
@@ -218,11 +221,14 @@ export default function Home() {
     };
 
     try {
-      // Save to MySQL database
-      await createSheet(newSheet);
+      // Save to MySQL database using server action
+      const { sheet: createdSheet, error } = await createSheetAction(newSheet);
+      if (error) {
+        throw new Error(error);
+      }
       
       // Update local state
-      setSheets((prev: Sheet[]) => [{ ...newSheet, data: [] }, ...prev]);
+      setSheets((prev: Sheet[]) => [{ ...(createdSheet || newSheet), data: [] }, ...prev]);
       setActiveSheetId(newSheet.id);
       setIsCreateSheetDialogOpen(false);
       setNewSheetName('');
@@ -253,9 +259,12 @@ export default function Home() {
     }
 
     try {
-      // Update in MySQL database
+      // Update in MySQL database using server action
       if (activeSheetId) {
-        await updateSheetName(activeSheetId, newSheetName);
+        const { error } = await updateSheetNameAction(activeSheetId, newSheetName);
+        if (error) {
+          throw new Error(error);
+        }
       }
 
       // Update local state
@@ -283,8 +292,11 @@ export default function Home() {
     if (!sheetToDelete) return;
     
     try {
-      // Delete from MySQL database
-      await deleteSheet(activeSheetId);
+      // Delete from MySQL database using server action
+      const { error } = await deleteSheetAction(activeSheetId);
+      if (error) {
+        throw new Error(error);
+      }
       
       // Update local state
       setSheets((prev: Sheet[]) => prev.filter((s: Sheet) => s.id !== activeSheetId));
@@ -363,12 +375,15 @@ export default function Home() {
       })
     );
 
-    // Update in MySQL database
+    // Update in MySQL database using server action
     if (activeSheetId) {
       const updatedSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
       if (updatedSheet) {
         try {
-          await updateSheetData(activeSheetId, updatedSheet.data);
+          const { error } = await updateSheetDataAction(activeSheetId, updatedSheet.data);
+          if (error) {
+            throw new Error(error);
+          }
         } catch (error) {
           console.error("Failed to update sheet data in database:", error);
           toast({
@@ -380,7 +395,8 @@ export default function Home() {
       }
     }
   };  
-  const handleRemoveRow = async (rowIndex: number) => {    setSheets((prevSheets: Sheet[]) =>
+  const handleRemoveRow = async (rowIndex: number) => {    
+    setSheets((prevSheets: Sheet[]) =>
       prevSheets.map((sheet: Sheet) =>
         sheet.id === activeSheetId
           ? { ...sheet, data: sheet.data.filter((_, index) => index !== rowIndex) }
@@ -388,12 +404,15 @@ export default function Home() {
       )
     );
     
-    // Update in MySQL database
+    // Update in MySQL database using server action
     if (activeSheetId) {
       const updatedSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
       if (updatedSheet) {
         try {
-          await updateSheetData(activeSheetId, updatedSheet.data);
+          const { error } = await updateSheetDataAction(activeSheetId, updatedSheet.data);
+          if (error) {
+            throw new Error(error);
+          }
           toast({ title: 'Row Removed', description: 'The selected entry has been removed from the sheet.' });
         } catch (error) {
           console.error("Failed to update sheet data in database:", error);

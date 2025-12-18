@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Create a connection pool
+// Create a connection pool with database specified
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST || 'localhost',
   port: parseInt(process.env.MYSQL_PORT || '3306'),
@@ -17,9 +17,21 @@ const pool = mysql.createPool({
 
 // Initialize the database tables
 export async function initializeDatabase() {
+  let connection;
   try {
+    const databaseName = process.env.MYSQL_DATABASE || 'nexscan';
+    
+    // Get a connection from the pool
+    connection = await pool.getConnection();
+    
+    // Create database if it doesn't exist
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\``);
+    
+    // Use the database
+    await connection.query(`USE \`${databaseName}\``);
+    
     // Create sheets table
-    await pool.execute(`
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS sheets (
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -29,7 +41,7 @@ export async function initializeDatabase() {
     `);
 
     // Create sheet_data table for storing the actual sheet data
-    await pool.execute(`
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS sheet_data (
         id INT AUTO_INCREMENT PRIMARY KEY,
         sheet_id VARCHAR(255) NOT NULL,
@@ -43,6 +55,10 @@ export async function initializeDatabase() {
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 }
 

@@ -65,10 +65,14 @@ export async function getSheetById(sheetId: string): Promise<Sheet | null> {
 // Create a new sheet
 export async function createSheet(sheet: Omit<Sheet, 'data'>): Promise<Sheet> {
   try {
+    // Convert dates to MySQL compatible format
+    const createdAt = new Date(sheet.createdAt).toISOString().slice(0, 19).replace('T', ' ');
+    const updatedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
     await pool.execute(
       `INSERT INTO sheets (id, name, created_at, updated_at) 
        VALUES (?, ?, ?, ?)`,
-      [sheet.id, sheet.name, sheet.createdAt, new Date().toISOString()]
+      [sheet.id, sheet.name, createdAt, updatedAt]
     );
 
     return {
@@ -84,9 +88,12 @@ export async function createSheet(sheet: Omit<Sheet, 'data'>): Promise<Sheet> {
 // Update sheet name
 export async function updateSheetName(sheetId: string, name: string): Promise<void> {
   try {
+    // Convert date to MySQL compatible format
+    const updatedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
     await pool.execute(
       `UPDATE sheets SET name = ?, updated_at = ? WHERE id = ?`,
-      [name, new Date().toISOString(), sheetId]
+      [name, updatedAt, sheetId]
     );
   } catch (error) {
     console.error('Error updating sheet name:', error);
@@ -110,10 +117,13 @@ export async function deleteSheet(sheetId: string): Promise<void> {
 // Add data to a sheet
 export async function addDataToSheet(sheetId: string, data: ExtractDataOutput): Promise<void> {
   try {
+    // Convert date to MySQL compatible format
+    const createdAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
     await pool.execute(
       `INSERT INTO sheet_data (sheet_id, data, created_at) 
        VALUES (?, ?, ?)`,
-      [sheetId, JSON.stringify(data), new Date().toISOString()]
+      [sheetId, JSON.stringify(data), createdAt]
     );
   } catch (error) {
     console.error('Error adding data to sheet:', error);
@@ -124,6 +134,9 @@ export async function addDataToSheet(sheetId: string, data: ExtractDataOutput): 
 // Update sheet data
 export async function updateSheetData(sheetId: string, data: ExtractDataOutput[]): Promise<void> {
   try {
+    // Convert date to MySQL compatible format
+    const createdAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    
     // First, delete all existing data for this sheet
     await pool.execute(
       `DELETE FROM sheet_data WHERE sheet_id = ?`,
@@ -135,7 +148,7 @@ export async function updateSheetData(sheetId: string, data: ExtractDataOutput[]
       await pool.execute(
         `INSERT INTO sheet_data (sheet_id, data, created_at) 
          VALUES (?, ?, ?)`,
-        [sheetId, JSON.stringify(item), new Date().toISOString()]
+        [sheetId, JSON.stringify(item), createdAt]
       );
     }
   } catch (error) {

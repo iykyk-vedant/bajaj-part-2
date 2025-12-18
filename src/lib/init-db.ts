@@ -1,8 +1,9 @@
-import { initializeDatabase } from './db';
+import { initializeDatabase, addSampleBomData } from './db';
 
 async function initDB() {
   try {
     await initializeDatabase();
+    await addSampleBomData();
     console.log('Database initialized successfully!');
     process.exit(0);
   } catch (error) {

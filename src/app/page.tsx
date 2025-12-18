@@ -564,8 +564,7 @@ export default function Home() {
             // Update in MySQL database
             if (activeSheetId) {
               try {
-                await updateSheetData(activeSheetId, []);
-                setIsSheetOverviewOpen(false);
+                await updateSheetDataAction(activeSheetId, []);                setIsSheetOverviewOpen(false);
                 toast({ title: 'Excel Sheet Cleared' });
               } catch (error) {
                 console.error("Failed to clear sheet data in database:", error);

@@ -6,12 +6,12 @@
     "dev": "next dev --turbopack -p 3001",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "NODE_ENV=production next build",
-    "start": "next start",
+    "build": "next build",    "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "init-db": "tsx src/lib/init-db.ts"  },
-  "dependencies": {
+    "init-db": "tsx src/lib/init-db.ts",
+    "import-bom": "tsx src/lib/import-bom.ts"
+  },  "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
     "@hookform/resolvers": "^4.1.3",

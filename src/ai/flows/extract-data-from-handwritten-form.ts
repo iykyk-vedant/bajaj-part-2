@@ -66,11 +66,13 @@ const extractDataFlow = ai.defineFlow(
     
     // If a spare part code was passed in from the form *before* upload,
     // let's trust that as the ground truth and overwrite whatever the AI extracted.
-    if (input.sparePartCode && output) {
-      output.sparePartCode = input.sparePartCode;
-      output.productDescription = input.productDescription;
+    // Note: This is a workaround for type checking since these properties are not in the schema
+    const inputWithExtraProps = input as ExtractDataInput & { sparePartCode?: string; productDescription?: string };
+    if (inputWithExtraProps.sparePartCode && output) {
+      output.sparePartCode = inputWithExtraProps.sparePartCode;
     }
-    
-    return output!;
+    if (inputWithExtraProps.productDescription && output) {
+      output.productDescription = inputWithExtraProps.productDescription;
+    }    return output!;
   }
 );

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { TagEntry } from '@/lib/tag-entry/types';
+import { spareParts } from '@/lib/spare-parts';
 
 interface TagEntryFormProps {
   initialData?: any;
@@ -135,8 +136,27 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
+    // Handle partCode selection to auto-populate product description
+    if (name === 'partCode') {
+      setFormData(prev => {
+        // Find the product description for the selected part code
+        let productDescription = '';
+        if (value) {
+          const part = spareParts.find(p => p.code === value);
+          if (part) {
+            productDescription = part.description;
+          }
+        }
+        
+        return {
+          ...prev,
+          partCode: value,
+          productDescription: productDescription || prev.productDescription
+        };
+      });
+    }
     // Handle mfgMonthYear field specially to validate and format MM/YYYY
-    if (name === 'mfgMonthYear') {
+    else if (name === 'mfgMonthYear') {
       // Allow only digits and forward slash
       if (!/^[0-9\/]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters

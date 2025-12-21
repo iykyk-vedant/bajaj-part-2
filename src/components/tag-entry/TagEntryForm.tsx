@@ -156,6 +156,18 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
         ...prev,
         [name]: formattedValue
       }));
+    } 
+    // Handle dateOfPurchase field to validate and format date
+    else if (name === 'dateOfPurchase') {
+      // Allow only digits, forward slashes, and hyphens
+      if (!/^[0-9\/\-]*$/.test(value) && value !== '') {
+        return; // Don't update if invalid characters
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -207,6 +219,16 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
       
       if (yearNum < 1900 || yearNum > 2100) {
         alert('Year must be between 1900 and 2100');
+        return;
+      }
+    }
+    
+    // Validate Date of Purchase format if provided
+    if (formData.dateOfPurchase) {
+      // Allow formats like DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
+      const dateRegex = /^(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2})$/;
+      if (!dateRegex.test(formData.dateOfPurchase)) {
+        alert('Date of Purchase must be in a valid format (e.g., DD/MM/YYYY, MM/DD/YYYY, or YYYY-MM-DD)');
         return;
       }
     }
@@ -435,8 +457,8 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
   }, [handleKeyboardShortcut]);
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <form onSubmit={handleSubmit} className="bg-white p-4 rounded-md shadow-sm flex flex-col h-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Sr. No.:</label>
           <input
@@ -444,7 +466,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             name="srNo"
             value={formData.srNo || ''}
             readOnly
-            className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+            className="w-full p-2 text-sm border border-gray-300 rounded bg-gray-100 h-9"
           />
         </div>
         <div>
@@ -455,7 +477,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
               value={isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo || ''}
               onChange={handleChange}
               disabled={isDcLocked}
-              className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+              className={`flex-1 p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
             >
               <option value="">Select DC No.</option>
               {dcNumbers.map((dc) => (
@@ -467,27 +489,25 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Branch:</label>
-          {/* Changed from dropdown to text input */}
           <input
             type="text"
             name="branch"
             value={formData.branch || ''}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">BCCD Name:</label>
-          {/* Changed from dropdown to text input */}
           <input
             type="text"
             name="bccdName"
             value={formData.bccdName || ''}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
         <div>
@@ -497,7 +517,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             name="productDescription"
             value={formData.productDescription || ''}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
         <div>
@@ -508,24 +528,25 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
               name="productSrNo"
               value={formData.productSrNo || ''}
               onChange={handleChange}
-              className="flex-1 p-2 border border-gray-300 rounded-l"
+              className="flex-1 p-2 text-sm border border-gray-300 rounded-l h-9"
             />
-            <div className="bg-gray-200 p-2 border border-l-0 border-gray-300 rounded-r">
+            <div className="bg-gray-200 p-2 text-sm border border-l-0 border-gray-300 rounded-r flex items-center">
               {(formData.productSrNo || '').length}/20
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date of Purchase:</label>
           <input
-            type="date"
+            type="text"
             name="dateOfPurchase"
             value={formData.dateOfPurchase || ''}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
+            placeholder="DD/MM/YYYY or MM/DD/YYYY"
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
         <div>
@@ -535,7 +556,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             name="complaintNo"
             value={formData.complaintNo || ''}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
         <div>
@@ -545,7 +566,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             value={isDcLocked ? useLockStore.getState().lockedPartCode : formData.partCode || ''}
             onChange={handleChange}
             disabled={isDcLocked}
-            className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+            className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
           >
             <option value="">Select Part Code</option>
             {(dcPartCodes[formData.dcNo] || []).map((code) => (
@@ -555,16 +576,15 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nature of Defect:</label>
-          {/* Changed from dropdown to text input */}
           <input
             type="text"
             name="natureOfDefect"
             value={formData.natureOfDefect || ''}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
         <div>
@@ -574,7 +594,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             name="visitingTechName"
             value={formData.visitingTechName || ''}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
         <div>
@@ -585,14 +605,14 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             value={formData.mfgMonthYear || ''}
             onChange={handleChange}
             placeholder="MM/YYYY"
-            className="w-full p-2 border border-gray-300 rounded"
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
             maxLength={7}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">PCB Sr. No:</label>
           <div className="flex">
             <input
@@ -600,11 +620,11 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
               name="pcbSrNo"
               value={formData.pcbSrNo || ''}
               onChange={handleChange}
-              className="flex-1 p-2 border border-gray-300 rounded-l"
+              className="flex-1 p-2 text-sm border border-gray-300 rounded-l h-9"
             />
             <button
               type="button"
-              className="bg-gray-200 p-2 border border-l-0 border-gray-300 rounded-r hover:bg-gray-300"
+              className="bg-gray-200 p-2 text-sm border border-l-0 border-gray-300 rounded-r hover:bg-gray-300 h-9"
               onClick={() => {
                 try {
                   const pcb = generatePcbNumber(formData.dcNo || '');
@@ -623,47 +643,47 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
         </div>
       </div>
 
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-end gap-3 mt-3">
         <button
           type="button"
           onClick={handleClear}
-          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+          className="px-4 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
         >
           Clear (Alt+C)
         </button>
         <button
           type="button"
           onClick={handleUpdate}
-          className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+          className="px-4 py-2 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700"
         >
           Update (Alt+U)
         </button>
         <button
           type="button"
           onClick={handleDelete}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           disabled={!formData.id}
         >
           Delete (Alt+D)
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Save (Alt+S)
         </button>
       </div>
 
       {/* Search Bar (below action buttons) */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+      <div className="mt-4 p-4 bg-gray-50 rounded-md">
         <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by DC No., Complaint No., Product Sr No., or PCB Sr No."
-              className="flex-1 p-2 border border-gray-300 rounded"
+              className="flex-1 p-2 text-sm border border-gray-300 rounded"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -674,17 +694,17 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             <button
               type="button"
               onClick={handleSearch}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               Search
             </button>
           </div>
 
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-3 items-center">
             <button
               type="button"
               onClick={() => setShowSavedList(prev => !prev)}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+              className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
             >
               {showSavedList ? 'Hide saved list' : 'Show saved list'}
             </button>
@@ -698,8 +718,8 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
         
         {/* Search Results */}
         {showSearchResults && filteredResults.length > 0 && (
-          <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
-            <div className="p-2 bg-gray-200 font-medium text-sm">Search Results ({filteredResults.length})</div>
+          <div className="mt-4 max-h-44 overflow-y-auto border border-gray-300 rounded text-sm">
+            <div className="p-2 bg-gray-200 font-medium">Search Results ({filteredResults.length})</div>
             {filteredResults.map((entry) => (
               <div
                 key={entry.id}
@@ -707,12 +727,12 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
                 className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 last:border-b-0"
               >
                 <div className="flex justify-between items-center">
-                  <div>
+                  <div className="truncate">
                     <span className="font-medium">DC: {entry.dcNo}</span> | 
                     <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
                     <span className="ml-2">Product Sr: {entry.productSrNo}</span>
                   </div>
-                  <span className="text-sm text-gray-500">Click to load</span>
+                  <span className="text-xs text-gray-500">Click to load</span>
                 </div>
               </div>
             ))}
@@ -721,8 +741,8 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
 
         {/* Saved Entries List */}
         {showSavedList && savedEntries.length > 0 && (
-          <div className="mt-4 max-h-60 overflow-y-auto border border-gray-300 rounded">
-            <div className="p-2 bg-yellow-100 font-medium text-sm flex justify-between items-center">
+          <div className="mt-4 max-h-44 overflow-y-auto border border-gray-300 rounded text-sm">
+            <div className="p-2 bg-yellow-100 font-medium flex justify-between items-center">
               <span>All Entries ({savedEntries.length}) - Click to load</span>
               <button
                 type="button"
@@ -739,13 +759,13 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
                 className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-200 last:border-b-0"
               >
                 <div className="flex justify-between items-center">
-                  <div>
+                  <div className="truncate">
                     <span className="font-medium">Sr. No: {entry.srNo}</span> | 
                     <span className="ml-2">DC: {entry.dcNo}</span> | 
                     <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
                     <span className="ml-2">Product Sr: {entry.productSrNo}</span>
                   </div>
-                  <span className="text-sm text-gray-500">Click to load</span>
+                  <span className="text-xs text-gray-500">Click to load</span>
                 </div>
               </div>
             ))}

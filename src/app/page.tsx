@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,11 +5,17 @@ import { useToast } from '@/hooks/use-toast';
 import { extractDataFromImage } from '@/app/actions';
 import type { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
 import { ImageUploader } from '@/components/image-uploader';
-import { ValidateDataSection } from '@/components/validate-data-section';
+
+import { TagEntryForm } from '@/components/tag-entry/TagEntryForm';
+import { SettingsTab } from '@/components/tag-entry/SettingsTab';
+import { FindTab } from '@/components/tag-entry/FindTab';
+import { ConsumptionTab } from '@/components/tag-entry/ConsumptionTab';
+
 import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SheetOverview } from '@/components/sheet-overview';
 import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
+import { loadDcNumbers, loadDcPartCodes, saveDcNumbers, saveDcPartCodes, addDcNumberWithPartCode } from '@/lib/dc-data-sync';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +70,17 @@ export default function Home() {
   // Store form context for extraction
   const [extractionContext, setExtractionContext] = useState<{ sparePartCode?: string; productDescription?: string; }>({});
 
+  // Tag Entry states
+  const [activeTab, setActiveTab] = useState<
+    "tag-entry" | "dispatch" | "consumption"
+  >("tag-entry");
+  
+  // Sub-tab state for Tag Entry
+  const [tagEntrySubTab, setTagEntrySubTab] = useState<"form" | "settings">("form");
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  const [dcNumbers, setDcNumbers] = useState<string[]>(loadDcNumbers());
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>(loadDcPartCodes());
 
   const { toast } = useToast();
 
@@ -104,6 +120,66 @@ export default function Home() {
     }
   }, [sheets, toast]);
   
+  // Load DC numbers and mappings from localStorage after mount
+  useEffect(() => {
+    const loadedDcNumbers = loadDcNumbers();
+    const loadedDcPartCodes = loadDcPartCodes();
+    
+    setDcNumbers(loadedDcNumbers);
+    setDcPartCodes(loadedDcPartCodes);
+  }, []);
+
+  // Save DC numbers to localStorage whenever they change
+  useEffect(() => {
+    saveDcNumbers(dcNumbers);
+  }, [dcNumbers]);
+  
+  // Save DC-PartCode mappings to localStorage whenever they change
+  useEffect(() => {
+    saveDcPartCodes(dcPartCodes);
+  }, [dcPartCodes]);
+
+  // Function to add a new DC number with Part Code
+  const addDcNumber = (dcNo: string, partCode: string) => {
+    const { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } = addDcNumberWithPartCode(
+      dcNo,
+      partCode,
+      dcNumbers,
+      dcPartCodes
+    );
+    
+    setDcNumbers(updatedDcNumbers);
+    setDcPartCodes(updatedDcPartCodes);
+  };
+
+  useEffect(() => {
+    // Update current time every second
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    // Check caps lock status
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.getModifierState) {
+        setIsCapsLockOn(e.getModifierState("CapsLock"));
+      }
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.getModifierState) {
+        setIsCapsLockOn(e.getModifierState("CapsLock"));
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   const handleImageReady = async (dataUrl: string) => {
     // Clear previous extraction results when a new image is uploaded
@@ -340,6 +416,15 @@ export default function Home() {
     }
   };
 
+  // Handle Excel export for Tag Entry
+  const handleTagEntryExportExcel = async () => {
+    try {
+      await exportTagEntriesToExcel();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to export Excel file');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="p-4 border-b bg-card/50 backdrop-blur-lg sticky top-0 z-20">
@@ -361,21 +446,6 @@ export default function Home() {
               <Download className="mr-2 h-4 w-4" />
               Export CSV
             </Button> */}
-            <Button 
-              className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={handleExportExcel}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export Excel
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={() => window.location.href = '/consumption'}
-            >
-              Consumption
-            </Button>
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -410,10 +480,10 @@ export default function Home() {
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => window.location.href = '/tag-entry'}>
+                {/* <DropdownMenuItem onClick={() => setActiveTab("tag-entry")}>
                   <span>Tag Entry</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator /> */}
                 <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} disabled={!activeSheet} className="text-red-500 focus:text-red-500">
                   <Trash2 className="mr-2 h-4 w-4" />
                   <span>Delete Current Sheet</span>
@@ -425,28 +495,104 @@ export default function Home() {
         </div>
       </header>
       
-      <main className="flex-1 container mx-auto p-4 md:p-8 space-y-8">
-        <div className="text-center">
+      <main className="flex-1 px-4 py-2 h-[calc(100vh-120px)] flex flex-col">
+        <div className="text-center mb-2">
             <h2 className="text-lg font-semibold">Active Sheet: <span className="font-bold text-primary">{activeSheet?.name || 'No active sheet'}</span></h2>
             <p className="text-sm text-muted-foreground">
                 {sheets.length > 0 ? 'New scans will be added here. Use the menu to switch or create sheets.' : 'Create a new sheet from the menu to get started.'}
             </p>
         </div>
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="lg:w-2/5 xl:w-1/3">
+        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 max-w-[1920px] mx-auto w-full">
+          <div className="lg:w-2/5 flex flex-col">
             <ImageUploader 
               onImageReady={handleImageReady} 
               isLoading={isLoading} 
             />
           </div>
-          <div className="lg:w-3/5 xl:w-2/3">
-            <ValidateDataSection 
-              initialData={currentExtractedData} 
-              isLoading={isLoading}
-              onSave={handleAddToSheet}
-              sheetActive={!!activeSheet}
-              onFormChange={setExtractionContext}
-            />
+          <div className="lg:w-3/5 flex flex-col">
+            {/* Tab Navigation */}
+            <div className="flex border-b border-gray-200 mb-2">
+              <button
+                className={`py-2 px-4 font-medium text-sm ${
+                  activeTab === "tag-entry"
+                    ? "border-b-2 border-blue-500 text-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("tag-entry")}
+              >
+                Tag Entry
+              </button>
+              <button
+                className={`py-2 px-4 font-medium text-sm ${
+                  activeTab === "consumption"
+                    ? "border-b-2 border-blue-500 text-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("consumption")}
+              >
+                Consumption
+              </button>
+              <button
+                className={`py-2 px-4 font-medium text-sm ${
+                  activeTab === "dispatch"
+                    ? "border-b-2 border-blue-500 text-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("dispatch")}
+              >
+                Dispatch
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-hidden">
+              {activeTab === "tag-entry" && (
+                <div className="bg-white rounded-md shadow-sm p-3 h-full flex flex-col">
+                  {/* Sub-tab Navigation */}
+                  <div className="flex border-b border-gray-200 mb-3">
+                    <button
+                      className={`py-1.5 px-3 font-medium text-xs ${
+                        tagEntrySubTab === "form"
+                          ? "border-b-2 border-blue-500 text-blue-600"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      onClick={() => setTagEntrySubTab("form")}
+                    >
+                      Tag Entry
+                    </button>
+                    <button
+                      className={`py-1.5 px-3 font-medium text-xs ${
+                        tagEntrySubTab === "settings"
+                          ? "border-b-2 border-blue-500 text-blue-600"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      onClick={() => setTagEntrySubTab("settings")}
+                    >
+                      Settings
+                    </button>
+                  </div>
+                  
+                  {/* Sub-tab Content */}
+                  <div className="flex-1 overflow-auto">
+                    {tagEntrySubTab === "form" && (
+                      <TagEntryForm 
+                        initialData={currentExtractedData}
+                        dcNumbers={dcNumbers}
+                        dcPartCodes={dcPartCodes}
+                      />
+                    )}
+                    {tagEntrySubTab === "settings" && (
+                      <SettingsTab 
+                        dcNumbers={dcNumbers}
+                        onAddDcNumber={addDcNumber}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+              {activeTab === "dispatch" && <FindTab dcNumbers={dcNumbers} onExportExcel={handleTagEntryExportExcel} />}
+              {activeTab === "consumption" && <ConsumptionTab dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />}
+            </div>
           </div>
         </div>
       </main>

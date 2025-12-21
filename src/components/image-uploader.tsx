@@ -128,14 +128,14 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
 
   return (
     <Card className="flex-1 flex flex-col">
-      <CardHeader>
-        <CardTitle className="font-headline text-2xl">Image Input</CardTitle>
-        <CardDescription>Upload an image or use your device's camera. Press Enter to capture, Esc to quit.</CardDescription>
+      <CardHeader className="p-4">
+        <CardTitle className="font-headline text-lg">Image Input</CardTitle>
+        <CardDescription className="text-sm">Upload an image or use your device's camera. Press Enter to capture, Esc to quit.</CardDescription>
       </CardHeader>
       <CardContent className="p-0 relative aspect-[4/5.5] bg-muted/30 flex-1">
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <span className="sr-only">Extracting data...</span>
           </div>
         )}
@@ -146,24 +146,24 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
                 src={imageDataUrl}
                 alt="Form preview"
                 fill
-                className="object-contain p-4"
+                className="object-contain p-3"
                 data-ai-hint="handwritten form"
               />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center text-center text-muted-foreground p-4">
-                <ScanLine className="h-16 w-16 mb-4 animate-pulse text-primary/50" />
-                <p className="font-semibold">Ready to Scan</p>
+              <div className="flex h-full w-full flex-col items-center justify-center text-center text-muted-foreground p-3">
+                <ScanLine className="h-10 w-10 mb-3 animate-pulse text-primary/50" />
+                <p className="font-semibold text-base">Ready to Scan</p>
                 <p className="text-sm">Upload or capture a form to begin.</p>
               </div>
             )
         )}
       </CardContent>
-      <CardFooter className="p-4 flex flex-col gap-4">
+      <CardFooter className="p-3 flex flex-col gap-3">
         {!isCameraOn && devices.length > 1 && (
           <div className="w-full space-y-2">
-            <Label htmlFor="camera-select">Select Camera</Label>
+            <Label htmlFor="camera-select" className="text-sm">Select Camera</Label>
             <Select value={selectedDeviceId} onValueChange={setSelectedDeviceId}>
-              <SelectTrigger id="camera-select" onClick={getDevices} onFocus={getDevices}>
+              <SelectTrigger id="camera-select" onClick={getDevices} onFocus={getDevices} className="h-10 py-2 text-sm">
                 <Video className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Select a camera" />
               </SelectTrigger>
@@ -188,21 +188,21 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
           />
           {isCameraOn ? (
               <>
-                  <Button onClick={takePicture} disabled={isLoading} className="bg-accent hover:bg-accent/90">
+                  <Button onClick={takePicture} disabled={isLoading} className="bg-accent hover:bg-accent/90 h-10 py-2 text-sm">
                       <Camera className="mr-2 h-4 w-4" />
                       Capture (Enter)
                   </Button>
-                  <Button onClick={stopCamera} variant="outline" disabled={isLoading}>
+                  <Button onClick={stopCamera} variant="outline" disabled={isLoading} className="h-10 py-2 text-sm">
                       Cancel (Esc)
                   </Button>
               </>
           ) : (
               <>
-                  <Button onClick={handleUploadClick} disabled={isLoading}>
+                  <Button onClick={handleUploadClick} disabled={isLoading} className="h-10 py-2 text-sm">
                       <FileUp className="mr-2 h-4 w-4" />
                       Upload Image
                   </Button>
-                  <Button onClick={startCamera} variant="outline" disabled={isLoading}>
+                  <Button onClick={startCamera} variant="outline" disabled={isLoading} className="h-10 py-2 text-sm">
                       <Camera className="mr-2 h-4 w-4" />
                       Use Camera
                   </Button>

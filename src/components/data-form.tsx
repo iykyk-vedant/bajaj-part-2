@@ -36,7 +36,12 @@ const formSchema = z.object({
   bccdName: z.string().optional(),
   productDescription: z.string().optional(),
   productSrNo: z.string().optional(),
-  dateOfPurchase: z.string().optional(),
+  dateOfPurchase: z.string().optional().refine(
+    (val) => val === '' || /^(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2})$/.test(val || ''),
+    {
+      message: 'Date must be in a valid format (e.g., DD/MM/YYYY, MM/DD/YYYY, or YYYY-MM-DD)',
+    }
+  ),
   complaintNo: z.string().optional(),
   sparePartCode: z.string().optional(),
   natureOfDefect: z.string().optional(),
@@ -307,7 +312,7 @@ export function DataForm({ initialData, isLoading, onSave, sheetActive, onFormCh
                   <FormItem>
                     <FormLabel>Date of Purchase</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., 2024-01-15" {...field} value={field.value ?? ''} />
+                      <Input placeholder="DD/MM/YYYY or MM/DD/YYYY" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

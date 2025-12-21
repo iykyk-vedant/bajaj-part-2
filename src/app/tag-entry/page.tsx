@@ -4,14 +4,18 @@ import { useState, useEffect } from "react";
 import { TagEntryForm } from "../../components/tag-entry/TagEntryForm";
 import { SettingsTab } from "../../components/tag-entry/SettingsTab";
 import { FindTab } from "../../components/tag-entry/FindTab";
+import { ConsumptionTab } from "../../components/tag-entry/ConsumptionTab";
 import { StatusBar } from "../../components/tag-entry/StatusBar";
 import { exportTagEntriesToExcel } from "@/lib/tag-entry/export-utils";
 import { loadDcNumbers, loadDcPartCodes, saveDcNumbers, saveDcPartCodes, addDcNumberWithPartCode } from "@/lib/dc-data-sync";
 
 export default function TagEntryPage() {
   const [activeTab, setActiveTab] = useState<
-    "tag-entry" | "settings" | "find"
+    "tag-entry" | "dispatch" | "consumption"
   >("tag-entry");
+  
+  // Sub-tab state for Tag Entry
+  const [tagEntrySubTab, setTagEntrySubTab] = useState<"form" | "settings">("form");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   
@@ -53,6 +57,25 @@ export default function TagEntryPage() {
     setDcPartCodes(updatedDcPartCodes);
   };
 
+  // Check for hash fragment to switch to consumption tab
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#consumption') {
+        setActiveTab('consumption');
+      }
+      
+      // Listen for hash changes
+      const handleHashChange = () => {
+        if (window.location.hash === '#consumption') {
+          setActiveTab('consumption');
+        }
+      };
+      
+      window.addEventListener('hashchange', handleHashChange);
+      return () => window.removeEventListener('hashchange', handleHashChange);
+    }
+  }, []);
+
   useEffect(() => {
     // Update current time every second
     const timer = setInterval(() => {
@@ -61,13 +84,17 @@ export default function TagEntryPage() {
 
     // Check caps lock status
     const handleKeyDown = (e: KeyboardEvent) => {
-      setIsCapsLockOn(e.getModifierState("CapsLock"));
+      if (e.getModifierState) {
+        setIsCapsLockOn(e.getModifierState("CapsLock"));
+      }
     };
-
+    
     const handleKeyUp = (e: KeyboardEvent) => {
-      setIsCapsLockOn(e.getModifierState("CapsLock"));
+      if (e.getModifierState) {
+        setIsCapsLockOn(e.getModifierState("CapsLock"));
+      }
     };
-
+    
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
@@ -124,31 +151,73 @@ export default function TagEntryPage() {
           </button>
           <button
             className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "find"
+              activeTab === "consumption"
                 ? "border-b-2 border-blue-500 text-blue-600"
                 : "text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab("find")}
+            onClick={() => setActiveTab("consumption")}
           >
-            Find
+            Consumption
           </button>
           <button
             className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "settings"
+              activeTab === "dispatch"
                 ? "border-b-2 border-blue-500 text-blue-600"
                 : "text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab("settings")}
+            onClick={() => setActiveTab("dispatch")}
           >
-            Settings
+            Dispatch
           </button>
         </div>
 
         {/* Tab Content */}
         <div className="mb-6">
-          {activeTab === "tag-entry" && <TagEntryForm dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />}
-          {activeTab === "find" && <FindTab dcNumbers={dcNumbers} />}
-          {activeTab === "settings" && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
+          {activeTab === "tag-entry" && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              {/* Sub-tab Navigation */}
+              <div className="flex border-b border-gray-200 mb-6">
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${
+                    tagEntrySubTab === "form"
+                      ? "border-b-2 border-blue-500 text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setTagEntrySubTab("form")}
+                >
+                  Tag Entry
+                </button>
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${
+                    tagEntrySubTab === "settings"
+                      ? "border-b-2 border-blue-500 text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setTagEntrySubTab("settings")}
+                >
+                  Settings
+                </button>
+              </div>
+              
+              {/* Sub-tab Content */}
+              <div className="mb-6">
+                {tagEntrySubTab === "form" && (
+                  <TagEntryForm 
+                    dcNumbers={dcNumbers}
+                    dcPartCodes={dcPartCodes}
+                  />
+                )}
+                {tagEntrySubTab === "settings" && (
+                  <SettingsTab 
+                    dcNumbers={dcNumbers}
+                    onAddDcNumber={addDcNumber}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+          {activeTab === "dispatch" && <FindTab dcNumbers={dcNumbers} onExportExcel={handleExportExcel} />}
+          {activeTab === "consumption" && <ConsumptionTab dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />}
         </div>
 
         {/* Status Bar */}

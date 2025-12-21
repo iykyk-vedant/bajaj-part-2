@@ -23,7 +23,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 187 65% 41%;
-    --radius: 0.5rem;
+    --radius: 0.25rem;
   }
 
   .dark {
@@ -55,5 +55,30 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Compact UI adjustments */
+  .compact-input {
+    @apply h-8 p-1.5 text-sm;
+  }
+  
+  .compact-button {
+    @apply h-8 py-1.5 px-3 text-sm;
+  }
+  
+  .compact-select {
+    @apply h-8 p-1.5 text-sm;
+  }
+  
+  .compact-label {
+    @apply text-xs font-medium;
+  }
+  
+  .compact-card {
+    @apply p-3 rounded-md;
+  }
+  
+  .compact-gap {
+    @apply gap-2;
   }
 }

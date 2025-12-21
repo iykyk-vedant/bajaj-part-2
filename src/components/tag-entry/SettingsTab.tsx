@@ -57,11 +57,6 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
     }
   };
 
-  const handleDispatch = () => {
-    // Implementation for dispatching
-    console.log('Dispatching');
-  };
-
   // Keyboard shortcut handler for Settings form
   const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
     // Only handle Alt key combinations
@@ -222,49 +217,6 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
             >
               Reset PCB Serial Counter
             </button>
-          </div>
-        </div>
-
-        {/* Dispatch */}
-        <div className="border border-gray-200 rounded-lg p-4 md:col-span-2">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Dispatch</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
-              <select 
-                defaultValue={isDcLocked ? useLockStore.getState().lockedDcNo : ''}
-                className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
-                disabled={isDcLocked}
-              >
-                <option value="">Select DC No.</option>
-                {dcNumbers.map((dc) => (
-                  <option key={dc} value={dc}>{dc}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
-              <select 
-                defaultValue={isDcLocked ? useLockStore.getState().lockedPartCode : ''}
-                className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
-                disabled={isDcLocked}
-              >
-                <option value="">Select Part Code</option>
-                {/* TODO: Implement dynamic Part Code selection based on selected DC */}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={handleDispatch}
-                className="w-full bg-green-500 hover:bg-green-600 text-white p-2 rounded"
-              >
-                Dispatch
-              </button>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-4">
-            <div>Dispatched: <span className="font-medium">0</span></div>
-            <div>Total = 0 | Dispatched = 0 | Pending = 0</div>
           </div>
         </div>
       </div>

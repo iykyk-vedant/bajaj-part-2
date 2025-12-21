@@ -12,21 +12,25 @@ interface ValidateDataSectionProps {
   onSave: (data: any) => void;
   sheetActive: boolean;
   onFormChange: (context: { sparePartCode?: string; productDescription?: string }) => void;
+  dcNumbers?: string[];
+  dcPartCodes?: Record<string, string[]>;
 }
 
-export function ValidateDataSection({ initialData, isLoading, onSave, sheetActive, onFormChange }: ValidateDataSectionProps) {
+export function ValidateDataSection({ initialData, isLoading, onSave, sheetActive, onFormChange, dcNumbers, dcPartCodes }: ValidateDataSectionProps) {
   const [activeTab, setActiveTab] = useState<'tag-entry' | 'settings'>('tag-entry');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   
-  // Initialize DC numbers - use default values initially
-  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+  // Initialize DC numbers - use default values initially if not provided
+  const [localDcNumbers, setLocalDcNumbers] = useState<string[]>(dcNumbers || ['DC001', 'DC002']);
   
-  // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
-    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
-    'DC002': ['PCB-004', 'PCB-005']
-  });
+  // Initialize DC-PartCode mappings - use default values initially if not provided
+  const [localDcPartCodes, setLocalDcPartCodes] = useState<Record<string, string[]>>(
+    dcPartCodes || {
+      'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
+      'DC002': ['PCB-004', 'PCB-005']
+    }
+  );
 
   // Load DC numbers and mappings from localStorage after mount
   useEffect(() => {
@@ -35,7 +39,7 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          setDcNumbers(parsed);
+          setLocalDcNumbers(parsed);
         } catch (e) {
           // Keep default values if parsing fails
         }
@@ -45,7 +49,7 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
       if (storedMappings) {
         try {
           const parsed = JSON.parse(storedMappings);
-          setDcPartCodes(parsed);
+          setLocalDcPartCodes(parsed);
         } catch (e) {
           // Keep default values if parsing fails
         }
@@ -56,21 +60,21 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
   // Save DC numbers to localStorage whenever they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
+      localStorage.setItem('dc-numbers', JSON.stringify(localDcNumbers));
     }
-  }, [dcNumbers]);
+  }, [localDcNumbers]);
   
   // Save DC-PartCode mappings to localStorage whenever they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('dc-partcode-mappings', JSON.stringify(dcPartCodes));
+      localStorage.setItem('dc-partcode-mappings', JSON.stringify(localDcPartCodes));
     }
-  }, [dcPartCodes]);
+  }, [localDcPartCodes]);
 
   // Function to add a new DC number
   const addDcNumber = (dcNo: string) => {
-    if (dcNo && !dcNumbers.includes(dcNo)) {
-      setDcNumbers(prev => [...prev, dcNo]);
+    if (dcNo && !localDcNumbers.includes(dcNo)) {
+      setLocalDcNumbers(prev => [...prev, dcNo]);
     }
   };
 
@@ -82,13 +86,17 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
 
     // Check caps lock status
     const handleKeyDown = (e: KeyboardEvent) => {
-      setIsCapsLockOn(e.getModifierState('CapsLock'));
+      if (e.getModifierState) {
+        setIsCapsLockOn(e.getModifierState('CapsLock'));
+      }
     };
-
+    
     const handleKeyUp = (e: KeyboardEvent) => {
-      setIsCapsLockOn(e.getModifierState('CapsLock'));
+      if (e.getModifierState) {
+        setIsCapsLockOn(e.getModifierState('CapsLock'));
+      }
     };
-
+    
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
@@ -169,8 +177,8 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
 
       {/* Tab Content */}
       <div className="mb-6">
-        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />}
-        {activeTab === 'settings' && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
+        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={localDcNumbers} dcPartCodes={localDcPartCodes} />}
+        {activeTab === 'settings' && <SettingsTab dcNumbers={localDcNumbers} onAddDcNumber={addDcNumber} />}
       </div>
 
       {/* Status Bar */}

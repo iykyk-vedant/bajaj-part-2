@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { extractDataFromImage } from '@/app/actions';
 import type { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
@@ -23,6 +23,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
+import { ToastAction } from '@/components/ui/toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,15 +37,24 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export type Sheet = {
+// Import server actions for sheet operations
+import { 
+  getAllSheetsAction, 
+  createSheetAction, 
+  updateSheetNameAction, 
+  deleteSheetAction, 
+  addDataToSheetAction, 
+  updateSheetDataAction,
+  addDcNumberAction
+} from '@/app/actions';export type Sheet = {
   id: string;
   name: string;
   data: ExtractDataOutput[];
   createdAt: string;
 }
 
-const STORAGE_KEY = 'nexscan-sheets';
-
+// Remove localStorage key since we're using MySQL
+// const STORAGE_KEY = 'nexscan-sheets';
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentExtractedData, setCurrentExtractedData] = useState<ExtractDataOutput | null>(null);
@@ -60,6 +70,15 @@ export default function Home() {
   const [isDuplicateWarningOpen, setIsDuplicateWarningOpen] = useState(false);
   const [newSheetName, setNewSheetName] = useState('');
   const [pendingData, setPendingData] = useState<ExtractDataOutput | null>(null);
+  
+  // Initialize DC numbers - use default values initially
+  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+  
+  // Initialize DC-PartCode mappings
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
+    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
+    'DC002': ['PCB-004', 'PCB-005']
+  });
 
 
   // Store form context for extraction
@@ -67,44 +86,176 @@ export default function Home() {
 
 
   const { toast } = useToast();
-
-  // Load sheets from local storage on initial render
+  // Load DC numbers and mappings from database and localStorage after mount
   useEffect(() => {
-    try {
-      const savedSheets = localStorage.getItem(STORAGE_KEY);
-      if (savedSheets) {
-        const parsedSheets: Sheet[] = JSON.parse(savedSheets);
-        setSheets(parsedSheets);
-        if (parsedSheets.length > 0) {
-          // Activate the most recently created sheet
-          setActiveSheetId(parsedSheets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].id);
+    const loadFromDatabase = async () => {
+      try {
+        // Import the action here to avoid server/client issues
+        const { getAllDcNumbersAction } = await import('@/app/actions');
+        
+        // Load DC numbers from database
+        const result = await getAllDcNumbersAction();
+        if (result.dcNumbers && result.dcNumbers.length > 0) {
+          // Convert to the format expected by the component
+          const dcNumbersList = result.dcNumbers.map(item => item.dcNumber);
+          const dcPartCodesMap = result.dcNumbers.reduce((acc, item) => {
+            acc[item.dcNumber] = item.partCodes;
+            return acc;
+          }, {} as Record<string, string[]>);
+          
+          setDcNumbers(dcNumbersList);
+          setDcPartCodes(dcPartCodesMap);
+        }
+      } catch (error) {
+        console.error('Error loading DC numbers from database:', error);
+      }
+    };
+    
+    const loadFromLocalStorage = () => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('dc-numbers');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setDcNumbers(prev => {
+              // Merge with existing data, avoiding duplicates
+              const uniqueDcNumbers = [...new Set([...prev, ...parsed])];
+              return uniqueDcNumbers;
+            });
+          } catch (e) {
+            console.error('Error parsing DC numbers from localStorage:', e);
+          }
+        }
+        
+        const storedMappings = localStorage.getItem('dc-partcode-mappings');
+        if (storedMappings) {
+          try {
+            const parsed = JSON.parse(storedMappings);
+            setDcPartCodes(prev => {
+              // Merge with existing data
+              return { ...prev, ...parsed };
+            });
+          } catch (e) {
+            console.error('Error parsing DC part codes from localStorage:', e);
+          }
         }
       }
-    } catch (error) {
-      console.error("Failed to load sheets from local storage:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Could not load data',
-        description: 'There was an error loading your saved sheets.',
-      });
+    };
+    
+    // Load initial data
+    loadFromDatabase();
+    loadFromLocalStorage();
+    
+    // Listen for localStorage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dc-partcode-mappings' || e.key === 'dc-numbers') {
+        loadFromLocalStorage();
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
     }
-  }, [toast]);
-
-  // Save sheets to local storage whenever they change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sheets));
-    } catch (error) {
-      console.error("Failed to save sheets to local storage:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Could not save data',
-        description: 'Your changes might not be saved across sessions.',
-      });
-    }
-  }, [sheets, toast]);
+    
+    // Periodic check to ensure data stays in sync (every 5 seconds)
+    const interval = setInterval(() => {
+      loadFromDatabase();
+      loadFromLocalStorage();
+    }, 5000);
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+      }
+      clearInterval(interval);
+    };
+  }, []);
   
-
+  // Save DC numbers to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
+    }
+  }, [dcNumbers]);
+  
+  // Save DC-PartCode mappings to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dc-partcode-mappings', JSON.stringify(dcPartCodes));
+    }
+  }, [dcPartCodes]);
+  
+  // Function to add a new DC number with Part Code
+  const addDcNumber = (dcNo: string, partCode: string) => {
+    console.log('addDcNumber called with:', dcNo, partCode);
+    if (dcNo && !dcNumbers.includes(dcNo)) {
+      setDcNumbers(prev => [...prev, dcNo]);
+    }
+    
+    // Add Part Code mapping
+    if (partCode) {
+      setDcPartCodes(prev => {
+        const currentPartCodes = prev[dcNo] || [];
+        
+        // Only add the part code if it doesn't already exist
+        if (!currentPartCodes.includes(partCode)) {
+          const updatedPartCodes = [...currentPartCodes, partCode];
+          return {
+            ...prev,
+            [dcNo]: updatedPartCodes
+          };
+        }
+        // If part code already exists, keep the current state
+        return prev;
+      });
+    }
+  };
+  
+  // Create a stable callback for the database function
+  const handleAddDcNumberToDb = useCallback(async (dcNo: string, partCode: string) => {
+    console.log('=== handleAddDcNumberToDb START ===');
+    console.log('handleAddDcNumberToDb called with:', dcNo, partCode);
+    try {
+      console.log('Calling addDcNumberAction with:', dcNo, [partCode]);
+      const result = await addDcNumberAction(dcNo, [partCode]);
+      console.log('Database result:', result);
+      if (!result.success) {
+        console.error('Failed to save DC number to database:', result.error);
+        throw new Error(result.error || 'Failed to save DC number to database');
+      }
+      console.log('=== handleAddDcNumberToDb END ===');
+    } catch (error) {
+      console.error('Error saving DC number to database:', error);
+      throw error;
+    }
+  }, []);
+  
+  // Load sheets from MySQL database on initial render
+  useEffect(() => {
+    const loadSheets = async () => {
+      try {
+        const { sheets: loadedSheets, error } = await getAllSheetsAction();
+        if (error) {
+          throw new Error(error);
+        }
+        setSheets(loadedSheets);
+        if (loadedSheets.length > 0) {
+          // Activate the most recently created sheet
+          setActiveSheetId(loadedSheets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to load sheets from database:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Could not load data',
+          description: 'There was an error loading your saved sheets from the database.',
+        });
+      }
+    };
+  
+    loadSheets();
+  }, [toast]);  // We no longer need to save to localStorage since we're using MySQL
+  // The save operations are now handled by individual database calls
   const handleImageReady = async (dataUrl: string) => {
     // Clear previous extraction results when a new image is uploaded
     setCurrentExtractedData(null); 
@@ -135,12 +286,31 @@ export default function Home() {
       });
     } else {
       setCurrentExtractedData(result.data);
-      toast({
-        title: 'Extraction Successful',
-        description: 'Data has been extracted. Review and add to the active Excel sheet.',
-      });
-    }
-    
+      
+      // Check if a spare part code was extracted and suggest creating a DC entry
+      if (result.data?.sparePartCode) {
+        toast({
+          title: 'Spare Part Code Detected',
+          description: `Found spare part code: ${result.data.sparePartCode}. You can create a DC entry for it in the Settings tab.`,
+          action: (
+            <ToastAction 
+              altText="Go to Settings"
+              onClick={() => {
+                // Navigate to the tag-entry page with settings tab active
+                window.location.href = '/tag-entry#settings';
+              }}
+            >
+              Go to Settings
+            </ToastAction>
+          ),
+        });
+      } else {
+        toast({
+          title: 'Extraction Successful',
+          description: 'Data has been extracted. Review and add to the active Excel sheet.',
+        });
+      }
+    }    
     setIsLoading(false);
   };
   
@@ -167,22 +337,38 @@ export default function Home() {
     }
   };
 
-  const addConfirmedData = (data: ExtractDataOutput) => {
-    setSheets((prevSheets: Sheet[]) => 
-      prevSheets.map((sheet: Sheet) => 
-        sheet.id === activeSheetId 
-          ? { ...sheet, data: [...sheet.data, data] }
-          : sheet
-      )
-    );
-    setCurrentExtractedData(null); // Clear the form after adding
-    toast({
-      title: 'Form Added',
-      description: `The form data has been added to the sheet: ${activeSheet?.name}.`,
-    });
-  };
-
-  const confirmAddDuplicate = () => {
+  const addConfirmedData = async (data: ExtractDataOutput) => {
+    if (!activeSheetId) return;
+    
+    try {
+      // Add data to MySQL database using server action
+      const { error } = await addDataToSheetAction(activeSheetId, data);
+      if (error) {
+        throw new Error(error);
+      }
+      
+      // Update local state
+      setSheets((prevSheets: Sheet[]) => 
+        prevSheets.map((sheet: Sheet) => 
+          sheet.id === activeSheetId 
+            ? { ...sheet, data: [...sheet.data, data] }
+            : sheet
+        )
+      );
+      setCurrentExtractedData(null); // Clear the form after adding
+      toast({
+        title: 'Form Added',
+        description: `The form data has been added to the sheet: ${sheets.find(s => s.id === activeSheetId)?.name}.`,
+      });
+    } catch (error) {
+      console.error("Failed to add data to sheet in database:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Add Failed',
+        description: 'There was an error adding data to your sheet in the database.',
+      });
+    }
+  };  const confirmAddDuplicate = () => {
     if (pendingData) {
       addConfirmedData(pendingData);
     }
@@ -195,28 +381,42 @@ export default function Home() {
     setIsCreateSheetDialogOpen(true);
   };
   
-  const handleCreateNewSheet = () => {
+  const handleCreateNewSheet = async () => {
     if (!newSheetName.trim()) {
       toast({ variant: 'destructive', title: 'Invalid Name', description: 'Sheet name cannot be empty.' });
       return;
     }
-    const newSheet: Sheet = {
+    const newSheet = {
       id: `sheet-${Date.now()}`,
       name: newSheetName,
-      data: [],
       createdAt: new Date().toISOString(),
     };
-    setSheets((prev: Sheet[]) => [newSheet, ...prev]);
-    setActiveSheetId(newSheet.id);
-    setIsCreateSheetDialogOpen(false);
-    setNewSheetName('');
-    toast({
-      title: 'New Sheet Created',
-      description: `"${newSheet.name}" is now the active sheet.`,
-    });
-  };
 
-  const handleOpenRenameSheetDialog = () => {
+    try {
+      // Save to MySQL database using server action
+      const { sheet: createdSheet, error } = await createSheetAction(newSheet);
+      if (error) {
+        throw new Error(error);
+      }
+      
+      // Update local state
+      setSheets((prev: Sheet[]) => [{ ...(createdSheet || newSheet), data: [] }, ...prev]);
+      setActiveSheetId(newSheet.id);
+      setIsCreateSheetDialogOpen(false);
+      setNewSheetName('');
+      toast({
+        title: 'New Sheet Created',
+        description: `"${newSheet.name}" is now the active sheet.`,
+      });
+    } catch (error) {
+      console.error("Failed to create sheet in database:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Creation Failed',
+        description: 'There was an error creating your sheet in the database.',
+      });
+    }
+  };  const handleOpenRenameSheetDialog = () => {
     const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (activeSheet) {
       setNewSheetName(activeSheet.name);
@@ -224,46 +424,78 @@ export default function Home() {
     }
   };
 
-  const handleRenameSheet = () => {
+  const handleRenameSheet = async () => {
     if (!newSheetName.trim()) {
       toast({ variant: 'destructive', title: 'Invalid Name', description: 'Sheet name cannot be empty.' });
       return;
     }
-    setSheets((prevSheets: Sheet[]) =>
-      prevSheets.map((sheet: Sheet) =>
-        sheet.id === activeSheetId ? { ...sheet, name: newSheetName } : sheet
-      )
-    );
-    setIsRenameSheetDialogOpen(false);
-    setNewSheetName('');
-    toast({ title: 'Sheet Renamed', description: `Sheet successfully renamed to "${newSheetName}".` });
-  };
-  
-  const handleDeleteSheet = () => {
+
+    try {
+      // Update in MySQL database using server action
+      if (activeSheetId) {
+        const { error } = await updateSheetNameAction(activeSheetId, newSheetName);
+        if (error) {
+          throw new Error(error);
+        }
+      }
+
+      // Update local state
+      setSheets((prevSheets: Sheet[]) =>
+        prevSheets.map((sheet: Sheet) =>
+          sheet.id === activeSheetId ? { ...sheet, name: newSheetName } : sheet
+        )
+      );
+      setIsRenameSheetDialogOpen(false);
+      setNewSheetName('');
+      toast({ title: 'Sheet Renamed', description: `Sheet successfully renamed to "${newSheetName}".` });
+    } catch (error) {
+      console.error("Failed to rename sheet in database:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Rename Failed',
+        description: 'There was an error renaming your sheet in the database.',
+      });
+    }
+  };  
+  const handleDeleteSheet = async () => {
     if (!activeSheetId) return;
 
     const sheetToDelete = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (!sheetToDelete) return;
     
-    setSheets((prev: Sheet[]) => prev.filter((s: Sheet) => s.id !== activeSheetId));
-    
-    // Set new active sheet
-    const remainingSheets = sheets.filter((s: Sheet) => s.id !== activeSheetId);
-    if (remainingSheets.length > 0) {
-      setActiveSheetId(remainingSheets[0].id);
-    } else {
-      setActiveSheetId(null);
+    try {
+      // Delete from MySQL database using server action
+      const { error } = await deleteSheetAction(activeSheetId);
+      if (error) {
+        throw new Error(error);
+      }
+      
+      // Update local state
+      setSheets((prev: Sheet[]) => prev.filter((s: Sheet) => s.id !== activeSheetId));
+      
+      // Set new active sheet
+      const remainingSheets = sheets.filter((s: Sheet) => s.id !== activeSheetId);
+      if (remainingSheets.length > 0) {
+        setActiveSheetId(remainingSheets[0].id);
+      } else {
+        setActiveSheetId(null);
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Sheet Deleted',
+        description: `"${sheetToDelete.name}" has been removed.`,
+      });
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to delete sheet from database:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Deletion Failed',
+        description: 'There was an error deleting your sheet from the database.',
+      });
     }
-    
-    toast({
-      variant: 'destructive',
-      title: 'Sheet Deleted',
-      description: `"${sheetToDelete.name}" has been removed.`,
-    });
-    setIsDeleteDialogOpen(false);
-  };
-
-  const exportToCSV = () => {
+  };  const exportToCSV = () => {
     const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (!activeSheet || activeSheet.data.length === 0) {
       toast({
@@ -300,7 +532,8 @@ export default function Home() {
     });
   };
 
-  const handleUpdateSheetData = (rowIndex: number, columnId: string, value: any) => {
+  const handleUpdateSheetData = async (rowIndex: number, columnId: string, value: any) => {
+    // Update local state first
     setSheets((prevSheets: Sheet[]) =>
       prevSheets.map((sheet: Sheet) => {
         if (sheet.id === activeSheetId) {
@@ -313,9 +546,28 @@ export default function Home() {
         return sheet;
       })
     );
-  };
-  
-  const handleRemoveRow = (rowIndex: number) => {
+
+    // Update in MySQL database using server action
+    if (activeSheetId) {
+      const updatedSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
+      if (updatedSheet) {
+        try {
+          const { error } = await updateSheetDataAction(activeSheetId, updatedSheet.data);
+          if (error) {
+            throw new Error(error);
+          }
+        } catch (error) {
+          console.error("Failed to update sheet data in database:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Update Failed',
+            description: 'There was an error updating your sheet data in the database.',
+          });
+        }
+      }
+    }
+  };  
+  const handleRemoveRow = async (rowIndex: number) => {    
     setSheets((prevSheets: Sheet[]) =>
       prevSheets.map((sheet: Sheet) =>
         sheet.id === activeSheetId
@@ -323,9 +575,28 @@ export default function Home() {
           : sheet
       )
     );
-    toast({ title: 'Row Removed', description: 'The selected entry has been removed from the sheet.' });
-  };
-  
+    
+    // Update in MySQL database using server action
+    if (activeSheetId) {
+      const updatedSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
+      if (updatedSheet) {
+        try {
+          const { error } = await updateSheetDataAction(activeSheetId, updatedSheet.data);
+          if (error) {
+            throw new Error(error);
+          }
+          toast({ title: 'Row Removed', description: 'The selected entry has been removed from the sheet.' });
+        } catch (error) {
+          console.error("Failed to update sheet data in database:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Update Failed',
+            description: 'There was an error updating your sheet data in the database.',
+          });
+        }
+      }
+    }
+  };  
   const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
 
   const handleExportExcel = async () => {
@@ -446,6 +717,9 @@ export default function Home() {
               onSave={handleAddToSheet}
               sheetActive={!!activeSheet}
               onFormChange={setExtractionContext}
+              dcNumbers={dcNumbers}
+              dcPartCodes={dcPartCodes}
+              onAddDcNumberToDb={handleAddDcNumberToDb}
             />
           </div>
         </div>
@@ -458,12 +732,25 @@ export default function Home() {
           sheetData={activeSheet.data}
           onUpdateData={handleUpdateSheetData}
           onRemoveRow={handleRemoveRow}
-          onClearSheet={() => {
+          onClearSheet={async () => {
+            // Update local state
             setSheets(prev => prev.map(s => s.id === activeSheetId ? {...s, data: []} : s));
-            setIsSheetOverviewOpen(false);
-            toast({ title: 'Excel Sheet Cleared' });
-          }}
-        />
+            
+            // Update in MySQL database
+            if (activeSheetId) {
+              try {
+                await updateSheetDataAction(activeSheetId, []);                setIsSheetOverviewOpen(false);
+                toast({ title: 'Excel Sheet Cleared' });
+              } catch (error) {
+                console.error("Failed to clear sheet data in database:", error);
+                toast({
+                  variant: 'destructive',
+                  title: 'Clear Failed',
+                  description: 'There was an error clearing your sheet data in the database.',
+                });
+              }
+            }
+          }}        />
       )}
 
       {/* Delete Sheet Dialog */}

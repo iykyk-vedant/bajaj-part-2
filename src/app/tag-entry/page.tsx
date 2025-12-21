@@ -1,53 +1,121 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TagEntryForm } from "../../components/tag-entry/TagEntryForm";
 import { SettingsTab } from "../../components/tag-entry/SettingsTab";
 import { FindTab } from "../../components/tag-entry/FindTab";
 import { StatusBar } from "../../components/tag-entry/StatusBar";
 import { exportTagEntriesToExcel } from "@/lib/tag-entry/export-utils";
+import { addDcNumberAction, updateDcNumberPartCodesAction } from "@/app/actions";
 
 export default function TagEntryPage() {
   const [activeTab, setActiveTab] = useState<
     "tag-entry" | "settings" | "find"
   >("tag-entry");
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
-  
-  // Initialize DC numbers - use default values initially
-  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
-  
-  // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
-    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
-    'DC002': ['PCB-004', 'PCB-005']
-  });
 
-  // Load DC numbers and mappings from localStorage after mount
+  // Check URL hash to determine initial tab
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dc-numbers');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setDcNumbers(parsed);
-        } catch (e) {
-          // Keep default values if parsing fails
-        }
-      }
-      
-      const storedMappings = localStorage.getItem('dc-partcode-mappings');
-      if (storedMappings) {
-        try {
-          const parsed = JSON.parse(storedMappings);
-          setDcPartCodes(parsed);
-        } catch (e) {
-          // Keep empty object if parsing fails
-        }
+      const hash = window.location.hash;
+      if (hash === '#settings') {
+        setActiveTab('settings');
+        // Remove the hash from URL without reloading the page
+        window.history.replaceState(null, '', window.location.pathname);
       }
     }
   }, []);
-
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  
+  // Initialize DC numbers - use empty arrays initially
+  const [dcNumbers, setDcNumbers] = useState<string[]>([]);
+  
+  // Initialize DC-PartCode mappings
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
+  // Load DC numbers and mappings from database and localStorage after mount
+  useEffect(() => {
+    const loadFromDatabase = async () => {
+      try {
+        // Import the action here to avoid server/client issues
+        const { getAllDcNumbersAction } = await import('@/app/actions');
+        
+        // Load DC numbers from database
+        const result = await getAllDcNumbersAction();
+        if (result.dcNumbers && result.dcNumbers.length > 0) {
+          // Convert to the format expected by the component
+          const dcNumbersList = result.dcNumbers.map(item => item.dcNumber);
+          const dcPartCodesMap = result.dcNumbers.reduce((acc, item) => {
+            acc[item.dcNumber] = item.partCodes;
+            return acc;
+          }, {} as Record<string, string[]>);
+          
+          setDcNumbers(dcNumbersList);
+          setDcPartCodes(dcPartCodesMap);
+        }
+      } catch (error) {
+        console.error('Error loading DC numbers from database:', error);
+      }
+    };
+    
+    const loadFromLocalStorage = () => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('dc-numbers');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setDcNumbers(prev => {
+              // Merge with existing data, avoiding duplicates
+              const uniqueDcNumbers = [...new Set([...prev, ...parsed])];
+              return uniqueDcNumbers;
+            });
+          } catch (e) {
+            console.error('Error parsing DC numbers from localStorage:', e);
+          }
+        }
+        
+        const storedMappings = localStorage.getItem('dc-partcode-mappings');
+        if (storedMappings) {
+          try {
+            const parsed = JSON.parse(storedMappings);
+            setDcPartCodes(prev => {
+              // Merge with existing data
+              return { ...prev, ...parsed };
+            });
+          } catch (e) {
+            console.error('Error parsing DC part codes from localStorage:', e);
+          }
+        }
+      }
+    };
+    
+    // Load initial data
+    loadFromDatabase();
+    loadFromLocalStorage();
+    
+    // Listen for localStorage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dc-partcode-mappings' || e.key === 'dc-numbers') {
+        loadFromLocalStorage();
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
+    }
+    
+    // Periodic check to ensure data stays in sync (every 5 seconds)
+    const interval = setInterval(() => {
+      loadFromDatabase();
+      loadFromLocalStorage();
+    }, 5000);
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+      }
+      clearInterval(interval);
+    };
+  }, []);
   // Save DC numbers to localStorage whenever they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -63,7 +131,8 @@ export default function TagEntryPage() {
   }, [dcPartCodes]);
 
   // Function to add a new DC number with Part Code
-  const addDcNumber = (dcNo: string, partCode: string) => {
+  const addDcNumber = async (dcNo: string, partCode: string) => {
+    console.log('addDcNumber called with:', dcNo, partCode);
     if (dcNo && !dcNumbers.includes(dcNo)) {
       setDcNumbers(prev => [...prev, dcNo]);
     }
@@ -75,42 +144,60 @@ export default function TagEntryPage() {
         
         // Only add the part code if it doesn't already exist
         if (!currentPartCodes.includes(partCode)) {
+          const updatedPartCodes = [...currentPartCodes, partCode];
           return {
             ...prev,
-            [dcNo]: [...currentPartCodes, partCode]
+            [dcNo]: updatedPartCodes
           };
         }
-        // If part code already exists, return the previous state
+        // If part code already exists, keep the current state
         return prev;
       });
     }
   };
-
+  
+  // Create a stable callback for the database function
+  const handleAddDcNumberToDb = useCallback(async (dcNo: string, partCode: string) => {
+    console.log('=== handleAddDcNumberToDb START ===');
+    console.log('handleAddDcNumberToDb called with:', dcNo, partCode);
+    try {
+      console.log('Calling addDcNumberAction with:', dcNo, [partCode]);
+      const result = await addDcNumberAction(dcNo, [partCode]);
+      console.log('Database result:', result);
+      if (!result.success) {
+        console.error('Failed to save DC number to database:', result.error);
+        throw new Error(result.error || 'Failed to save DC number to database');
+      }
+      console.log('=== handleAddDcNumberToDb END ===');
+    } catch (error) {
+      console.error('Error saving DC number to database:', error);
+      throw error;
+    }
+  }, []);
   useEffect(() => {
     // Update current time every second
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
+  
     // Check caps lock status
     const handleKeyDown = (e: KeyboardEvent) => {
       setIsCapsLockOn(e.getModifierState("CapsLock"));
     };
-
+  
     const handleKeyUp = (e: KeyboardEvent) => {
       setIsCapsLockOn(e.getModifierState("CapsLock"));
     };
-
+  
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-
+  
     return () => {
       clearInterval(timer);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, []);
-
   // Handle Excel export
   const handleExportExcel = async () => {
     try {
@@ -181,9 +268,8 @@ export default function TagEntryPage() {
         <div className="mb-6">
           {activeTab === "tag-entry" && <TagEntryForm dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />}
           {activeTab === "find" && <FindTab dcNumbers={dcNumbers} />}
-          {activeTab === "settings" && <SettingsTab dcNumbers={dcNumbers} onAddDcNumber={addDcNumber} />}
+          {activeTab === "settings" && <SettingsTab dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} onAddDcNumber={addDcNumber} onAddDcNumberToDb={handleAddDcNumberToDb} />}
         </div>
-
         {/* Status Bar */}
         <StatusBar
           currentTime={currentTime}

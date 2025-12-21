@@ -15,6 +15,7 @@ import {
   getSheetById
 } from '@/lib/sheet-service';
 import { Sheet } from '@/lib/sheet-service';
+import { getAllDcNumbers, addDcNumber, updateDcNumberPartCodes, deleteDcNumber } from '@/lib/db';
 
 export type FormState = {
   data: ExtractDataOutput | null;
@@ -124,5 +125,49 @@ export async function clearSheetDataAction(sheetId: string): Promise<{ error: st
   } catch (error) {
     console.error('Error clearing sheet data:', error);
     return { error: 'Failed to clear sheet data in database' };
+  }
+}
+
+// DC Number actions
+export async function getAllDcNumbersAction(): Promise<{ dcNumbers: {dcNumber: string, partCodes: string[]}[], error: string | null }> {
+  try {
+    const dcNumbers = await getAllDcNumbers();
+    return { dcNumbers, error: null };
+  } catch (error) {
+    console.error('Error fetching DC numbers:', error);
+    return { dcNumbers: [], error: 'Failed to load DC numbers from database' };
+  }
+}
+
+export async function addDcNumberAction(dcNumber: string, partCodes: string[] = []): Promise<{ success: boolean, error: string | null }> {
+  try {
+    console.log('=== addDcNumberAction START ===');
+    console.log('addDcNumberAction called with:', dcNumber, partCodes);
+    const success = await addDcNumber(dcNumber, partCodes);
+    console.log('addDcNumber result:', success);
+    console.log('=== addDcNumberAction END ===');
+    return { success, error: null };
+  } catch (error) {
+    console.error('Error adding DC number:', error);
+    return { success: false, error: 'Failed to add DC number to database' };
+  }
+}
+export async function updateDcNumberPartCodesAction(dcNumber: string, partCodes: string[]): Promise<{ success: boolean, error: string | null }> {
+  try {
+    const success = await updateDcNumberPartCodes(dcNumber, partCodes);
+    return { success, error: null };
+  } catch (error) {
+    console.error('Error updating DC number part codes:', error);
+    return { success: false, error: 'Failed to update DC number part codes in database' };
+  }
+}
+
+export async function deleteDcNumberAction(dcNumber: string): Promise<{ success: boolean, error: string | null }> {
+  try {
+    const success = await deleteDcNumber(dcNumber);
+    return { success, error: null };
+  } catch (error) {
+    console.error('Error deleting DC number:', error);
+    return { success: false, error: 'Failed to delete DC number from database' };
   }
 }

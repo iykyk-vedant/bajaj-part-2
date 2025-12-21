@@ -4,26 +4,112 @@ import { useState, useEffect, useCallback } from 'react';
 
 interface SettingsTabProps {
   dcNumbers: string[];
+  dcPartCodes: Record<string, string[]>;
   onAddDcNumber: (dcNo: string, partCode: string) => void;
+  onAddDcNumberToDb?: (dcNo: string, partCode: string) => Promise<void>;
 }
 
-export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
+export function SettingsTab({ dcNumbers, dcPartCodes, onAddDcNumber, onAddDcNumberToDb }: SettingsTabProps) {
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
+  const [selectedDcNo, setSelectedDcNo] = useState('');
+  const [newPartCode, setNewPartCode] = useState('');
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [userStatus, setUserStatus] = useState('Active');
   const [engineerName, setEngineerName] = useState('');
 
-  const handleCreateDC = () => {
-    if (dcNo.trim()) {
-      onAddDcNumber(dcNo.trim(), partCode.trim());
-      setDcNo('');
-      setPartCode('');
-      // Show success message
-      alert(`DC Number "${dcNo.trim()}" with Part Code "${partCode.trim()}" has been created successfully!`);
-    } else {
+  const handleCreateDC = async () => {
+    console.log('=== SettingsTab.handleCreateDC START ===');
+    console.log('Input values - DC No:', dcNo, 'Part Code:', partCode);
+    const trimmedDcNo = dcNo.trim();
+    const trimmedPartCode = partCode.trim();
+    console.log('Trimmed values - DC No:', trimmedDcNo, 'Part Code:', trimmedPartCode);
+    
+    if (trimmedDcNo) {
+      // Add to localStorage/state
+      console.log('Calling onAddDcNumber');
+      onAddDcNumber(trimmedDcNo, trimmedPartCode);
+      
+      // Add to database if function is provided
+      console.log('Checking if onAddDcNumberToDb is provided:', !!onAddDcNumberToDb);
+      if (onAddDcNumberToDb) {
+        console.log('Calling onAddDcNumberToDb with:', trimmedDcNo, trimmedPartCode);
+        try {
+          const result = await onAddDcNumberToDb(trimmedDcNo, trimmedPartCode);
+          console.log('Successfully called onAddDcNumberToDb, result:', result);
+          
+          // Only show success message if database call succeeded
+          setDcNo('');
+          setPartCode('');
+          alert(`DC Number "${trimmedDcNo}" with Part Code "${trimmedPartCode}" has been created successfully!`);
+        } catch (error) {
+          console.error('Error saving DC number to database:', error);
+          alert(`DC Number "${trimmedDcNo}" created locally but failed to save to database.`);
+          return;
+        }
+      } else {
+        console.log('onAddDcNumberToDb is not provided');
+        // Still show success for localStorage update
+        setDcNo('');
+        setPartCode('');
+        alert(`DC Number "${trimmedDcNo}" with Part Code "${trimmedPartCode}" has been created successfully!`);
+      }
+      
+      console.log('=== SettingsTab.handleCreateDC END ===');    } else {
       alert('Please enter a DC Number');
+    }
+  };
+  
+  const handleAddPartCode = async () => {
+    console.log('=== SettingsTab.handleAddPartCode START ===');
+    console.log('Input values - Selected DC No:', selectedDcNo, 'New Part Code:', newPartCode);
+    const trimmedSelectedDcNo = selectedDcNo.trim();
+    const trimmedNewPartCode = newPartCode.trim();
+    console.log('Trimmed values - Selected DC No:', trimmedSelectedDcNo, 'New Part Code:', trimmedNewPartCode);
+    
+    if (trimmedSelectedDcNo && trimmedNewPartCode) {
+      // Get existing part codes for this DC
+      const existingPartCodes = dcPartCodes[trimmedSelectedDcNo] || [];
+      
+      // Check if part code already exists
+      if (existingPartCodes.includes(trimmedNewPartCode)) {
+        alert(`Part Code "${trimmedNewPartCode}" already exists for DC Number "${trimmedSelectedDcNo}"`);
+        return;
+      }
+      
+      // Add to localStorage/state
+      console.log('Calling onAddDcNumber to add new part code');
+      onAddDcNumber(trimmedSelectedDcNo, trimmedNewPartCode);
+      
+      // Add to database if function is provided
+      console.log('Checking if onAddDcNumberToDb is provided:', !!onAddDcNumberToDb);
+      if (onAddDcNumberToDb) {
+        console.log('Calling onAddDcNumberToDb with:', trimmedSelectedDcNo, trimmedNewPartCode);
+        try {
+          const result = await onAddDcNumberToDb(trimmedSelectedDcNo, trimmedNewPartCode);
+          console.log('Successfully called onAddDcNumberToDb, result:', result);
+          
+          // Only show success message if database call succeeded
+          setSelectedDcNo('');
+          setNewPartCode('');
+          alert(`Part Code "${trimmedNewPartCode}" has been added to DC Number "${trimmedSelectedDcNo}" successfully!`);
+        } catch (error) {
+          console.error('Error saving part code to database:', error);
+          alert(`Part Code "${trimmedNewPartCode}" added locally but failed to save to database.`);
+          return;
+        }
+      } else {
+        console.log('onAddDcNumberToDb is not provided');
+        // Still show success for localStorage update
+        setSelectedDcNo('');
+        setNewPartCode('');
+        alert(`Part Code "${trimmedNewPartCode}" has been added to DC Number "${trimmedSelectedDcNo}" successfully!`);
+      }
+      
+      console.log('=== SettingsTab.handleAddPartCode END ===');
+    } else {
+      alert('Please select a DC Number and enter a Part Code');
     }
   };
 
@@ -121,6 +207,43 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
               className="w-full bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
             >
               Create DC
+            </button>
+          </div>
+        </div>
+        
+        {/* Add Part Code to Existing DC */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Add Part Code to Existing DC</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select DC No.</label>
+              <select
+                value={selectedDcNo}
+                onChange={(e) => setSelectedDcNo(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded"
+              >
+                <option value="">Select a DC Number</option>
+                {dcNumbers.map((dc) => (
+                  <option key={dc} value={dc}>{dc}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New Part Code</label>
+              <input
+                type="text"
+                value={newPartCode}
+                onChange={(e) => setNewPartCode(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded"
+                placeholder="Enter New Part Code"
+              />
+            </div>
+            <button
+              onClick={handleAddPartCode}
+              className="w-full bg-green-500 hover:bg-green-600 text-white p-2 rounded"
+              disabled={!selectedDcNo}
+            >
+              Add Part Code
             </button>
           </div>
         </div>
@@ -234,7 +357,8 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
               <select className="w-full p-2 border border-gray-300 rounded">
                 <option value="">Select Part Code</option>
-                {/* TODO: Implement dynamic Part Code selection based on selected DC */}
+                {/* Dynamic Part Code selection based on selected DC */}
+                {/* This would be implemented with state management in a real scenario */}
               </select>
             </div>
             <div className="flex items-end">

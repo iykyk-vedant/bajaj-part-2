@@ -8,7 +8,6 @@ interface TagEntryFormProps {
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
 }
-
 const STORAGE_KEY = 'tag-entries';
 const PCB_COUNTER_KEY = 'pcb-serial-counter';
 
@@ -86,16 +85,24 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
     }
   }, []);
 
-  // Get next serial number based on existing entries
+  // Get next serial number based on existing entries for the selected DC
   useEffect(() => {
-    if (savedEntries.length > 0 && !formData.id) {
-      const maxSrNo = Math.max(
-        ...savedEntries.map(entry => parseInt(entry.srNo) || 0)
-      );
-      const nextSrNo = String(maxSrNo + 1).padStart(3, '0');
-      setFormData(prev => ({ ...prev, srNo: nextSrNo }));
+    if (!formData.id && formData.dcNo) {
+      // Filter entries for the selected DC
+      const dcEntries = savedEntries.filter(entry => entry.dcNo === formData.dcNo);
+      
+      if (dcEntries.length > 0) {
+        const maxSrNo = Math.max(
+          ...dcEntries.map(entry => parseInt(entry.srNo) || 0)
+        );
+        const nextSrNo = String(maxSrNo + 1).padStart(3, '0');
+        setFormData(prev => ({ ...prev, srNo: nextSrNo }));
+      } else {
+        // If no entries for this DC, start with 001
+        setFormData(prev => ({ ...prev, srNo: '001' }));
+      }
     }
-  }, [savedEntries, formData.id]);
+  }, [savedEntries, formData.id, formData.dcNo]);
 
   // Update form data when initialData changes
   useEffect(() => {
@@ -271,14 +278,19 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
   };
 
   const handleClear = () => {
-    const nextSrNo = savedEntries.length > 0 
-      ? String(Math.max(...savedEntries.map(e => parseInt(e.srNo) || 0)) + 1).padStart(3, '0')
-      : '001';
+    // Get next SR number for the currently selected DC
+    let nextSrNo = '001';
+    if (formData.dcNo) {
+      const dcEntries = savedEntries.filter(entry => entry.dcNo === formData.dcNo);
+      if (dcEntries.length > 0) {
+        nextSrNo = String(Math.max(...dcEntries.map(e => parseInt(e.srNo) || 0)) + 1).padStart(3, '0');
+      }
+    }
     
     setFormData({
       id: '',
       srNo: nextSrNo,
-      dcNo: '',
+      dcNo: formData.dcNo, // Keep the selected DC
       branch: 'Mumbai',
       bccdName: 'BCCD-001',
       productDescription: '',

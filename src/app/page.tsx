@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { extractDataFromImage } from '@/app/actions';
 import type { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
@@ -23,6 +23,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
+import { ToastAction } from '@/components/ui/toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +44,8 @@ import {
   updateSheetNameAction, 
   deleteSheetAction, 
   addDataToSheetAction, 
-  updateSheetDataAction 
+  updateSheetDataAction,
+  addDcNumberAction
 } from '@/app/actions';export type Sheet = {
   id: string;
   name: string;
@@ -68,6 +70,15 @@ export default function Home() {
   const [isDuplicateWarningOpen, setIsDuplicateWarningOpen] = useState(false);
   const [newSheetName, setNewSheetName] = useState('');
   const [pendingData, setPendingData] = useState<ExtractDataOutput | null>(null);
+  
+  // Initialize DC numbers - use default values initially
+  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+  
+  // Initialize DC-PartCode mappings
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
+    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
+    'DC002': ['PCB-004', 'PCB-005']
+  });
 
 
   // Store form context for extraction
@@ -75,7 +86,150 @@ export default function Home() {
 
 
   const { toast } = useToast();
-
+  // Load DC numbers and mappings from database and localStorage after mount
+  useEffect(() => {
+    const loadFromDatabase = async () => {
+      try {
+        // Import the action here to avoid server/client issues
+        const { getAllDcNumbersAction } = await import('@/app/actions');
+        
+        // Load DC numbers from database
+        const result = await getAllDcNumbersAction();
+        if (result.dcNumbers && result.dcNumbers.length > 0) {
+          // Convert to the format expected by the component
+          const dcNumbersList = result.dcNumbers.map(item => item.dcNumber);
+          const dcPartCodesMap = result.dcNumbers.reduce((acc, item) => {
+            acc[item.dcNumber] = item.partCodes;
+            return acc;
+          }, {} as Record<string, string[]>);
+          
+          setDcNumbers(dcNumbersList);
+          setDcPartCodes(dcPartCodesMap);
+        }
+      } catch (error) {
+        console.error('Error loading DC numbers from database:', error);
+      }
+    };
+    
+    const loadFromLocalStorage = () => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('dc-numbers');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setDcNumbers(prev => {
+              // Merge with existing data, avoiding duplicates
+              const uniqueDcNumbers = [...new Set([...prev, ...parsed])];
+              return uniqueDcNumbers;
+            });
+          } catch (e) {
+            console.error('Error parsing DC numbers from localStorage:', e);
+          }
+        }
+        
+        const storedMappings = localStorage.getItem('dc-partcode-mappings');
+        if (storedMappings) {
+          try {
+            const parsed = JSON.parse(storedMappings);
+            setDcPartCodes(prev => {
+              // Merge with existing data
+              return { ...prev, ...parsed };
+            });
+          } catch (e) {
+            console.error('Error parsing DC part codes from localStorage:', e);
+          }
+        }
+      }
+    };
+    
+    // Load initial data
+    loadFromDatabase();
+    loadFromLocalStorage();
+    
+    // Listen for localStorage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dc-partcode-mappings' || e.key === 'dc-numbers') {
+        loadFromLocalStorage();
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
+    }
+    
+    // Periodic check to ensure data stays in sync (every 5 seconds)
+    const interval = setInterval(() => {
+      loadFromDatabase();
+      loadFromLocalStorage();
+    }, 5000);
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+      }
+      clearInterval(interval);
+    };
+  }, []);
+  
+  // Save DC numbers to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
+    }
+  }, [dcNumbers]);
+  
+  // Save DC-PartCode mappings to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dc-partcode-mappings', JSON.stringify(dcPartCodes));
+    }
+  }, [dcPartCodes]);
+  
+  // Function to add a new DC number with Part Code
+  const addDcNumber = (dcNo: string, partCode: string) => {
+    console.log('addDcNumber called with:', dcNo, partCode);
+    if (dcNo && !dcNumbers.includes(dcNo)) {
+      setDcNumbers(prev => [...prev, dcNo]);
+    }
+    
+    // Add Part Code mapping
+    if (partCode) {
+      setDcPartCodes(prev => {
+        const currentPartCodes = prev[dcNo] || [];
+        
+        // Only add the part code if it doesn't already exist
+        if (!currentPartCodes.includes(partCode)) {
+          const updatedPartCodes = [...currentPartCodes, partCode];
+          return {
+            ...prev,
+            [dcNo]: updatedPartCodes
+          };
+        }
+        // If part code already exists, keep the current state
+        return prev;
+      });
+    }
+  };
+  
+  // Create a stable callback for the database function
+  const handleAddDcNumberToDb = useCallback(async (dcNo: string, partCode: string) => {
+    console.log('=== handleAddDcNumberToDb START ===');
+    console.log('handleAddDcNumberToDb called with:', dcNo, partCode);
+    try {
+      console.log('Calling addDcNumberAction with:', dcNo, [partCode]);
+      const result = await addDcNumberAction(dcNo, [partCode]);
+      console.log('Database result:', result);
+      if (!result.success) {
+        console.error('Failed to save DC number to database:', result.error);
+        throw new Error(result.error || 'Failed to save DC number to database');
+      }
+      console.log('=== handleAddDcNumberToDb END ===');
+    } catch (error) {
+      console.error('Error saving DC number to database:', error);
+      throw error;
+    }
+  }, []);
+  
   // Load sheets from MySQL database on initial render
   useEffect(() => {
     const loadSheets = async () => {
@@ -98,11 +252,10 @@ export default function Home() {
         });
       }
     };
-
+  
     loadSheets();
   }, [toast]);  // We no longer need to save to localStorage since we're using MySQL
-  // The save operations are now handled by individual database calls  
-
+  // The save operations are now handled by individual database calls
   const handleImageReady = async (dataUrl: string) => {
     // Clear previous extraction results when a new image is uploaded
     setCurrentExtractedData(null); 
@@ -133,12 +286,31 @@ export default function Home() {
       });
     } else {
       setCurrentExtractedData(result.data);
-      toast({
-        title: 'Extraction Successful',
-        description: 'Data has been extracted. Review and add to the active Excel sheet.',
-      });
-    }
-    
+      
+      // Check if a spare part code was extracted and suggest creating a DC entry
+      if (result.data?.sparePartCode) {
+        toast({
+          title: 'Spare Part Code Detected',
+          description: `Found spare part code: ${result.data.sparePartCode}. You can create a DC entry for it in the Settings tab.`,
+          action: (
+            <ToastAction 
+              altText="Go to Settings"
+              onClick={() => {
+                // Navigate to the tag-entry page with settings tab active
+                window.location.href = '/tag-entry#settings';
+              }}
+            >
+              Go to Settings
+            </ToastAction>
+          ),
+        });
+      } else {
+        toast({
+          title: 'Extraction Successful',
+          description: 'Data has been extracted. Review and add to the active Excel sheet.',
+        });
+      }
+    }    
     setIsLoading(false);
   };
   
@@ -545,6 +717,9 @@ export default function Home() {
               onSave={handleAddToSheet}
               sheetActive={!!activeSheet}
               onFormChange={setExtractionContext}
+              dcNumbers={dcNumbers}
+              dcPartCodes={dcPartCodes}
+              onAddDcNumberToDb={handleAddDcNumberToDb}
             />
           </div>
         </div>

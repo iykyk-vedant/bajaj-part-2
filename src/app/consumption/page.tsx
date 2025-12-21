@@ -5,57 +5,111 @@ import { useRouter } from 'next/navigation';
 import { ConsumptionTab } from '../../components/tag-entry/ConsumptionTab';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { getAllDcNumbersAction } from '@/app/actions';
 
 export default function ConsumptionPage() {
   const router = useRouter();
-  // Initialize DC numbers - use default values initially
-  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+  // Initialize DC numbers - use empty arrays initially
+  const [dcNumbers, setDcNumbers] = useState<string[]>([]);
   
   // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
-    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
-    'DC002': ['PCB-004', 'PCB-005']
-  });
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
 
-  // Load DC numbers and mappings from localStorage after mount
+  // Load DC numbers and mappings from database and localStorage after mount
   useEffect(() => {
+    const loadFromDatabase = async () => {
+      try {
+        // Load DC numbers from database
+        const result = await getAllDcNumbersAction();
+        if (result.dcNumbers && result.dcNumbers.length > 0) {
+          // Convert to the format expected by the component
+          const dcNumbersList = result.dcNumbers.map(item => item.dcNumber);
+          const dcPartCodesMap = result.dcNumbers.reduce((acc, item) => {
+            acc[item.dcNumber] = item.partCodes;
+            return acc;
+          }, {} as Record<string, string[]>);
+          
+          setDcNumbers(dcNumbersList);
+          setDcPartCodes(dcPartCodesMap);
+        }
+      } catch (error) {
+        console.error('Error loading DC numbers from database:', error);
+      }
+    };
+    
+    const loadFromLocalStorage = () => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('dc-numbers');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setDcNumbers(prev => {
+              // Merge with existing data, avoiding duplicates
+              const uniqueDcNumbers = [...new Set([...prev, ...parsed])];
+              return uniqueDcNumbers;
+            });
+          } catch (e) {
+            console.error('Error parsing DC numbers from localStorage:', e);
+          }
+        }
+        
+        const storedMappings = localStorage.getItem('dc-partcode-mappings');
+        if (storedMappings) {
+          try {
+            const parsed = JSON.parse(storedMappings);
+            setDcPartCodes(prev => {
+              // Merge with existing data
+              return { ...prev, ...parsed };
+            });
+          } catch (e) {
+            console.error('Error parsing DC part codes from localStorage:', e);
+          }
+        }
+      }
+    };
+    
+    // Load initial data
+    loadFromDatabase();
+    loadFromLocalStorage();
+    
+    // Listen for localStorage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dc-partcode-mappings' || e.key === 'dc-numbers') {
+        loadFromLocalStorage();
+      }
+    };
+    
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dc-numbers');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setDcNumbers(parsed);
-        } catch (e) {
-          // Keep default values if parsing fails
-        }
-      }
-      
-      const storedMappings = localStorage.getItem('dc-partcode-mappings');
-      if (storedMappings) {
-        try {
-          const parsed = JSON.parse(storedMappings);
-          setDcPartCodes(parsed);
-        } catch (e) {
-          // Keep empty object if parsing fails
-        }
-      }
+      window.addEventListener('storage', handleStorageChange);
     }
+    
+    // Periodic check to ensure data stays in sync (every 5 seconds)
+    const interval = setInterval(() => {
+      loadFromDatabase();
+      loadFromLocalStorage();
+    }, 5000);
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+      }
+      clearInterval(interval);
+    };
   }, []);
 
   // Save DC numbers to localStorage whenever they change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && dcNumbers.length > 0) {
       localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
     }
   }, [dcNumbers]);
   
   // Save DC-PartCode mappings to localStorage whenever they change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && Object.keys(dcPartCodes).length > 0) {
       localStorage.setItem('dc-partcode-mappings', JSON.stringify(dcPartCodes));
     }
   }, [dcPartCodes]);
-
   return (
     <>
       {/* Simple header with back button */}

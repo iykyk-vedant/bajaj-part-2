@@ -1,5 +1,5 @@
 import pool from './db';
-import { getBomDescription, checkIfLocationExists } from './db';
+import { getBomDescription, checkIfLocationExists, checkComponentForPartCode } from './db';
 // Defect keywords to remove from component analysis
 const DEFECT_KEYWORDS = ['FAULTY', 'DAMAGE', 'BURN', 'DEFECTIVE', 'BAD', 'ERROR'];
 
@@ -26,9 +26,10 @@ export function parseComponents(text: string): string[] {
 }
 
 // Validate a single component against BOM
-export async function validateComponent(component: string): Promise<ValidatedComponent> {
+export async function validateComponent(component: string, parentPartCode?: string): Promise<ValidatedComponent> {
   // Parse component in format "PARTCODE-LOCATION" or "PARTCODE@LOCATION"
-  const separators = ['-', '@'];
+  // Prioritize '@' over '-' to handle cases like "RES-001@R1"
+  const separators = ['@', '-'];
   let partCode = '';
   let location = '';
   
@@ -49,13 +50,32 @@ export async function validateComponent(component: string): Promise<ValidatedCom
     const locationExists = await checkIfLocationExists(potentialLocation);
     
     if (locationExists) {
-      // If it's a location, return a special indicator
-      return {
-        partCode: '',
-        location: potentialLocation,
-        description: `Location found with multiple components. Please specify part code.`,
-        isValid: false // Mark as invalid to prompt user for more specific info
-      };
+      // If it's a location, check if we have a parent part code to validate against
+      if (parentPartCode) {
+        // Check if the parent part code is valid for this location
+        const description = await getBomDescription(parentPartCode, potentialLocation);
+        if (description) {
+          // Parent part code is valid for this location, use it
+          partCode = parentPartCode;
+          location = potentialLocation;
+        } else {
+          // Parent part code is not valid for this location
+          return {
+            partCode: '',
+            location: potentialLocation,
+            description: `Location found with multiple components. Please specify part code.`,
+            isValid: false // Mark as invalid to prompt user for more specific info
+          };
+        }
+      } else {
+        // No parent part code, return the special indicator
+        return {
+          partCode: '',
+          location: potentialLocation,
+          description: `Location found with multiple components. Please specify part code.`,
+          isValid: false // Mark as invalid to prompt user for more specific info
+        };
+      }
     } else {
       // Treat the whole thing as part code with empty location
       partCode = potentialLocation;
@@ -66,15 +86,23 @@ export async function validateComponent(component: string): Promise<ValidatedCom
   // Validate against BOM
   const description = await getBomDescription(partCode, location);
   
+  // If we have a parent part code, do additional validation
+  let isValid = !!description;
+  if (parentPartCode && isValid) {
+    // Check if this component is valid for the specific parent part code
+    const isComponentValidForParent = await checkComponentForPartCode(partCode, location, parentPartCode);
+    isValid = isComponentValidForParent;
+  }
+  
   return {
     partCode,
     location,
     description: description || 'NA',
-    isValid: !!description
+    isValid
   };
 }
 // Validate all components in the analysis text
-export async function validateConsumption(analysisText: string): Promise<{
+export async function validateConsumption(analysisText: string, partCode?: string): Promise<{
   validatedComponents: ValidatedComponent[];
   isValid: boolean;
   errorMessage: string | null;
@@ -89,14 +117,24 @@ export async function validateConsumption(analysisText: string): Promise<{
   let errorMessage: string | null = null;
   
   for (const componentStr of componentStrings) {
-    const validatedComponent = await validateComponent(componentStr);
+    const validatedComponent = await validateComponent(componentStr, partCode);
     validatedComponents.push(validatedComponent);
     
     // If any component is invalid, mark the whole validation as invalid
     if (!validatedComponent.isValid) {
       isValid = false;
       if (!errorMessage) {
-        errorMessage = `Component "${componentStr}" not found in BOM`;
+        // Use the specific error message from the component validation if available
+        if (validatedComponent.description && validatedComponent.description.includes('Location found with multiple components')) {
+          errorMessage = validatedComponent.description;
+        } else {
+          // Include part code context in error message if available
+          if (partCode) {
+            errorMessage = `Component "${componentStr}" not found in BOM for Part Code ${partCode}`;
+          } else {
+            errorMessage = `Component "${componentStr}" not found in BOM`;
+          }
+        }
       }
     }
   }
@@ -115,6 +153,17 @@ export function formatValidatedComponents(components: ValidatedComponent[]): str
       return `${comp.partCode}@${comp.location} - ${comp.description}`;
     } else {
       return `${comp.partCode}@${comp.location} - NA`;
+    }
+  }).join('\n');
+}
+
+// Format component consumption for the consumption field
+export function formatComponentConsumption(components: ValidatedComponent[]): string {
+  return components.map(comp => {
+    if (comp.isValid) {
+      return `${comp.location}: ${comp.description}`;
+    } else {
+      return `${comp.location}: Not found in BOM`;
     }
   }).join('\n');
 }
@@ -138,6 +187,11 @@ export async function saveConsumptionEntry(entry: {
   consumptionEntryDate: string;
 }): Promise<boolean> {
   try {
+    // Handle empty dates by converting them to NULL
+    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? entry.dispatchDate : null;
+    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? entry.repairDate : null;
+    const consumptionEntryDateValue = entry.consumptionEntryDate && entry.consumptionEntryDate.trim() !== '' ? entry.consumptionEntryDate : null;
+    
     await pool.execute(`
       INSERT INTO consumption_entries 
       (id, repair_date, testing, failure, status, pcb_sr_no, rf_observation, analysis, 
@@ -146,7 +200,7 @@ export async function saveConsumptionEntry(entry: {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       entry.id,
-      entry.repairDate,
+      repairDateValue,
       entry.testing,
       entry.failure,
       entry.status,
@@ -156,10 +210,10 @@ export async function saveConsumptionEntry(entry: {
       entry.validationResult,
       entry.componentChange,
       entry.enggName,
-      entry.dispatchDate,
+      dispatchDateValue,
       entry.componentConsumption,
       entry.consumptionEntry,
-      entry.consumptionEntryDate
+      consumptionEntryDateValue
     ]);
     
     return true;
@@ -167,9 +221,7 @@ export async function saveConsumptionEntry(entry: {
     console.error('Error saving consumption entry:', error);
     return false;
   }
-}
-
-// Get all consumption entries
+}// Get all consumption entries
 export async function getConsumptionEntries(): Promise<any[]> {
   try {
     const [rows]: any = await pool.execute('SELECT * FROM consumption_entries ORDER BY created_at DESC');

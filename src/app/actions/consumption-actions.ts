@@ -3,21 +3,23 @@
 import { 
   validateConsumption as validateConsumptionService, 
   formatValidatedComponents,
+  formatComponentConsumption,
   saveConsumptionEntry as saveConsumptionEntryService,
   getConsumptionEntries as getConsumptionEntriesService
 } from '@/lib/consumption-validation-service';
 
 // Server action to validate consumption
-export async function validateConsumption(analysisText: string) {
+export async function validateConsumption(analysisText: string, partCode?: string) {
   try {
-    const result = await validateConsumptionService(analysisText);
+    const result = await validateConsumptionService(analysisText, partCode);
     return {
       success: true,
       data: {
         validatedComponents: result.validatedComponents,
         isValid: result.isValid,
         errorMessage: result.errorMessage,
-        formattedComponents: formatValidatedComponents(result.validatedComponents)
+        formattedComponents: formatValidatedComponents(result.validatedComponents),
+        componentConsumption: formatComponentConsumption(result.validatedComponents)
       }
     };
   } catch (error) {

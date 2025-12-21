@@ -85,6 +85,17 @@ export async function initializeDatabase() {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+    
+    // Create dc_numbers table for storing DC numbers and their part codes
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS dc_numbers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        dc_number VARCHAR(255) NOT NULL UNIQUE,
+        part_codes JSON,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
 
     console.log('Database initialized successfully');
   } catch (error) {
@@ -132,6 +143,143 @@ export async function checkIfLocationExists(location: string): Promise<boolean> 
     return false;
   }
 }
+
+// Check if a component exists in the BOM for a specific part code
+export async function checkComponentForPartCode(partCode: string, location: string, parentPartCode: string): Promise<boolean> {
+  try {
+    // This would check if the component is valid for the specific parent part code
+    // For now, we'll just check if it exists in the BOM
+    const [rows]: any = await pool.execute(
+      'SELECT COUNT(*) as count FROM bom WHERE part_code = ? AND location = ?',
+      [partCode, location]
+    );
+    
+    return rows[0].count > 0;
+  } catch (error) {
+    console.error('Error checking component for part code:', error);
+    return false;
+  }
+}
+// DC Number service functions
+export async function getAllDcNumbers(): Promise<{dcNumber: string, partCodes: string[]}[]> {
+  try {
+    const [rows]: any = await pool.execute(
+      'SELECT dc_number, part_codes FROM dc_numbers ORDER BY created_at ASC'
+    );
+    
+    return rows.map((row: any) => {
+      let partCodes: string[] = [];
+      if (row.part_codes) {
+        // Check if part_codes is already parsed (object/array) or needs parsing (string)
+        if (typeof row.part_codes === 'string') {
+          try {
+            // Try to parse as JSON first
+            partCodes = JSON.parse(row.part_codes);
+          } catch (parseError) {
+            // If JSON parsing fails, treat as comma-separated string
+            partCodes = row.part_codes.split(',').map((code: string) => code.trim()).filter((code: string) => code.length > 0);
+          }
+        } else if (Array.isArray(row.part_codes)) {
+          // Already parsed as array
+          partCodes = row.part_codes;
+        } else if (typeof row.part_codes === 'object') {
+          // Already parsed as object, convert to array
+          partCodes = Object.values(row.part_codes);
+        }
+      }
+      return {
+        dcNumber: row.dc_number,
+        partCodes
+      };
+    });  } catch (error) {
+    console.error('Error fetching DC numbers:', error);
+    return [];
+  }
+}
+export async function addDcNumber(dcNumber: string, partCodes: string[] = []): Promise<boolean> {
+  try {
+    console.log('=== addDcNumber START ===');
+    console.log('Attempting to add DC number:', dcNumber, 'with part codes:', partCodes);
+    
+    // First check if the DC number already exists
+    const [existingRows]: any = await pool.execute(
+      'SELECT part_codes FROM dc_numbers WHERE dc_number = ?',
+      [dcNumber]
+    );
+    
+    if (existingRows.length > 0) {
+      // DC number exists, merge part codes
+      console.log('DC number exists, merging part codes');
+      let existingPartCodes: string[] = [];
+      
+      // Parse existing part codes
+      if (existingRows[0].part_codes) {
+        if (typeof existingRows[0].part_codes === 'string') {
+          try {
+            existingPartCodes = JSON.parse(existingRows[0].part_codes);
+          } catch (parseError) {
+            // If JSON parsing fails, treat as comma-separated string
+            existingPartCodes = existingRows[0].part_codes.split(',').map((code: string) => code.trim()).filter((code: string) => code.length > 0);
+          }
+        } else if (Array.isArray(existingRows[0].part_codes)) {
+          existingPartCodes = existingRows[0].part_codes;
+        }
+      }
+      
+      // Merge with new part codes, avoiding duplicates
+      const mergedPartCodes = [...new Set([...existingPartCodes, ...partCodes])];
+      
+      console.log('Updating DC number with merged part codes:', mergedPartCodes);
+      await pool.execute(
+        'UPDATE dc_numbers SET part_codes = ? WHERE dc_number = ?',
+        [JSON.stringify(mergedPartCodes), dcNumber]
+      );
+      console.log('Updated existing DC number:', dcNumber);
+    } else {
+      // DC number doesn't exist, insert new record
+      console.log('DC number does not exist, inserting new record');
+      await pool.execute(
+        'INSERT INTO dc_numbers (dc_number, part_codes) VALUES (?, ?)',
+        [dcNumber, JSON.stringify(partCodes)]
+      );
+      console.log('Inserted new DC number:', dcNumber);
+    }
+    
+    console.log('=== addDcNumber END ===');
+    return true;
+  } catch (error) {
+    console.error('Error adding DC number:', error);
+    return false;
+  }
+}
+export async function updateDcNumberPartCodes(dcNumber: string, partCodes: string[]): Promise<boolean> {
+  try {
+    await pool.execute(
+      'UPDATE dc_numbers SET part_codes = ? WHERE dc_number = ?',
+      [JSON.stringify(partCodes), dcNumber]
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating DC number part codes:', error);
+    return false;
+  }
+}
+
+export async function deleteDcNumber(dcNumber: string): Promise<boolean> {
+  try {
+    await pool.execute(
+      'DELETE FROM dc_numbers WHERE dc_number = ?',
+      [dcNumber]
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting DC number:', error);
+    return false;
+  }
+}
+
 // Add sample BOM data for testing
 export async function addSampleBomData() {
   try {

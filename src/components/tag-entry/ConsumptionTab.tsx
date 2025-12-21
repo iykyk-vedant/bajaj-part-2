@@ -146,6 +146,13 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       setSrNo(nextSrNo);
     }
   }, [dcNo]);
+
+  // Effect to reset PCB found state when search criteria change
+  useEffect(() => {
+    if (isPcbFound) {
+      setIsPcbFound(false);
+    }
+  }, [dcNo, partCode, srNo]);
   
   // Form data state
   const [formData, setFormData] = useState<ConsumptionEntry>({
@@ -470,12 +477,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   const handleConsume = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate that PCB has been found
-    if (!isPcbFound) {
-      alert('Please find a PCB first before consuming.');
-      return;
-    }
-    
     // Validate required fields
     if (!formData.repairDate || !formData.testing || !formData.failure || !formData.status) {
       alert('Please fill in all required fields: Repair Date, Testing, Failure, and Status.');
@@ -748,7 +749,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       default:
         break;
     }
-  }, [isSearching, isPcbFound, formData, selectedEntryId]);
+  }, [isSearching, formData, selectedEntryId]);
 
   // Add keyboard event listener
   useEffect(() => {
@@ -772,7 +773,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={dcNo}
                 onChange={(e) => setDcNo(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isPcbFound}
               >
                 <option value="">Select DC No.</option>
                 {dcNumbers.map((dc) => (
@@ -786,7 +786,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={partCode}
                 onChange={(e) => setPartCode(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isPcbFound}
               >
                 <option value="">Select Part Code</option>
                 {(dcPartCodes[dcNo] || []).map((code) => (
@@ -802,7 +801,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 onChange={(e) => setSrNo(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter Serial No."
-                disabled={isPcbFound}
               />
             </div>
           </div>
@@ -810,9 +808,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           <div className="mt-6 flex justify-center">
             <button
               onClick={handleFind}
-              disabled={isSearching || isPcbFound}
+              disabled={isSearching}
               className={`px-6 py-3 rounded-md font-medium ${
-                isSearching || isPcbFound
+                isSearching
                   ? 'bg-gray-400 cursor-not-allowed text-gray-200'
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
               }`}
@@ -833,7 +831,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={formData.repairDate}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
-                disabled={!isPcbFound}
               />
             </div>
             <div>
@@ -843,7 +840,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={formData.testing}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
-                disabled={!isPcbFound}
               >
                 <option value="">Select Result</option>
                 <option value="PASS">PASS</option>
@@ -857,7 +853,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={formData.failure}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
-                disabled={!isPcbFound}
               >
                 <option value="">Select Failure</option>
                 <option value="Component">Component</option>
@@ -875,7 +870,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={formData.status}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded"
-                disabled={!isPcbFound}
               >
                 <option value="">Select Status</option>
                 <option value="OK">OK</option>
@@ -973,12 +967,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           </div>          <div className="flex justify-end">
             <button
               type="submit"
-              disabled={!isPcbFound}
-              className={`px-4 py-2 rounded ${
-                isPcbFound
-                  ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'bg-gray-400 cursor-not-allowed text-gray-200'
-              }`}
+              className="px-4 py-2 rounded bg-green-500 hover:bg-green-600 text-white"
             >
               Consume (Alt+S)
             </button>

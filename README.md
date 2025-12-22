@@ -89,6 +89,17 @@ Once both servers are running, open your web browser and navigate to:
 
 [http://localhost:3001](http://localhost:3001)
 You should now see the NexScan application running and be able to use its features.
+## Deploying to Render
+
+This application can be deployed to Render using the provided configuration files:
+
+1. `render.yaml` - Render service configuration
+2. `Dockerfile` - Docker image definition
+3. `render-build.sh` - Build script for Render
+4. `server.js` - Standalone server entry point
+
+See [docs/README-render.md](docs/README-render.md) for detailed deployment instructions.
+
 ## Project Structure & File Explanations
 
 This project is built with Next.js (App Router), TypeScript, Tailwind CSS, and ShadCN UI components. AI capabilities are powered by Google's Gemini model via Genkit.

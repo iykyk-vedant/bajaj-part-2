@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nexscan-app
+    env: node
+    buildCommand: bash render-build.sh
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    domains:
+      - your-domain.onrender.com

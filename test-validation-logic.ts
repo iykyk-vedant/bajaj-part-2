@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { validateConsumption } from './src/lib/consumption-validation-service.ts';
+import { validateConsumption } from './src/lib/consumption-validation-service';
 
 dotenv.config();
 

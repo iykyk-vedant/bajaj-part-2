@@ -46,7 +46,7 @@ import {
   addDataToSheetAction, 
   updateSheetDataAction,
   addDcNumberAction
-} from '@/app/actions';export type Sheet = {
+} from '@/app/actions/sheet-actions';export type Sheet = {
   id: string;
   name: string;
   data: ExtractDataOutput[];
@@ -91,7 +91,7 @@ export default function Home() {
     const loadFromDatabase = async () => {
       try {
         // Import the action here to avoid server/client issues
-        const { getAllDcNumbersAction } = await import('@/app/actions');
+        const { getAllDcNumbersAction } = await import('@/app/actions/sheet-actions');
         
         // Load DC numbers from database
         const result = await getAllDcNumbersAction();
@@ -717,9 +717,6 @@ export default function Home() {
               onSave={handleAddToSheet}
               sheetActive={!!activeSheet}
               onFormChange={setExtractionContext}
-              dcNumbers={dcNumbers}
-              dcPartCodes={dcPartCodes}
-              onAddDcNumberToDb={handleAddDcNumberToDb}
             />
           </div>
         </div>

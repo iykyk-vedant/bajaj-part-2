@@ -15,7 +15,8 @@ import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit } from 'l
 import { Button } from '@/components/ui/button';
 import { SheetOverview } from '@/components/sheet-overview';
 import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
-import { loadDcNumbers, loadDcPartCodes, saveDcNumbers, saveDcPartCodes, addDcNumberWithPartCode } from '@/lib/dc-data-sync';
+import { addDcNumberWithPartCode } from '@/lib/dc-data-sync';
+import { getDcNumbersAction, addDcNumberAction } from '@/app/actions/db-actions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,8 +80,8 @@ export default function Home() {
   const [tagEntrySubTab, setTagEntrySubTab] = useState<"form" | "settings">("form");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
-  const [dcNumbers, setDcNumbers] = useState<string[]>(loadDcNumbers());
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>(loadDcPartCodes());
+  const [dcNumbers, setDcNumbers] = useState<string[]>([]);
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
 
   const { toast } = useToast();
 
@@ -120,36 +121,51 @@ export default function Home() {
     }
   }, [sheets, toast]);
   
-  // Load DC numbers and mappings from localStorage after mount
+  // Load DC numbers and mappings from database after mount
   useEffect(() => {
-    const loadedDcNumbers = loadDcNumbers();
-    const loadedDcPartCodes = loadDcPartCodes();
+    const loadDcNumbersFromDb = async () => {
+      try {
+        const result = await getDcNumbersAction();
+        if (result.success) {
+          setDcNumbers(result.dcNumbers);
+          setDcPartCodes(result.dcPartCodes);
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('Error loading DC numbers from database:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Could not load DC data',
+          description: 'There was an error loading DC numbers and part codes.',
+        });
+      }
+    };
     
-    setDcNumbers(loadedDcNumbers);
-    setDcPartCodes(loadedDcPartCodes);
+    loadDcNumbersFromDb();
   }, []);
 
-  // Save DC numbers to localStorage whenever they change
-  useEffect(() => {
-    saveDcNumbers(dcNumbers);
-  }, [dcNumbers]);
-  
-  // Save DC-PartCode mappings to localStorage whenever they change
-  useEffect(() => {
-    saveDcPartCodes(dcPartCodes);
-  }, [dcPartCodes]);
-
   // Function to add a new DC number with Part Code
-  const addDcNumber = (dcNo: string, partCode: string) => {
-    const { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } = addDcNumberWithPartCode(
-      dcNo,
-      partCode,
-      dcNumbers,
-      dcPartCodes
-    );
-    
-    setDcNumbers(updatedDcNumbers);
-    setDcPartCodes(updatedDcPartCodes);
+  const addDcNumber = async (dcNo: string, partCode: string) => {
+    // Add to database
+    try {
+      const result = await addDcNumberAction(dcNo, partCode, dcNumbers, dcPartCodes);
+      
+      if (result.success) {
+        // Update state
+        setDcNumbers(result.dcNumbers);
+        setDcPartCodes(result.dcPartCodes);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error adding DC number to database:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Could not save DC data',
+        description: 'There was an error saving the DC number and part codes.',
+      });
+    }
   };
 
   useEffect(() => {

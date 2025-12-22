@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { TagEntry } from '@/lib/tag-entry/types';
 import { useLockStore } from '@/store/lockStore';
 import { LockButton } from './LockButton';
+import { spareParts } from '@/lib/spare-parts';
+import { generatePcbNumber, getMonthCode } from '@/lib/pcb-utils';
 
 interface TagEntryFormProps {
   initialData?: any;
@@ -12,46 +14,8 @@ interface TagEntryFormProps {
 }
 
 const STORAGE_KEY = 'tag-entries';
-const PCB_COUNTER_KEY = 'pcb-serial-counter';
 
-// Returns month code letter (A-L) for a given month index (0-based)
-const getMonthCode = (monthIndex: number) => {
-  const codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-  return codes[monthIndex] ?? 'A';
-};
-
-// Generates PCB number using provided DC No. and an incrementing counter
-const generatePcbNumber = (dcNo: string) => {
-  if (!dcNo) throw new Error('Please select a DC No. before generating PCB number');
-
-  // Strip RC prefix and non-digits
-  const dcDigits = dcNo.replace(/^RC/i, '').replace(/\D/g, '');
-
-  // Middle part: first 4 digits after RC (pad with zeros if short)
-  const middle = dcDigits.slice(0, 4).padEnd(4, '0');
-
-  // Last 4 digits of DC No.
-  const last4 = dcDigits.slice(-4).padStart(4, '0');
-
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, '0'); // 01-31
-  const monthCode = getMonthCode(now.getMonth()); // A-L
-  const year = String(now.getFullYear()).slice(-2); // YY
-
-  // Counter: persist in localStorage, increment per generation
-  let counter = 1;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(PCB_COUNTER_KEY);
-    counter = stored ? Math.min(9999, Math.max(1, parseInt(stored, 10) || 1)) : 1;
-    localStorage.setItem(PCB_COUNTER_KEY, String(Math.min(9999, counter + 1)));
-  }
-  const counterStr = String(counter).padStart(4, '0');
-
-  // Final format: ES + middle + last4 + day + monthCode + year + counter
-  return `ES${middle}${last4}${day}${monthCode}${year}${counterStr}`;
-};
-
-export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPartCodes = {} }: TagEntryFormProps) {
+export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: TagEntryFormProps) {
   const { isDcLocked } = useLockStore();
   const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -73,7 +37,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
     natureOfDefect: '',
     visitingTechName: '',
     mfgMonthYear: '',
-    pcbSrNo: 'EC0112234567',
+    pcbSrNo: '',
   });
 
   // Load saved entries from localStorage on component mount
@@ -86,13 +50,11 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
           setSavedEntries(parsed);
           
           // Update serial number if there are existing entries
-          if (parsed.length > 0) {
-            const maxSrNo = Math.max(...parsed.map((e: TagEntry) => parseInt(e.srNo) || 0));
-            setFormData(prev => ({
-              ...prev,
-              srNo: String(maxSrNo + 1).padStart(3, '0')
-            }));
-          }
+          // For initial load, we'll set it to 1, then it will be updated when DC is selected
+          setFormData(prev => ({
+            ...prev,
+            srNo: '001'
+          }));
         } catch (e) {
           console.error('Error parsing saved entries:', e);
         }
@@ -103,6 +65,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
   // Populate form with initial data when it changes (from image extraction)
   useEffect(() => {
     if (initialData) {
+      console.log('Processing initialData:', initialData);
       // Convert mfgMonthYear from YYYY-MM to MM/YYYY format if needed
       let mfgMonthYear = initialData.mfgMonthYear || '';
       if (mfgMonthYear && mfgMonthYear.includes('-')) {
@@ -110,27 +73,90 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
         mfgMonthYear = `${month}/${year}`;
       }
       
-      setFormData(prev => ({
-        id: initialData.id || prev.id,
-        srNo: initialData.srNo || prev.srNo,
-        dcNo: initialData.dcNo || prev.dcNo,
-        branch: initialData.branch || prev.branch,
-        bccdName: initialData.bccdName || prev.bccdName,
-        productDescription: initialData.productDescription || prev.productDescription,
-        productSrNo: initialData.productSrNo || prev.productSrNo,
-        dateOfPurchase: initialData.dateOfPurchase || prev.dateOfPurchase,
-        complaintNo: initialData.complaintNo || prev.complaintNo,
-        partCode: initialData.sparePartCode || prev.partCode,
-        natureOfDefect: initialData.natureOfDefect || prev.natureOfDefect,
-        visitingTechName: initialData.technicianName || prev.visitingTechName,
-        mfgMonthYear: mfgMonthYear || prev.mfgMonthYear,
-        pcbSrNo: initialData.pcbSrNo || prev.pcbSrNo,
-      }));
+      setFormData(prev => {
+        const newFormData = {
+          id: initialData.id || prev.id,
+          srNo: initialData.srNo || prev.srNo,
+          dcNo: initialData.dcNo || prev.dcNo,
+          branch: initialData.branch || prev.branch,
+          bccdName: initialData.bccdName || prev.bccdName,
+          // Don't override productDescription if partCode is already set
+          productDescription: (prev.partCode || initialData.sparePartCode) ? prev.productDescription : (initialData.productDescription || prev.productDescription),
+          productSrNo: initialData.productSrNo || prev.productSrNo,
+          dateOfPurchase: initialData.dateOfPurchase || prev.dateOfPurchase,
+          complaintNo: initialData.complaintNo || prev.complaintNo,
+          partCode: initialData.sparePartCode || prev.partCode,
+          natureOfDefect: initialData.natureOfDefect || prev.natureOfDefect,
+          visitingTechName: initialData.technicianName || prev.visitingTechName,
+          mfgMonthYear: mfgMonthYear || prev.mfgMonthYear,
+          pcbSrNo: initialData.pcbSrNo || prev.pcbSrNo,
+        };
+        console.log('Setting form data:', newFormData);
+        return newFormData;
+      });
     }
   }, [initialData]);
 
+  // Auto-generate PCB serial number when DC number changes
+  // Only generate if no PCB number is already set
+  useEffect(() => {
+    console.log('Checking PCB auto-generation:', { dcNo: formData.dcNo, pcbSrNo: formData.pcbSrNo });
+    if (formData.dcNo && !formData.pcbSrNo) {
+      try {
+        console.log('Generating PCB number for DC:', formData.dcNo);
+        const pcb = generatePcbNumber(formData.dcNo);
+        console.log('Generated PCB number:', pcb);
+        setFormData(prev => ({
+          ...prev,
+          pcbSrNo: pcb,
+        }));
+      } catch (err) {
+        console.error('Failed to generate PCB number:', err);
+      }
+    }
+  }, [formData.dcNo, formData.pcbSrNo]);
+
+  // Auto-populate product description when part code is selected
+  useEffect(() => {
+    if (formData.partCode) {
+      const part = spareParts.find(p => p.code === formData.partCode);
+      if (part && formData.productDescription !== part.description) {
+        setFormData(prev => ({
+          ...prev,
+          productDescription: part.description
+        }));
+      }
+    }
+  }, [formData.partCode]);
+
+  // Update serial number when DC number changes
+  // Calculate next sequential number for the selected DC
+  useEffect(() => {
+    if (formData.dcNo) {
+      // Find entries with the same DC number
+      const dcEntries = savedEntries.filter(entry => entry.dcNo === formData.dcNo);
+      
+      // Calculate next sequential number (1, 2, 3, ...)
+      const nextSrNo = dcEntries.length > 0 
+        ? Math.max(...dcEntries.map(e => parseInt(e.srNo) || 0)) + 1
+        : 1;
+      
+      setFormData(prev => ({
+        ...prev,
+        srNo: String(nextSrNo).padStart(3, '0')
+      }));
+    } else {
+      // If no DC is selected, reset to 001
+      setFormData(prev => ({
+        ...prev,
+        srNo: '001'
+      }));
+    }
+  }, [formData.dcNo, savedEntries]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    console.log('Form field changed:', { name, value });
     
     // Handle mfgMonthYear field specially to validate and format MM/YYYY
     if (name === 'mfgMonthYear') {
@@ -175,13 +201,17 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
       }));
       
       // Update locked values if lock is active and we're changing DC No or Part Code
+      // But prevent changes to locked fields
       if (isDcLocked && (name === 'dcNo' || name === 'partCode')) {
-        const { lockedDcNo, lockedPartCode } = useLockStore.getState();
-        if (name === 'dcNo') {
-          useLockStore.getState().setLockedValues(value, lockedPartCode);
-        } else if (name === 'partCode') {
-          useLockStore.getState().setLockedValues(lockedDcNo, value);
-        }
+        // Don't update locked fields, keep the locked values
+        return;
+      } else if (isDcLocked) {
+        // For other fields, still allow updates when locked
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+        return;
       }
     }
   };
@@ -307,13 +337,9 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
   };
 
   const handleClear = () => {
-    const nextSrNo = savedEntries.length > 0 
-      ? String(Math.max(...savedEntries.map(e => parseInt(e.srNo) || 0)) + 1).padStart(3, '0')
-      : '001';
-    
     setFormData({
       id: '',
-      srNo: nextSrNo,
+      srNo: '001',
       dcNo: '',
       branch: 'Mumbai',
       bccdName: 'BCCD-001',
@@ -325,7 +351,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
       natureOfDefect: '',
       visitingTechName: '',
       mfgMonthYear: '',
-      pcbSrNo: 'EC0112234567',
+      pcbSrNo: '',
     });
     setShowSearchResults(false);
     setShowSavedList(false);
@@ -517,7 +543,8 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             name="productDescription"
             value={formData.productDescription || ''}
             onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
+            className={`w-full p-2 text-sm border border-gray-300 rounded h-9 ${formData.partCode ? 'bg-gray-100' : ''}`}
+            readOnly={!!formData.partCode}
           />
         </div>
         <div>
@@ -569,7 +596,7 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
             className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
           >
             <option value="">Select Part Code</option>
-            {(dcPartCodes[formData.dcNo] || []).map((code) => (
+            {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || []).map((code) => (
               <option key={code} value={code}>{code}</option>
             ))}
           </select>
@@ -620,25 +647,9 @@ export function TagEntryForm({ initialData, dcNumbers = ['DC001', 'DC002'], dcPa
               name="pcbSrNo"
               value={formData.pcbSrNo || ''}
               onChange={handleChange}
-              className="flex-1 p-2 text-sm border border-gray-300 rounded-l h-9"
+              className="flex-1 p-2 text-sm border border-gray-300 rounded h-9"
+              readOnly
             />
-            <button
-              type="button"
-              className="bg-gray-200 p-2 text-sm border border-l-0 border-gray-300 rounded-r hover:bg-gray-300 h-9"
-              onClick={() => {
-                try {
-                  const pcb = generatePcbNumber(formData.dcNo || '');
-                  setFormData(prev => ({
-                    ...prev,
-                    pcbSrNo: pcb,
-                  }));
-                } catch (err) {
-                  alert(err instanceof Error ? err.message : 'Failed to generate PCB number');
-                }
-              }}
-            >
-              Generate
-            </button>
           </div>
         </div>
       </div>

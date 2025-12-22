@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLockStore } from '@/store/lockStore';
 import { LockButton } from './LockButton';
+import { validateBomComponents } from '@/app/actions/consumption-actions';
+import { getPcbNumberForDc } from '@/lib/pcb-utils';
 
 interface ConsumptionTabProps {
   dcNumbers?: string[];
@@ -85,7 +87,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     testing: '',
     failure: '',
     status: '',
-    pcbSrNo: 'EC0112234567',
+    pcbSrNo: '',
     rfObservation: '',
     analysis: '',
     validationResult: '',
@@ -110,6 +112,13 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     () => formData.analysis.replaceAll('/', '\n'),
     [formData.analysis]
   );
+  
+  // Effect to validate analysis when partCode changes
+  useEffect(() => {
+    if (formData.analysis) {
+      validateBomAnalysis(formData.analysis);
+    }
+  }, [partCode]);
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -299,19 +308,28 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     await new Promise(resolve => setTimeout(resolve, 800));
     
     // In a real implementation, this would call an API to fetch PCB data
-    // For now, we'll simulate successful data retrieval
+    // For now, we'll generate the same PCB number as in TagEntryForm
     
-    // Auto-populate form with fetched data
-    setFormData(prev => ({
-      ...prev,
-      pcbSrNo: `PCB-${dcNo}-${partCode}-${srNo}`, // Simulated PCB serial number
-      repairDate: new Date().toISOString().split('T')[0], // Today's date
-      testing: 'PASS', // Default value
-      status: 'OK', // Default value
-    }));
-    
-    setIsPcbFound(true);
-    setIsSearching(false);
+    try {
+      // Generate the same PCB number that would be generated in TagEntryForm
+      const pcbSrNo = getPcbNumberForDc(dcNo);
+      
+      // Auto-populate form with fetched data
+      setFormData(prev => ({
+        ...prev,
+        pcbSrNo, // Use the same PCB serial number format as TagEntryForm
+        repairDate: new Date().toISOString().split('T')[0], // Today's date
+        testing: 'PASS', // Default value
+        status: 'OK', // Default value
+      }));
+      
+      setIsPcbFound(true);
+    } catch (error) {
+      console.error('Error generating PCB number:', error);
+      alert('Error generating PCB number. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -324,10 +342,54 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         [name]: value,
         validationResult: value.replaceAll('/', '\n')
       }));
+      
+      // Trigger BOM validation
+      validateBomAnalysis(value);
     } else {
       setFormData(prev => ({
         ...prev,
         [name]: value
+      }));
+    }
+  };
+  
+  // Function to validate BOM analysis
+  const validateBomAnalysis = async (analysisText: string) => {
+    if (!analysisText.trim()) {
+      // Clear validation fields if analysis is empty
+      setFormData(prev => ({
+        ...prev,
+        validationResult: '',
+        componentChange: ''
+      }));
+      return;
+    }
+    
+    try {
+      const result = await validateBomComponents(analysisText, partCode || undefined);
+      
+      if (result.success && result.data) {
+        // Update validation result and component change fields
+        setFormData(prev => ({
+          ...prev,
+          validationResult: result.data.formattedComponents,
+          componentChange: result.data.componentConsumption
+        }));
+      } else {
+        // Handle validation error
+        console.error('BOM validation error:', result.error);
+        setFormData(prev => ({
+          ...prev,
+          validationResult: `Error: ${result.error || 'Failed to validate components'}`,
+          componentChange: ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error validating BOM components:', error);
+      setFormData(prev => ({
+        ...prev,
+        validationResult: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        componentChange: ''
       }));
     }
   };
@@ -411,7 +473,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       testing: '',
       failure: '',
       status: '',
-      pcbSrNo: 'EC0112234567',
+      pcbSrNo: '',
       rfObservation: '',
       analysis: '',
       validationResult: '',

@@ -1,11 +1,8 @@
 // Utility functions for synchronizing DC numbers and Part Code mappings between pages
 
-// Default values
-const DEFAULT_DC_NUMBERS = ['DC001', 'DC002'];
-const DEFAULT_DC_PARTCODES = {
-  'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
-  'DC002': ['PCB-004', 'PCB-005']
-};
+// Default values - empty as per requirement
+const DEFAULT_DC_NUMBERS: string[] = [];
+const DEFAULT_DC_PARTCODES: Record<string, string[]> = {};
 
 // Load DC numbers from localStorage
 export function loadDcNumbers(): string[] {

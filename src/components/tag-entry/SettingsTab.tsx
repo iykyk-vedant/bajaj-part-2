@@ -18,13 +18,17 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
   const [userStatus, setUserStatus] = useState('Active');
   const [engineerName, setEngineerName] = useState('');
 
-  const handleCreateDC = () => {
+  const handleCreateDC = async () => {
     if (dcNo.trim()) {
-      onAddDcNumber(dcNo.trim(), partCode.trim());
-      setDcNo('');
-      setPartCode('');
-      // Show success message
-      alert(`DC Number "${dcNo.trim()}" with Part Code "${partCode.trim()}" has been created successfully!`);
+      try {
+        await onAddDcNumber(dcNo.trim(), partCode.trim());
+        setDcNo('');
+        setPartCode('');
+        // Show success message
+        alert(`DC Number "${dcNo.trim()}" with Part Code "${partCode.trim()}" has been created successfully!`);
+      } catch (error) {
+        alert('Error creating DC Number. Please try again.');
+      }
     } else {
       alert('Please enter a DC Number');
     }
@@ -54,6 +58,15 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('pcb-serial-counter', '1');
       alert('PCB serial counter reset to 0001. Next generated PCB number will start from 1.');
+    }
+  };
+
+  const handleClearLocalStorage = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('dc-numbers');
+      localStorage.removeItem('dc-partcode-mappings');
+      localStorage.removeItem('pcb-serial-counter');
+      alert('Local storage cleared. Please refresh the page to see the changes.');
     }
   };
 
@@ -216,6 +229,12 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
               className="w-full bg-slate-600 hover:bg-slate-700 text-white p-2 rounded"
             >
               Reset PCB Serial Counter
+            </button>
+            <button
+              onClick={handleClearLocalStorage}
+              className="w-full bg-red-600 hover:bg-red-700 text-white p-2 rounded"
+            >
+              Clear Local Storage
             </button>
           </div>
         </div>

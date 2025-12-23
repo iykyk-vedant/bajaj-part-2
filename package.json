@@ -7,11 +7,12 @@
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
+    "typecheck": "tsc --noEmit",
+    "init-db": "tsx src/lib/init-db.ts",
+    "import-bom": "tsx src/lib/import-bom.ts"
+  },  "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
     "@hookform/resolvers": "^4.1.3",

@@ -22,18 +22,45 @@ npm install
 
 ### 2. Set Up Environment Variables
 
-This project requires an API key to connect to Google's AI services.
+This project requires an API key to connect to Google's AI services and MySQL database configuration.
 
 1.  Create a new file named `.env` in the root of your project directory.
-2.  Add your Google AI API key to this file as follows:
+2.  Add your Google AI API key and MySQL database configuration to this file as follows:
 
 ```env
+# MySQL Database Configuration
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=your_mysql_username
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_DATABASE=nexscan
+
+# Gemini API Key (required for AI features)
 GEMINI_API_KEY=YOUR_API_KEY_HERE
+
+# Google API Key (optional)
+GOOGLE_API_KEY=
 ```
 
 Replace `YOUR_API_KEY_HERE` with the actual key you obtained from Google AI Studio.
 
-### 3. Run the Development Servers
+For MySQL configuration:
+- `MYSQL_HOST`: Your MySQL server host (usually localhost)
+- `MYSQL_PORT`: Your MySQL server port (usually 3306)
+- `MYSQL_USER`: Your MySQL username
+- `MYSQL_PASSWORD`: Your MySQL password
+- `MYSQL_DATABASE`: The database name (nexscan by default)
+### 3. Initialize the MySQL Database
+
+Before running the application, you need to initialize the MySQL database tables:
+
+```bash
+npm run init-db
+```
+
+This command will create the necessary tables in your MySQL database for storing sheet data.
+
+### 4. Run the Development Servers
 
 This application consists of two main parts that need to be run simultaneously in separate terminals:
 
@@ -48,8 +75,7 @@ You'll need two separate terminal windows or use VS Code's split terminal featur
 npm run dev
 ```
 
-This will start the web server, typically on `http://localhost:9002`.
-
+This will start the web server, typically on `http://localhost:3001`.
 **In your second terminal, run the Genkit server:**
 
 ```bash
@@ -57,19 +83,31 @@ npm run genkit:dev
 ```
 
 This starts the Genkit development server, which makes the AI flows available for the Next.js application to call.
-
-### 4. Access the Application
+### 5. Access the Application
 
 Once both servers are running, open your web browser and navigate to:
 
-[http://localhost:9002](http://localhost:9002)
-
+[http://localhost:3001](http://localhost:3001)
 You should now see the NexScan application running and be able to use its features.
-
 ## Project Structure & File Explanations
 
 This project is built with Next.js (App Router), TypeScript, Tailwind CSS, and ShadCN UI components. AI capabilities are powered by Google's Gemini model via Genkit.
 
+## MySQL Persistence
+
+This project now includes MySQL persistence for storing sheet data. Previously, sheet data was stored in the browser's localStorage, which meant that data would be lost when the browser cache was cleared or when accessing the application from a different device.
+
+With MySQL persistence:
+- Sheet data is stored in a MySQL database
+- Data persists across browser sessions and device changes
+- Multiple users can access the same sheet data (when implemented with user authentication)
+- Data is more secure and reliable than localStorage
+
+The implementation includes:
+- Database connection pooling for efficient resource usage
+- Automatic table creation for sheets and sheet data
+- CRUD operations for managing sheet data
+- Error handling for database operations
 ### Root Directory
 
 - **`.env`**: Stores environment variables. For this project, it holds the `GEMINI_API_KEY` for the AI service.

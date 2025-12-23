@@ -37,5 +37,3 @@ export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
 // Note: useUser is already exported from ./provider, so we don't re-export it from ./auth/use-user
-
-    

@@ -82,14 +82,11 @@ export default function Home() {
   const [newSheetName, setNewSheetName] = useState('');
   const [pendingData, setPendingData] = useState<ExtractDataOutput | null>(null);
   
-  // Initialize DC numbers - use default values initially
-  const [dcNumbers, setDcNumbers] = useState<string[]>(['DC001', 'DC002']);
+  // Initialize DC numbers - start with empty array
+  const [dcNumbers, setDcNumbers] = useState<string[]>([]);
   
   // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({
-    'DC001': ['PCB-001', 'PCB-002', 'PCB-003'],
-    'DC002': ['PCB-004', 'PCB-005']
-  });
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
 
 
   // Store form context for extraction
@@ -106,111 +103,34 @@ export default function Home() {
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
   const { toast } = useToast();
-  // Load DC numbers and mappings from database and localStorage after mount
+  // Load DC numbers and mappings from database only after mount
   useEffect(() => {
     const loadFromDatabase = async () => {
-      try {
-        // Load DC numbers from database
-        const result = await getDcNumbersAction();
-        if (result.success && result.dcNumbers && result.dcNumbers.length > 0) {
-          // Convert to the format expected by the component
-          const dcNumbersList = result.dcNumbers.map((item: any) => item.dcNumber);
-          const dcPartCodesMap = result.dcNumbers.reduce((acc: Record<string, string[]>, item: any) => {
-            acc[item.dcNumber] = item.partCodes;
-            return acc;
-          }, {} as Record<string, string[]>);
-          
-          setDcNumbers(dcNumbersList);
-          setDcPartCodes(dcPartCodesMap);
-        }
-      } catch (error) {
-        console.error('Error loading DC numbers from database:', error);
-      }
-    };
-    
-    const loadFromLocalStorage = () => {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('dc-numbers');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            setDcNumbers(prev => {
-              // Merge with existing data, avoiding duplicates
-              const uniqueDcNumbers = [...new Set([...prev, ...parsed])];
-              return uniqueDcNumbers;
-            });
-          } catch (e) {
-            console.error('Error parsing DC numbers from localStorage:', e);
-          }
-        }
-        
-        const storedMappings = localStorage.getItem('dc-partcode-mappings');
-        if (storedMappings) {
-          try {
-            const parsed = JSON.parse(storedMappings);
-            setDcPartCodes(prev => {
-              // Merge with existing data
-              return { ...prev, ...parsed };
-            });
-          } catch (e) {
-            console.error('Error parsing DC part codes from localStorage:', e);
-          }
-        }
-      }
-    };
-    
-    // Load initial data
-    loadFromDatabase();
-    loadFromLocalStorage();
-    
-    // Listen for localStorage changes
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'dc-partcode-mappings' || e.key === 'dc-numbers') {
-        loadFromLocalStorage();
-      }
-    };
-    
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', handleStorageChange);
-    }
-    
-    // Periodic check to ensure data stays in sync (every 5 seconds)
-    const interval = setInterval(() => {
-      loadFromDatabase();
-      loadFromLocalStorage();
-    }, 5000);
-    
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('storage', handleStorageChange);
-      }
-      clearInterval(interval);
-    };
-  }, []);
-  
-  // Load DC numbers and mappings from database after mount
-  useEffect(() => {
-    const loadDcNumbersFromDb = async () => {
       try {
         const result = await getDcNumbersAction();
         if (result.success) {
           setDcNumbers(result.dcNumbers || []);
           setDcPartCodes(result.dcPartCodes || {});
-        } else {
-          throw new Error(result.error);
         }
       } catch (error) {
         console.error('Error loading DC numbers from database:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Could not load DC data',
-          description: 'There was an error loading DC numbers and part codes.',
-        });
       }
     };
     
-    loadDcNumbersFromDb();
+    // Load initial data from database
+    loadFromDatabase();
+    
+    // Periodic check to ensure data stays in sync (every 10 seconds)
+    const interval = setInterval(() => {
+      loadFromDatabase();
+    }, 10000);
+    
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
+  
+
 
   // Function to add a new DC number with Part Code
   const addDcNumber = async (dcNo: string, partCode: string) => {
@@ -683,10 +603,16 @@ export default function Home() {
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
-                {/* <DropdownMenuItem onClick={() => setActiveTab("tag-entry")}>
+                <DropdownMenuItem onClick={() => setActiveTab("tag-entry")}>
                   <span>Tag Entry</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator /> */}
+                <DropdownMenuItem onClick={() => setActiveTab("dispatch")}>
+                  <span>Dispatch</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab("consumption")}>
+                  <span>Consumption</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} disabled={!activeSheet} className="text-red-500 focus:text-red-500">
                   <Trash2 className="mr-2 h-4 w-4" />
                   <span>Delete Current Sheet</span>
@@ -699,31 +625,81 @@ export default function Home() {
       </header>
       
       <main className="flex-1 px-4 py-2 h-[calc(100vh-120px)] flex flex-col">
-        <div className="text-center mb-2">
-            <h2 className="text-lg font-semibold">Active Sheet: <span className="font-bold text-primary">{activeSheet?.name || 'No active sheet'}</span></h2>
-            <p className="text-sm text-muted-foreground">
-                {sheets.length > 0 ? 'New scans will be added here. Use the menu to switch or create sheets.' : 'Create a new sheet from the menu to get started.'}
-            </p>
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200 mb-4">
+          <button
+            className={`py-2 px-4 font-medium text-sm ${
+              activeTab === "tag-entry"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("tag-entry")}
+          >
+            Tag Entry
+          </button>
+          <button
+            className={`py-2 px-4 font-medium text-sm ${
+              activeTab === "dispatch"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("dispatch")}
+          >
+            Dispatch
+          </button>
+          <button
+            className={`py-2 px-4 font-medium text-sm ${
+              activeTab === "consumption"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("consumption")}
+          >
+            Consumption
+          </button>
         </div>
-        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 max-w-[1920px] mx-auto w-full">
-          <div className="lg:w-2/5 flex flex-col">
-            <ImageUploader 
-              onImageReady={handleImageReady} 
-              isLoading={isLoading} 
+        
+        {/* Tab Content */}
+        {activeTab === "tag-entry" && (
+          <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 max-w-[1920px] mx-auto w-full">
+            <div className="lg:w-2/5 flex flex-col">
+              <ImageUploader 
+                onImageReady={handleImageReady} 
+                isLoading={isLoading} 
+              />
+            </div>
+            <div className="lg:w-3/5 xl:w-2/3">
+              <ValidateDataSection 
+                initialData={currentExtractedData} 
+                isLoading={isLoading}
+                onSave={handleAddToSheet}
+                sheetActive={!!activeSheet}
+                onFormChange={setExtractionContext}
+                dcNumbers={dcNumbers}
+                dcPartCodes={dcPartCodes}
+              />
+            </div>
+          </div>
+        )}
+        
+        {activeTab === "dispatch" && (
+          <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
+            <FindTab 
+              dcNumbers={dcNumbers}
+              dcPartCodes={dcPartCodes}
+              onExportExcel={handleTagEntryExportExcel}
             />
           </div>
-          <div className="lg:w-3/5 xl:w-2/3">
-            <ValidateDataSection 
-              initialData={currentExtractedData} 
-              isLoading={isLoading}
-              onSave={handleAddToSheet}
-              sheetActive={!!activeSheet}
-              onFormChange={setExtractionContext}
+        )}
+        
+        {activeTab === "consumption" && (
+          <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
+            <ConsumptionTab 
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
             />
           </div>
-        </div>
+        )}
       </main>
 
       {activeSheet && (

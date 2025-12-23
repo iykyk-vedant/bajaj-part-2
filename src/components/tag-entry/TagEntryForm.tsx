@@ -27,8 +27,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     id: '',
     srNo: '001',
     dcNo: '',
-    branch: 'Mumbai',
-    bccdName: 'BCCD-001',
+    branch: '',
+    bccdName: '',
     productDescription: '',
     productSrNo: '',
     dateOfPurchase: '',
@@ -40,14 +40,34 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     pcbSrNo: '',
   });
 
-  // Load saved entries from localStorage on component mount
+  // Load saved entries from database on component mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setSavedEntries(parsed);
+    const loadSavedEntries = async () => {
+      try {
+        const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+        const result = await getConsolidatedDataEntries();
+        
+        if (result.success) {
+          const entries = result.data || [];
+          // Convert consolidated data to TagEntry format
+          const tagEntries = entries.map((entry: any) => ({
+            id: entry.id || entry.sr_no,
+            srNo: entry.sr_no || '',
+            dcNo: entry.dc_no || '',
+            branch: entry.branch || '',
+            bccdName: entry.bccd_name || '',
+            productDescription: entry.product_description || '',
+            productSrNo: entry.product_sr_no || '',
+            dateOfPurchase: entry.date_of_purchase || '',
+            complaintNo: entry.complaint_no || '',
+            partCode: entry.part_code || '',
+            natureOfDefect: entry.defect || '',
+            visitingTechName: entry.visiting_tech_name || '',
+            mfgMonthYear: entry.mfg_month_year || '',
+            pcbSrNo: entry.pcb_sr_no || '',
+          }));
+          
+          setSavedEntries(tagEntries);
           
           // Update serial number if there are existing entries
           // For initial load, we'll set it to 1, then it will be updated when DC is selected
@@ -55,11 +75,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
             ...prev,
             srNo: '001'
           }));
-        } catch (e) {
-          console.error('Error parsing saved entries:', e);
         }
+      } catch (e) {
+        console.error('Error loading entries from database:', e);
       }
-    }
+    };
+    
+    loadSavedEntries();
   }, []);
 
   // Populate form with initial data when it changes (from image extraction)
@@ -294,9 +316,22 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     }
 
     setSavedEntries(updatedEntries);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
-    }
+    
+    // Save to database
+    const saveToDatabase = async () => {
+      try {
+        const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
+        const result = await saveConsolidatedData(entryToSave);
+        
+        if (!result.success) {
+          console.error('Failed to save entry to database:', result.error);
+        }
+      } catch (e) {
+        console.error('Error saving entry to database:', e);
+      }
+    };
+    
+    saveToDatabase();
 
     // Reset form after save
     handleClear();
@@ -328,9 +363,24 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
 
     const updatedEntries = savedEntries.filter(entry => entry.id !== formData.id);
     setSavedEntries(updatedEntries);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
-    }
+    
+    // Remove from database
+    const deleteFromDatabase = async () => {
+      if (formData.id) {
+        try {
+          const { deleteConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
+          const result = await deleteConsolidatedDataEntryAction(formData.id);
+          
+          if (!result.success) {
+            console.error('Failed to delete entry from database:', result.error);
+          }
+        } catch (e) {
+          console.error('Error deleting entry from database:', e);
+        }
+      }
+    };
+    
+    deleteFromDatabase();
 
     alert('Entry deleted successfully!');
     handleClear();
@@ -506,8 +556,10 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
               className={`flex-1 p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
             >
               <option value="">Select DC No.</option>
-              {dcNumbers.map((dc) => (
-                <option key={dc} value={dc}>{dc}</option>
+              {dcNumbers
+                .filter(dc => dc != null && dc !== '')
+                .map((dc, index) => (
+                <option key={`${dc}-${index}`} value={dc}>{dc}</option>
               ))}
             </select>
             <LockButton dcNo={formData.dcNo} partCode={formData.partCode} />
@@ -596,8 +648,10 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
             className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
           >
             <option value="">Select Part Code</option>
-            {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || []).map((code) => (
-              <option key={code} value={code}>{code}</option>
+            {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || [])
+              .filter(code => code != null && code !== '')
+              .map((code, index) => (
+              <option key={`${code}-${index}`} value={code}>{code}</option>
             ))}
           </select>
         </div>

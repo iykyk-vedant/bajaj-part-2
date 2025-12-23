@@ -134,41 +134,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     // Debounce the save operation
     const timeoutId = setTimeout(async () => {
       try {
-        // Get tag entry data to combine with consumption data
-        let tagEntryData = {};
-        if (typeof window !== 'undefined') {
-          const storedTags = localStorage.getItem('tag-entries');
-          if (storedTags) {
-            try {
-              const tagEntries: TagEntry[] = JSON.parse(storedTags);
-              const matchingTagEntry = tagEntries.find(entry => entry.srNo === srNo && entry.dcNo === dcNo);
-              if (matchingTagEntry) {
-                tagEntryData = {
-                  srNo: matchingTagEntry.srNo,
-                  dcNo: matchingTagEntry.dcNo,
-                  dcDate: matchingTagEntry.dateOfPurchase,
-                  branch: matchingTagEntry.branch,
-                  bccdName: matchingTagEntry.bccdName,
-                  productDescription: matchingTagEntry.productDescription,
-                  productSrNo: matchingTagEntry.productSrNo,
-                  dateOfPurchase: matchingTagEntry.dateOfPurchase,
-                  complaintNo: matchingTagEntry.complaintNo,
-                  partCode: matchingTagEntry.partCode,
-                  defect: matchingTagEntry.natureOfDefect,
-                  visitingTechName: matchingTagEntry.visitingTechName,
-                  mfgMonthYear: matchingTagEntry.mfgMonthYear,
-                  pcbSrNo: matchingTagEntry.pcbSrNo,
-                };
-              }
-            } catch (e) {
-              console.error('Error loading tag entries:', e);
-            }
-          }
-        }
-        
         // Combine tag entry data with consumption data
         const consolidatedData = {
-          ...tagEntryData,
+          srNo: srNo,
+          dcNo: dcNo,
+          partCode: partCode,
           repairDate: formData.repairDate,
           testing: formData.testing,
           failure: formData.failure,
@@ -198,160 +168,45 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     return () => clearTimeout(timeoutId);
   }, [formData, srNo, dcNo, partCode]);
 
-  // Load data from localStorage on component mount
+  // Load data from database on component mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Load consumption entries
-      const storedConsumption = localStorage.getItem('consumption-entries');
-      let loadedConsumptionEntries: ConsumptionEntry[] = [];
-      if (storedConsumption) {
-        try {
-          loadedConsumptionEntries = JSON.parse(storedConsumption);
+    const loadConsumptionData = async () => {
+      try {
+        // Load consumption entries from database
+        const { getConsumptionEntries } = await import('@/app/actions/consumption-actions');
+        const result = await getConsumptionEntries();
+        let loadedConsumptionEntries: ConsumptionEntry[] = [];
+        
+        if (result.success) {
+          loadedConsumptionEntries = result.data || [];
           setConsumptionEntries(loadedConsumptionEntries);
-        } catch (e) {
-          console.error('Error loading consumption entries:', e);
         }
+      } catch (e) {
+        console.error('Error loading consumption entries from database:', e);
       }
-
-      // Load tag entries
-      const storedTags = localStorage.getItem('tag-entries');
-      let tagEntries: TagEntry[] = [];
-      if (storedTags) {
-        try {
-          tagEntries = JSON.parse(storedTags);
-        } catch (e) {
-          console.error('Error loading tag entries:', e);
-        }
-      }
-
-      // Combine both datasets into unified table data
-      const combinedData: TableRow[] = [
-        ...tagEntries.map(entry => ({
-          id: entry.id,
-          srNo: entry.srNo,
-          dcNo: entry.dcNo,
-          dcDate: entry.dateOfPurchase, // Assuming DC Date is the same as Date of Purchase
-          branch: entry.branch,
-          bccdName: entry.bccdName,
-          productDescription: entry.productDescription,
-          productSrNo: entry.productSrNo,
-          dateOfPurchase: entry.dateOfPurchase,
-          complaintNo: entry.complaintNo,
-          partCode: entry.partCode,
-          defect: entry.natureOfDefect,
-          visitingTechName: entry.visitingTechName,
-          mfgMonthYear: entry.mfgMonthYear,
-          // Consumption-specific fields will be empty for tag entries
-          repairDate: '',
-          testing: '',
-          failure: '',
-          status: '',
-          pcbSrNo: entry.pcbSrNo || '',
-          rfObservation: '',
-          analysis: '',
-          validationResult: '',
-          componentChange: '',
-          enggName: '',
-          dispatchDate: '',
-        })),
-        ...loadedConsumptionEntries.map(entry => ({
-          id: entry.id,
-          // These fields will be empty as consumption entries don't have tag entry data
-          srNo: '',
-          dcNo: '',
-          dcDate: '',
-          branch: '',
-          bccdName: '',
-          productDescription: '',
-          productSrNo: '',
-          dateOfPurchase: '',
-          complaintNo: '',
-          partCode: '',
-          defect: '',
-          visitingTechName: '',
-          mfgMonthYear: '',
-          // Consumption-specific fields
-          repairDate: entry.repairDate,
-          testing: entry.testing,
-          failure: entry.failure,
-          status: entry.status,
-          pcbSrNo: entry.pcbSrNo,
-          rfObservation: entry.rfObservation,
-          analysis: entry.analysis,
-          validationResult: entry.validationResult,
-          componentChange: entry.componentChange,
-          enggName: entry.enggName,
-          dispatchDate: entry.dispatchDate,
-        }))
-      ];
-
-      setTableData(combinedData);
-    }
+    };
+    
+    loadConsumptionData();
   }, []);
 
-  // Save consumption entries to localStorage whenever they change
+  // Update tableData when consumptionEntries change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('consumption-entries', JSON.stringify(consumptionEntries));
-    }
-    
-    // Update tableData when consumptionEntries change
-    // Load tag entries from localStorage
-    let tagEntries: TagEntry[] = [];
-    if (typeof window !== 'undefined') {
-      const storedTags = localStorage.getItem('tag-entries');
-      if (storedTags) {
-        try {
-          tagEntries = JSON.parse(storedTags);
-        } catch (e) {
-          console.error('Error loading tag entries:', e);
-        }
-      }
-    }
-    
-    // Combine both datasets into unified table data
+    // For now, just update the table with consumption entries
+    // We'll need to load tag entries from the database in a real implementation
     const combinedData: TableRow[] = [
-      ...tagEntries.map(entry => ({
-        id: entry.id,
-        srNo: entry.srNo,
-        dcNo: entry.dcNo,
-        dcDate: entry.dateOfPurchase, // Assuming DC Date is the same as Date of Purchase
-        branch: entry.branch,
-        bccdName: entry.bccdName,
-        productDescription: entry.productDescription,
-        productSrNo: entry.productSrNo,
-        dateOfPurchase: entry.dateOfPurchase,
-        complaintNo: entry.complaintNo,
-        partCode: entry.partCode,
-        defect: entry.natureOfDefect,
-        visitingTechName: entry.visitingTechName,
-        mfgMonthYear: entry.mfgMonthYear,
-        // Consumption-specific fields will be empty for tag entries
-        repairDate: '',
-        testing: '',
-        failure: '',
-        status: '',
-        pcbSrNo: entry.pcbSrNo || '',
-        rfObservation: '',
-        analysis: '',
-        validationResult: '',
-        componentChange: '',
-        enggName: '',
-        dispatchDate: '',
-      })),
       ...consumptionEntries.map(entry => ({
         id: entry.id,
         // These fields will be empty as consumption entries don't have tag entry data
-        srNo: '',
-        dcNo: '',
+        srNo: entry.srNo || '',
+        dcNo: entry.dcNo || '',
         dcDate: '',
         branch: '',
         bccdName: '',
         productDescription: '',
-        productSrNo: '',
+        productSrNo: entry.srNo || '', // Using srNo as productSrNo since ConsumptionEntry doesn't have productSrNo
         dateOfPurchase: '',
         complaintNo: '',
-        partCode: '',
+        partCode: entry.partCode || '',
         defect: '',
         visitingTechName: '',
         mfgMonthYear: '',
@@ -501,41 +356,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     
     // Also save to consolidated data table
     try {
-      // Get tag entry data to combine with consumption data
-      let tagEntryData = {};
-      if (typeof window !== 'undefined') {
-        const storedTags = localStorage.getItem('tag-entries');
-        if (storedTags) {
-          try {
-            const tagEntries: TagEntry[] = JSON.parse(storedTags);
-            const matchingTagEntry = tagEntries.find(entry => entry.srNo === srNo && entry.dcNo === dcNo);
-            if (matchingTagEntry) {
-              tagEntryData = {
-                srNo: matchingTagEntry.srNo,
-                dcNo: matchingTagEntry.dcNo,
-                dcDate: matchingTagEntry.dateOfPurchase,
-                branch: matchingTagEntry.branch,
-                bccdName: matchingTagEntry.bccdName,
-                productDescription: matchingTagEntry.productDescription,
-                productSrNo: matchingTagEntry.productSrNo,
-                dateOfPurchase: matchingTagEntry.dateOfPurchase,
-                complaintNo: matchingTagEntry.complaintNo,
-                partCode: matchingTagEntry.partCode,
-                defect: matchingTagEntry.natureOfDefect,
-                visitingTechName: matchingTagEntry.visitingTechName,
-                mfgMonthYear: matchingTagEntry.mfgMonthYear,
-                pcbSrNo: matchingTagEntry.pcbSrNo,
-              };
-            }
-          } catch (e) {
-            console.error('Error loading tag entries:', e);
-          }
-        }
-      }
-      
       // Combine tag entry data with consumption data
       const consolidatedData = {
-        ...tagEntryData,
+        srNo: srNo,
+        dcNo: dcNo,
+        partCode: partCode,
         repairDate: formData.repairDate,
         testing: formData.testing,
         failure: formData.failure,
@@ -587,41 +412,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     
     // Also update consolidated data table
     try {
-      // Get tag entry data to combine with consumption data
-      let tagEntryData = {};
-      if (typeof window !== 'undefined') {
-        const storedTags = localStorage.getItem('tag-entries');
-        if (storedTags) {
-          try {
-            const tagEntries: TagEntry[] = JSON.parse(storedTags);
-            const matchingTagEntry = tagEntries.find(entry => entry.srNo === srNo && entry.dcNo === dcNo);
-            if (matchingTagEntry) {
-              tagEntryData = {
-                srNo: matchingTagEntry.srNo,
-                dcNo: matchingTagEntry.dcNo,
-                dcDate: matchingTagEntry.dateOfPurchase,
-                branch: matchingTagEntry.branch,
-                bccdName: matchingTagEntry.bccdName,
-                productDescription: matchingTagEntry.productDescription,
-                productSrNo: matchingTagEntry.productSrNo,
-                dateOfPurchase: matchingTagEntry.dateOfPurchase,
-                complaintNo: matchingTagEntry.complaintNo,
-                partCode: matchingTagEntry.partCode,
-                defect: matchingTagEntry.natureOfDefect,
-                visitingTechName: matchingTagEntry.visitingTechName,
-                mfgMonthYear: matchingTagEntry.mfgMonthYear,
-                pcbSrNo: matchingTagEntry.pcbSrNo,
-              };
-            }
-          } catch (e) {
-            console.error('Error loading tag entries:', e);
-          }
-        }
-      }
-      
       // Combine tag entry data with consumption data
       const consolidatedData = {
-        ...tagEntryData,
+        srNo: srNo,
+        dcNo: dcNo,
+        partCode: partCode,
         repairDate: formData.repairDate,
         testing: formData.testing,
         failure: formData.failure,
@@ -701,21 +496,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   const handleExportExcel = async () => {
     try {
-      // Get tag entries from localStorage
-      let tagEntries: TagEntry[] = [];
-      const storedTags = localStorage.getItem('tag-entries');
-      if (storedTags) {
-        try {
-          tagEntries = JSON.parse(storedTags);
-        } catch (e) {
-          console.error('Error loading tag entries:', e);
-        }
-      }
-      
-      // Combine consumption and tag entries for export
+      // For now, we'll just export consumption entries
+      // In a real implementation, we would fetch tag entries from the database
       const exportData = {
         consumptionEntries,
-        tagEntries
+        tagEntries: [] // Tag entries will be fetched from database in a real implementation
       };
       
       // Call API endpoint with POST request
@@ -835,8 +620,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                   disabled={isDcLocked || isPcbFound}
                 >
                   <option value="">Select DC</option>
-                  {dcNumbers.map((dc) => (
-                    <option key={dc} value={dc}>{dc}</option>
+                  {dcNumbers
+                    .filter(dc => dc != null && dc !== '')
+                    .map((dc, index) => (
+                    <option key={`${dc}-${index}`} value={dc}>{dc}</option>
                   ))}
                 </select>
                 <LockButton dcNo={dcNo} partCode={partCode} />
@@ -851,8 +638,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 disabled={isDcLocked || isPcbFound}
               >
                 <option value="">Select Part</option>
-                {(dcPartCodes[dcNo] || []).map((code) => (
-                  <option key={code} value={code}>{code}</option>
+                {(dcPartCodes[dcNo] || [])
+                  .filter(code => code != null && code !== '')
+                  .map((code, index) => (
+                  <option key={`${code}-${index}`} value={code}>{code}</option>
                 ))}
               </select>
             </div>
@@ -1069,9 +858,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {tableData.map((entry) => (
+                {tableData.map((entry, index) => (
                   <tr 
-                    key={entry.id} 
+                    key={entry.id || `entry-${index}`}
                     className={`cursor-pointer ${selectedEntryId === entry.id ? 'bg-blue-100' : 'hover:bg-gray-50'}`}
                     onClick={() => {
                       // Populate form with selected entry data

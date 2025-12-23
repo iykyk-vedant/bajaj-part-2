@@ -7,7 +7,8 @@ import { FindTab } from "../../components/tag-entry/FindTab";
 import { ConsumptionTab } from "../../components/tag-entry/ConsumptionTab";
 import { StatusBar } from "../../components/tag-entry/StatusBar";
 import { exportTagEntriesToExcel } from "@/lib/tag-entry/export-utils";
-import { loadDcNumbers, loadDcPartCodes, saveDcNumbers, saveDcPartCodes, addDcNumberWithPartCode } from "@/lib/dc-data-sync";
+import { loadDcNumbersFromDb, loadDcPartCodesFromDb, addDcNumberWithPartCode } from "@/lib/dc-data-sync";
+import { addDcNumberAction } from "@/app/actions/db-actions";
 
 export default function TagEntryPage() {
   const [activeTab, setActiveTab] = useState<
@@ -20,32 +21,26 @@ export default function TagEntryPage() {
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   
   // Initialize DC numbers - use default values initially
-  const [dcNumbers, setDcNumbers] = useState<string[]>(loadDcNumbers());
+  const [dcNumbers, setDcNumbers] = useState<string[]>([]);
   
   // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>(loadDcPartCodes());
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
 
-  // Load DC numbers and mappings from localStorage after mount
+  // Load DC numbers and mappings from database after mount
   useEffect(() => {
-    const loadedDcNumbers = loadDcNumbers();
-    const loadedDcPartCodes = loadDcPartCodes();
+    const loadDcData = async () => {
+      const loadedDcNumbers = await loadDcNumbersFromDb();
+      const loadedDcPartCodes = await loadDcPartCodesFromDb();
+      
+      setDcNumbers(loadedDcNumbers);
+      setDcPartCodes(loadedDcPartCodes);
+    };
     
-    setDcNumbers(loadedDcNumbers);
-    setDcPartCodes(loadedDcPartCodes);
+    loadDcData();
   }, []);
 
-  // Save DC numbers to localStorage whenever they change
-  useEffect(() => {
-    saveDcNumbers(dcNumbers);
-  }, [dcNumbers]);
-  
-  // Save DC-PartCode mappings to localStorage whenever they change
-  useEffect(() => {
-    saveDcPartCodes(dcPartCodes);
-  }, [dcPartCodes]);
-
   // Function to add a new DC number with Part Code
-  const addDcNumber = (dcNo: string, partCode: string) => {
+  const addDcNumber = async (dcNo: string, partCode: string) => {
     const { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } = addDcNumberWithPartCode(
       dcNo,
       partCode,
@@ -53,8 +48,22 @@ export default function TagEntryPage() {
       dcPartCodes
     );
     
-    setDcNumbers(updatedDcNumbers);
-    setDcPartCodes(updatedDcPartCodes);
+    // Save to database
+    try {
+      const result = await addDcNumberAction(dcNo, partCode, updatedDcNumbers, updatedDcPartCodes);
+      
+      if (result.success) {
+        setDcNumbers(result.dcNumbers || []);
+        setDcPartCodes(result.dcPartCodes || {});
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error saving DC number to database:', error);
+      // Fallback to updating state without database save
+      setDcNumbers(updatedDcNumbers);
+      setDcPartCodes(updatedDcPartCodes);
+    }
   };
 
   // Check for hash fragment to switch to consumption tab
@@ -216,8 +225,23 @@ export default function TagEntryPage() {
               </div>
             </div>
           )}
-          {activeTab === "dispatch" && <FindTab dcNumbers={dcNumbers} onExportExcel={handleExportExcel} />}
-          {activeTab === "consumption" && <ConsumptionTab dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />}
+          {activeTab === "dispatch" && (
+            <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
+              <FindTab 
+                dcNumbers={dcNumbers}
+                dcPartCodes={dcPartCodes}
+                onExportExcel={handleExportExcel} 
+              />
+            </div>
+          )}
+          {activeTab === "consumption" && (
+            <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
+              <ConsumptionTab 
+                dcNumbers={dcNumbers} 
+                dcPartCodes={dcPartCodes} 
+              />
+            </div>
+          )}
         </div>
 
         {/* Status Bar */}

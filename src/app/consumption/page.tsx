@@ -5,34 +5,28 @@ import { useRouter } from 'next/navigation';
 import { ConsumptionTab } from '../../components/tag-entry/ConsumptionTab';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { loadDcNumbers, loadDcPartCodes, saveDcNumbers, saveDcPartCodes } from '@/lib/dc-data-sync';
+import { loadDcNumbersFromDb, loadDcPartCodesFromDb } from '@/lib/dc-data-sync';
 
 export default function ConsumptionPage() {
   const router = useRouter();
   // Initialize DC numbers - use default values initially
-  const [dcNumbers, setDcNumbers] = useState<string[]>(loadDcNumbers());
+  const [dcNumbers, setDcNumbers] = useState<string[]>([]);
   
   // Initialize DC-PartCode mappings
-  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>(loadDcPartCodes());
+  const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
 
-  // Load DC numbers and mappings from localStorage after mount
+  // Load DC numbers and mappings from database after mount
   useEffect(() => {
-    const loadedDcNumbers = loadDcNumbers();
-    const loadedDcPartCodes = loadDcPartCodes();
+    const loadDcData = async () => {
+      const loadedDcNumbers = await loadDcNumbersFromDb();
+      const loadedDcPartCodes = await loadDcPartCodesFromDb();
+      
+      setDcNumbers(loadedDcNumbers);
+      setDcPartCodes(loadedDcPartCodes);
+    };
     
-    setDcNumbers(loadedDcNumbers);
-    setDcPartCodes(loadedDcPartCodes);
+    loadDcData();
   }, []);
-
-  // Save DC numbers to localStorage whenever they change
-  useEffect(() => {
-    saveDcNumbers(dcNumbers);
-  }, [dcNumbers]);
-  
-  // Save DC-PartCode mappings to localStorage whenever they change
-  useEffect(() => {
-    saveDcPartCodes(dcPartCodes);
-  }, [dcPartCodes]);
 
   return (
     <>

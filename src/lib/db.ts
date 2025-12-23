@@ -481,6 +481,20 @@ export async function getAllConsolidatedDataEntries(): Promise<any[]> {
   }
 }
 
+// Delete a specific consolidated data entry
+export async function deleteConsolidatedDataEntry(id: string): Promise<boolean> {
+  try {
+    await pool.execute(
+      'DELETE FROM consolidated_data WHERE id = ?',
+      [id]
+    );
+    return true;
+  } catch (error) {
+    console.error('Error deleting consolidated data entry:', error);
+    return false;
+  }
+}
+
 // Clear all consolidated data entries
 export async function clearConsolidatedData(): Promise<void> {
   try {

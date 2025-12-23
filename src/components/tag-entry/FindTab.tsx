@@ -7,10 +7,11 @@ import { Download } from 'lucide-react';
 
 interface FindTabProps {
   dcNumbers?: string[];
+  dcPartCodes?: Record<string, string[]>;
   onExportExcel?: () => void;
 }
 
-export function FindTab({ dcNumbers = ['DC001', 'DC002', 'DC003', 'DC004'], onExportExcel }: FindTabProps) {
+export function FindTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }: FindTabProps) {
   const { isDcLocked } = useLockStore();
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
@@ -48,8 +49,10 @@ export function FindTab({ dcNumbers = ['DC001', 'DC002', 'DC003', 'DC004'], onEx
               className={`flex-1 p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-10`}
             >
               <option value="">Select DC No.</option>
-              {dcNumbers.map((dc) => (
-                <option key={dc} value={dc}>{dc}</option>
+              {dcNumbers
+                .filter(dc => dc != null && dc !== '')
+                .map((dc, index) => (
+                <option key={`${dc}-${index}`} value={dc}>{dc}</option>
               ))}
             </select>
             <LockButton dcNo={dcNo} partCode={partCode} />
@@ -64,10 +67,11 @@ export function FindTab({ dcNumbers = ['DC001', 'DC002', 'DC003', 'DC004'], onEx
             className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-10`}
           >
             <option value="">Select Part Code</option>
-            <option value="PC1001">PC1001</option>
-            <option value="PC1002">PC1002</option>
-            <option value="PC1003">PC1003</option>
-            <option value="PC1004">PC1004</option>
+            {(dcPartCodes[dcNo] || [])
+              .filter(code => code != null && code !== '')
+              .map((code, index) => (
+              <option key={`${code}-${index}`} value={code}>{code}</option>
+            ))}
           </select>
         </div>
         <div>

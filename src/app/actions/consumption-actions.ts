@@ -105,3 +105,39 @@ export async function saveConsolidatedData(data: any) {
     };
   }
 }
+
+// Server action to get consolidated data entries
+export async function getConsolidatedDataEntries() {
+  try {
+    const { getAllConsolidatedDataEntries } = await import('@/lib/db');
+    const entries = await getAllConsolidatedDataEntries();
+    return {
+      success: true,
+      data: entries
+    };
+  } catch (error) {
+    console.error('Error fetching consolidated data entries:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
+// Server action to delete consolidated data entry
+export async function deleteConsolidatedDataEntryAction(id: string) {
+  try {
+    const { deleteConsolidatedDataEntry } = await import('@/lib/db');
+    const result = await deleteConsolidatedDataEntry(id);
+    return {
+      success: result,
+      data: result
+    };
+  } catch (error) {
+    console.error('Error deleting consolidated data entry:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}

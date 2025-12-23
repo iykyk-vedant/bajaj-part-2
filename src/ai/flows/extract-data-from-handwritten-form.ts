@@ -65,6 +65,23 @@ const extractDataFlow = ai.defineFlow(
         if (error.message.includes('503') || error.message.includes('Service Unavailable') || error.message.includes('overloaded')) {
           throw new Error('The AI service is currently overloaded. Please try again in a few minutes.');
         }
+        // Check if it's a quota exceeded error
+        if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('exceeded')) {
+          console.warn('Gemini API quota exceeded. Returning empty data as fallback.');
+          // Return default empty data as a fallback
+          return {
+            branch: '',
+            bccdName: '',
+            productDescription: '',
+            sparePartCode: '',
+            productSrNo: '',
+            dateOfPurchase: '',
+            complaintNo: '',
+            defect: '',
+            visitingTechName: '',
+            others: '',
+          };
+        }
         throw error;
       }
       throw new Error('An unknown error occurred during data extraction.');

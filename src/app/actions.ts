@@ -27,6 +27,21 @@ export async function extractDataFromImage(
       // Check if it's a service unavailable error
       if (e.message.includes('503') || e.message.includes('Service Unavailable') || e.message.includes('overloaded')) {
         errorMessage = 'The AI service is currently overloaded. Please try again in a few minutes.';
+      } else if (e.message.includes('429') || e.message.includes('quota') || e.message.includes('exceeded')) {
+        console.warn('Gemini API quota exceeded. Returning empty data as fallback.');
+        // Return empty data as fallback when quota is exceeded
+        return { data: {
+          branch: '',
+          bccdName: '',
+          productDescription: '',
+          sparePartCode: '',
+          productSrNo: '',
+          dateOfPurchase: '',
+          complaintNo: '',
+          defect: '',
+          visitingTechName: '',
+          others: '',
+        }, error: null };
       } else {
         errorMessage = e.message;
       }

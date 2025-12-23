@@ -4,60 +4,42 @@
 const DEFAULT_DC_NUMBERS: string[] = [];
 const DEFAULT_DC_PARTCODES: Record<string, string[]> = {};
 
-// Load DC numbers from localStorage
-export function loadDcNumbers(): string[] {
+// Load DC numbers from database
+export async function loadDcNumbersFromDb(): Promise<string[]> {
   if (typeof window === 'undefined') return DEFAULT_DC_NUMBERS;
-  
+
   try {
-    const stored = localStorage.getItem('dc-numbers');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed : DEFAULT_DC_NUMBERS;
+    // Import the server action dynamically to avoid importing it on the client
+    const { getDcNumbersAction } = await import('@/app/actions/db-actions');
+    const result = await getDcNumbersAction();
+    
+    if (result.success) {
+      return result.dcNumbers || [];
     }
   } catch (e) {
-    console.error('Error loading DC numbers:', e);
+    console.error('Error loading DC numbers from database:', e);
   }
-  
+
   return DEFAULT_DC_NUMBERS;
 }
 
-// Load DC-PartCode mappings from localStorage
-export function loadDcPartCodes(): Record<string, string[]> {
+// Load DC-PartCode mappings from database
+export async function loadDcPartCodesFromDb(): Promise<Record<string, string[]>> {
   if (typeof window === 'undefined') return DEFAULT_DC_PARTCODES;
-  
+
   try {
-    const stored = localStorage.getItem('dc-partcode-mappings');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return typeof parsed === 'object' && parsed !== null ? parsed : DEFAULT_DC_PARTCODES;
+    // Import the server action dynamically to avoid importing it on the client
+    const { getDcNumbersAction } = await import('@/app/actions/db-actions');
+    const result = await getDcNumbersAction();
+    
+    if (result.success) {
+      return result.dcPartCodes || {};
     }
   } catch (e) {
-    console.error('Error loading DC-PartCode mappings:', e);
+    console.error('Error loading DC-PartCode mappings from database:', e);
   }
-  
+
   return DEFAULT_DC_PARTCODES;
-}
-
-// Save DC numbers to localStorage
-export function saveDcNumbers(dcNumbers: string[]): void {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem('dc-numbers', JSON.stringify(dcNumbers));
-  } catch (e) {
-    console.error('Error saving DC numbers:', e);
-  }
-}
-
-// Save DC-PartCode mappings to localStorage
-export function saveDcPartCodes(dcPartCodes: Record<string, string[]>): void {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem('dc-partcode-mappings', JSON.stringify(dcPartCodes));
-  } catch (e) {
-    console.error('Error saving DC-PartCode mappings:', e);
-  }
 }
 
 // Add a new DC number with Part Code
@@ -72,7 +54,7 @@ export function addDcNumberWithPartCode(
   if (dcNo && !updatedDcNumbers.includes(dcNo)) {
     updatedDcNumbers = [...updatedDcNumbers, dcNo];
   }
-  
+
   // Update Part Code mappings
   let updatedDcPartCodes = { ...currentDcPartCodes };
   if (partCode) {
@@ -86,6 +68,6 @@ export function addDcNumberWithPartCode(
       };
     }
   }
-  
+
   return { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes };
 }

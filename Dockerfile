@@ -33,7 +33,10 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy the built application from the builder stage
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/server.js ./server.js
+
+# Create public directory if it exists in builder stage
+RUN if [ -d "/app/public" ]; then mkdir -p public && cp -r /app/public/. public/; else mkdir -p public; fi
 
 # Expose the port the app will run on
 EXPOSE 3000

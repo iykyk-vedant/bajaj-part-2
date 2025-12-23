@@ -10,6 +10,7 @@ import { TagEntryForm } from '@/components/tag-entry/TagEntryForm';
 import { SettingsTab } from '@/components/tag-entry/SettingsTab';
 import { FindTab } from '@/components/tag-entry/FindTab';
 import { ConsumptionTab } from '@/components/tag-entry/ConsumptionTab';
+import { ValidateDataSection } from '@/components/validate-data-section';
 
 import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -51,8 +52,12 @@ import {
   deleteSheetAction, 
   addDataToSheetAction, 
   updateSheetDataAction,
-  addDcNumberAction
-} from '@/app/actions';export type Sheet = {
+  clearSheetDataAction
+} from '@/app/actions/sheet-actions';
+
+
+
+export type Sheet = {
   id: string;
   name: string;
   data: ExtractDataOutput[];
@@ -105,15 +110,12 @@ export default function Home() {
   useEffect(() => {
     const loadFromDatabase = async () => {
       try {
-        // Import the action here to avoid server/client issues
-        const { getAllDcNumbersAction } = await import('@/app/actions');
-        
         // Load DC numbers from database
-        const result = await getAllDcNumbersAction();
-        if (result.dcNumbers && result.dcNumbers.length > 0) {
+        const result = await getDcNumbersAction();
+        if (result.success && result.dcNumbers && result.dcNumbers.length > 0) {
           // Convert to the format expected by the component
-          const dcNumbersList = result.dcNumbers.map(item => item.dcNumber);
-          const dcPartCodesMap = result.dcNumbers.reduce((acc, item) => {
+          const dcNumbersList = result.dcNumbers.map((item: any) => item.dcNumber);
+          const dcPartCodesMap = result.dcNumbers.reduce((acc: Record<string, string[]>, item: any) => {
             acc[item.dcNumber] = item.partCodes;
             return acc;
           }, {} as Record<string, string[]>);
@@ -719,7 +721,6 @@ export default function Home() {
               onFormChange={setExtractionContext}
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
-              onAddDcNumberToDb={handleAddDcNumberToDb}
             />
           </div>
         </div>

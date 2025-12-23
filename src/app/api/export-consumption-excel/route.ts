@@ -37,67 +37,88 @@ export async function POST(request: Request) {
       { header: 'Dispatch Date', key: 'dispatchDate', width: 15 },
     ];
 
-    // Add tag entries data
+    // Create a map of tag entries by SR No for easy lookup
+    const tagEntryMap = new Map();
     tagEntries.forEach((entry: any) => {
+      tagEntryMap.set(entry.srNo, entry);
+    });
+
+    // Create a map of consumption entries by SR No for easy lookup
+    const consumptionEntryMap = new Map();
+    consumptionEntries.forEach((entry: any) => {
+      // For consumption entries, we need to find the corresponding SR No
+      // This would typically come from the form data when saving
+      // For now, we'll assume it's stored in the entry
+      if (entry.srNo) {
+        consumptionEntryMap.set(entry.srNo, entry);
+      }
+    });
+
+    // Combine tag entries with their corresponding consumption data
+    tagEntries.forEach((tagEntry: any) => {
+      const consumptionEntry = consumptionEntryMap.get(tagEntry.srNo);
+      
+      // Add a row with both tag entry and consumption data
       worksheet.addRow({
-        srNo: entry.srNo,
-        dcNo: entry.dcNo,
-        dcDate: entry.dateOfPurchase, // Assuming DC Date is the same as Date of Purchase
-        branch: entry.branch,
-        bccdName: entry.bccdName,
-        productDescription: entry.productDescription,
-        productSrNo: entry.productSrNo,
-        dateOfPurchase: entry.dateOfPurchase,
-        complaintNo: entry.complaintNo,
-        partCode: entry.partCode,
-        defect: entry.natureOfDefect,
-        visitingTechName: entry.visitingTechName,
-        mfgMonthYear: entry.mfgMonthYear,
-        // Consumption-specific fields will be empty for tag entries
-        repairDate: '',
-        testing: '',
-        failure: '',
-        status: '',
-        pcbSrNo: '',
-        rfObservation: '',
-        analysis: '',
-        validationResult: '',
-        componentChange: '',
-        enggName: '',
-        dispatchDate: '',
+        srNo: tagEntry.srNo,
+        dcNo: tagEntry.dcNo,
+        dcDate: tagEntry.dateOfPurchase, // Assuming DC Date is the same as Date of Purchase
+        branch: tagEntry.branch,
+        bccdName: tagEntry.bccdName,
+        productDescription: tagEntry.productDescription,
+        productSrNo: tagEntry.productSrNo,
+        dateOfPurchase: tagEntry.dateOfPurchase,
+        complaintNo: tagEntry.complaintNo,
+        partCode: tagEntry.partCode,
+        defect: tagEntry.natureOfDefect,
+        visitingTechName: tagEntry.visitingTechName,
+        mfgMonthYear: tagEntry.mfgMonthYear,
+        // Consumption-specific fields
+        repairDate: consumptionEntry?.repairDate || '',
+        testing: consumptionEntry?.testing || '',
+        failure: consumptionEntry?.failure || '',
+        status: consumptionEntry?.status || '',
+        pcbSrNo: consumptionEntry?.pcbSrNo || '',
+        rfObservation: consumptionEntry?.rfObservation || '',
+        analysis: consumptionEntry?.analysis || '',
+        validationResult: consumptionEntry?.validationResult || '',
+        componentChange: consumptionEntry?.componentChange || '',
+        enggName: consumptionEntry?.enggName || '',
+        dispatchDate: consumptionEntry?.dispatchDate || '',
       });
     });
 
-    // Add consumption entries data
+    // Add any consumption entries that don't have corresponding tag entries
     consumptionEntries.forEach((entry: any) => {
-      worksheet.addRow({
-        // These fields will be empty as consumption entries don't have tag entry data
-        srNo: '',
-        dcNo: '',
-        dcDate: '',
-        branch: '',
-        bccdName: '',
-        productDescription: '',
-        productSrNo: '',
-        dateOfPurchase: '',
-        complaintNo: '',
-        partCode: '',
-        defect: '',
-        visitingTechName: '',
-        mfgMonthYear: '',
-        // Consumption-specific fields
-        repairDate: entry.repairDate,
-        testing: entry.testing,
-        failure: entry.failure,
-        status: entry.status,
-        pcbSrNo: entry.pcbSrNo,
-        rfObservation: entry.rfObservation,
-        analysis: entry.analysis,
-        validationResult: entry.validationResult,
-        componentChange: entry.componentChange,
-        enggName: entry.enggName,
-        dispatchDate: entry.dispatchDate,
-      });
+      if (entry.srNo && !tagEntryMap.has(entry.srNo)) {
+        worksheet.addRow({
+          srNo: entry.srNo || '',
+          dcNo: '',
+          dcDate: '',
+          branch: '',
+          bccdName: '',
+          productDescription: '',
+          productSrNo: '',
+          dateOfPurchase: '',
+          complaintNo: '',
+          partCode: '',
+          defect: '',
+          visitingTechName: '',
+          mfgMonthYear: '',
+          // Consumption-specific fields
+          repairDate: entry.repairDate,
+          testing: entry.testing,
+          failure: entry.failure,
+          status: entry.status,
+          pcbSrNo: entry.pcbSrNo,
+          rfObservation: entry.rfObservation,
+          analysis: entry.analysis,
+          validationResult: entry.validationResult,
+          componentChange: entry.componentChange,
+          enggName: entry.enggName,
+          dispatchDate: entry.dispatchDate,
+        });
+      }
     });
 
     // Generate Excel file

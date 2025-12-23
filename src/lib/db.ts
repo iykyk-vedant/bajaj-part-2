@@ -96,6 +96,42 @@ export async function initializeDatabase() {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+    
+    // Create consolidated_data table that matches the Excel export structure
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS consolidated_data (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        sr_no VARCHAR(255),
+        dc_no VARCHAR(255),
+        dc_date DATE,
+        branch VARCHAR(255),
+        bccd_name VARCHAR(255),
+        product_description TEXT,
+        product_sr_no VARCHAR(255),
+        date_of_purchase DATE,
+        complaint_no VARCHAR(255),
+        part_code VARCHAR(255),
+        defect TEXT,
+        visiting_tech_name VARCHAR(255),
+        mfg_month_year VARCHAR(255),
+        repair_date DATE,
+        testing VARCHAR(50),
+        failure VARCHAR(50),
+        status VARCHAR(50),
+        pcb_sr_no VARCHAR(255),
+        rf_observation TEXT,
+        analysis TEXT,
+        validation_result TEXT,
+        component_change TEXT,
+        engg_name VARCHAR(255),
+        dispatch_date DATE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_sr_no (sr_no),
+        INDEX idx_dc_no (dc_no),
+        INDEX idx_part_code (part_code)
+      )
+    `);
 
     console.log('Database initialized successfully');
   } catch (error) {
@@ -381,5 +417,76 @@ export async function addSampleBomData() {
     console.log('Sample BOM data added successfully');
   } catch (error) {
     console.error('Error adding sample BOM data:', error);
+  }
+}
+
+// Save consolidated data entry
+export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
+  try {
+    // Handle empty dates by converting them to NULL
+    const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? entry.dcDate : null;
+    const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? entry.dateOfPurchase : null;
+    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? entry.repairDate : null;
+    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? entry.dispatchDate : null;
+    
+    await pool.execute(`
+      INSERT INTO consolidated_data 
+      (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
+       date_of_purchase, complaint_no, part_code, defect, visiting_tech_name, mfg_month_year,
+       repair_date, testing, failure, status, pcb_sr_no, rf_observation, analysis, 
+       validation_result, component_change, engg_name, dispatch_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      entry.srNo,
+      entry.dcNo,
+      dcDateValue,
+      entry.branch,
+      entry.bccdName,
+      entry.productDescription,
+      entry.productSrNo,
+      dateOfPurchaseValue,
+      entry.complaintNo,
+      entry.partCode,
+      entry.defect,
+      entry.visitingTechName,
+      entry.mfgMonthYear,
+      repairDateValue,
+      entry.testing,
+      entry.failure,
+      entry.status,
+      entry.pcbSrNo,
+      entry.rfObservation,
+      entry.analysis,
+      entry.validationResult,
+      entry.componentChange,
+      entry.enggName,
+      dispatchDateValue
+    ]);
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving consolidated data entry:', error);
+    return false;
+  }
+}
+
+// Get all consolidated data entries
+export async function getAllConsolidatedDataEntries(): Promise<any[]> {
+  try {
+    const [rows]: any = await pool.execute('SELECT * FROM consolidated_data ORDER BY created_at DESC');
+    return rows;
+  } catch (error) {
+    console.error('Error fetching consolidated data entries:', error);
+    return [];
+  }
+}
+
+// Clear all consolidated data entries
+export async function clearConsolidatedData(): Promise<void> {
+  try {
+    await pool.execute('DELETE FROM consolidated_data');
+  } catch (error) {
+    console.error('Error clearing consolidated data:', error);
+    throw error;
   }
 }

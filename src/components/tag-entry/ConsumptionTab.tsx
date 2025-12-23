@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLockStore } from '@/store/lockStore';
 import { LockButton } from './LockButton';
-import { validateBomComponents } from '@/app/actions/consumption-actions';
+import { validateBomComponents, saveConsolidatedData } from '@/app/actions/consumption-actions';
 import { getPcbNumberForDc } from '@/lib/pcb-utils';
 
 interface ConsumptionTabProps {
@@ -14,6 +14,9 @@ interface ConsumptionTabProps {
 
 interface ConsumptionEntry {
   id?: string;
+  srNo?: string; // Serial No for linking with tag entry
+  dcNo?: string; // DC No for linking with tag entry
+  partCode?: string; // Part Code for linking with tag entry
   repairDate: string;
   testing: string;
   failure: string;
@@ -119,6 +122,81 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       validateBomAnalysis(formData.analysis);
     }
   }, [partCode]);
+  
+  // Effect to automatically save to database when form data changes (with debounce)
+  useEffect(() => {
+    // Only save if we have the required search fields
+    if (!srNo || !dcNo || !partCode) return;
+    
+    // Don't save if any required fields are empty
+    if (!formData.repairDate || !formData.testing || !formData.failure || !formData.status) return;
+    
+    // Debounce the save operation
+    const timeoutId = setTimeout(async () => {
+      try {
+        // Get tag entry data to combine with consumption data
+        let tagEntryData = {};
+        if (typeof window !== 'undefined') {
+          const storedTags = localStorage.getItem('tag-entries');
+          if (storedTags) {
+            try {
+              const tagEntries: TagEntry[] = JSON.parse(storedTags);
+              const matchingTagEntry = tagEntries.find(entry => entry.srNo === srNo && entry.dcNo === dcNo);
+              if (matchingTagEntry) {
+                tagEntryData = {
+                  srNo: matchingTagEntry.srNo,
+                  dcNo: matchingTagEntry.dcNo,
+                  dcDate: matchingTagEntry.dateOfPurchase,
+                  branch: matchingTagEntry.branch,
+                  bccdName: matchingTagEntry.bccdName,
+                  productDescription: matchingTagEntry.productDescription,
+                  productSrNo: matchingTagEntry.productSrNo,
+                  dateOfPurchase: matchingTagEntry.dateOfPurchase,
+                  complaintNo: matchingTagEntry.complaintNo,
+                  partCode: matchingTagEntry.partCode,
+                  defect: matchingTagEntry.natureOfDefect,
+                  visitingTechName: matchingTagEntry.visitingTechName,
+                  mfgMonthYear: matchingTagEntry.mfgMonthYear,
+                  pcbSrNo: matchingTagEntry.pcbSrNo,
+                };
+              }
+            } catch (e) {
+              console.error('Error loading tag entries:', e);
+            }
+          }
+        }
+        
+        // Combine tag entry data with consumption data
+        const consolidatedData = {
+          ...tagEntryData,
+          repairDate: formData.repairDate,
+          testing: formData.testing,
+          failure: formData.failure,
+          status: formData.status,
+          pcbSrNo: formData.pcbSrNo,
+          rfObservation: formData.rfObservation,
+          analysis: formData.analysis,
+          validationResult: formData.validationResult,
+          componentChange: formData.componentChange,
+          enggName: formData.enggName,
+          dispatchDate: formData.dispatchDate,
+        };
+        
+        // Save to consolidated data table
+        const result = await saveConsolidatedData(consolidatedData);
+        if (result.success) {
+          console.log('Consolidated data saved automatically');
+        } else {
+          console.error('Error saving consolidated data automatically:', result.error);
+        }
+      } catch (error) {
+        console.error('Error saving consolidated data automatically:', error);
+      }
+    }, 2000); // Debounce for 2 seconds
+    
+    // Cleanup timeout on effect cleanup
+    return () => clearTimeout(timeoutId);
+  }, [formData, srNo, dcNo, partCode]);
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -394,7 +472,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
   };
 
-  const handleConsume = (e: React.FormEvent) => {
+  const handleConsume = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate that PCB has been found
@@ -409,27 +487,87 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       return;
     }
     
-    // Implementation for consuming data
-    alert('Data consumed successfully!');
-  };
-
-  const handleSave = () => {
-    // Validate required fields
-    if (!formData.repairDate || !formData.testing || !formData.failure || !formData.status) {
-      alert('Please fill in all required fields: Repair Date, Testing, Failure, and Status.');
-      return;
-    }
-    
-    const newEntry: ConsumptionEntry = {
+    // Save data automatically when consuming
+    const newEntry: any = {
       ...formData,
       id: Date.now().toString(), // Simple ID generation
+      // Include tag entry information for proper Excel export
+      srNo: srNo, // Serial No from the search fields
+      dcNo: dcNo, // DC No from the search fields
+      partCode: partCode, // Part Code from the search fields
     };
     
     setConsumptionEntries(prev => [...prev, newEntry]);
-    alert('Consumption entry saved successfully!');
+    
+    // Also save to consolidated data table
+    try {
+      // Get tag entry data to combine with consumption data
+      let tagEntryData = {};
+      if (typeof window !== 'undefined') {
+        const storedTags = localStorage.getItem('tag-entries');
+        if (storedTags) {
+          try {
+            const tagEntries: TagEntry[] = JSON.parse(storedTags);
+            const matchingTagEntry = tagEntries.find(entry => entry.srNo === srNo && entry.dcNo === dcNo);
+            if (matchingTagEntry) {
+              tagEntryData = {
+                srNo: matchingTagEntry.srNo,
+                dcNo: matchingTagEntry.dcNo,
+                dcDate: matchingTagEntry.dateOfPurchase,
+                branch: matchingTagEntry.branch,
+                bccdName: matchingTagEntry.bccdName,
+                productDescription: matchingTagEntry.productDescription,
+                productSrNo: matchingTagEntry.productSrNo,
+                dateOfPurchase: matchingTagEntry.dateOfPurchase,
+                complaintNo: matchingTagEntry.complaintNo,
+                partCode: matchingTagEntry.partCode,
+                defect: matchingTagEntry.natureOfDefect,
+                visitingTechName: matchingTagEntry.visitingTechName,
+                mfgMonthYear: matchingTagEntry.mfgMonthYear,
+                pcbSrNo: matchingTagEntry.pcbSrNo,
+              };
+            }
+          } catch (e) {
+            console.error('Error loading tag entries:', e);
+          }
+        }
+      }
+      
+      // Combine tag entry data with consumption data
+      const consolidatedData = {
+        ...tagEntryData,
+        repairDate: formData.repairDate,
+        testing: formData.testing,
+        failure: formData.failure,
+        status: formData.status,
+        pcbSrNo: formData.pcbSrNo,
+        rfObservation: formData.rfObservation,
+        analysis: formData.analysis,
+        validationResult: formData.validationResult,
+        componentChange: formData.componentChange,
+        enggName: formData.enggName,
+        dispatchDate: formData.dispatchDate,
+      };
+      
+      // Save to consolidated data table
+      const result = await saveConsolidatedData(consolidatedData);
+      if (result.success) {
+        console.log('Consolidated data saved successfully');
+      } else {
+        console.error('Error saving consolidated data:', result.error);
+      }
+      
+      // Implementation for consuming data
+      alert('Data consumed and saved successfully!');
+    } catch (error) {
+      console.error('Error saving data:', error);
+      alert('Data consumed but there was an error saving to database.');
+    }
   };
 
-  const handleUpdate = () => {
+
+
+  const handleUpdate = useCallback(async () => {
     if (!selectedEntryId) {
       alert('Please select an entry to update.');
       return;
@@ -443,12 +581,73 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     
     setConsumptionEntries(prev => 
       prev.map(entry => 
-        entry.id === selectedEntryId ? { ...formData, id: selectedEntryId } : entry
+        entry.id === selectedEntryId ? { ...formData, id: selectedEntryId, srNo: srNo, dcNo: dcNo, partCode: partCode } : entry
       )
     );
     
+    // Also update consolidated data table
+    try {
+      // Get tag entry data to combine with consumption data
+      let tagEntryData = {};
+      if (typeof window !== 'undefined') {
+        const storedTags = localStorage.getItem('tag-entries');
+        if (storedTags) {
+          try {
+            const tagEntries: TagEntry[] = JSON.parse(storedTags);
+            const matchingTagEntry = tagEntries.find(entry => entry.srNo === srNo && entry.dcNo === dcNo);
+            if (matchingTagEntry) {
+              tagEntryData = {
+                srNo: matchingTagEntry.srNo,
+                dcNo: matchingTagEntry.dcNo,
+                dcDate: matchingTagEntry.dateOfPurchase,
+                branch: matchingTagEntry.branch,
+                bccdName: matchingTagEntry.bccdName,
+                productDescription: matchingTagEntry.productDescription,
+                productSrNo: matchingTagEntry.productSrNo,
+                dateOfPurchase: matchingTagEntry.dateOfPurchase,
+                complaintNo: matchingTagEntry.complaintNo,
+                partCode: matchingTagEntry.partCode,
+                defect: matchingTagEntry.natureOfDefect,
+                visitingTechName: matchingTagEntry.visitingTechName,
+                mfgMonthYear: matchingTagEntry.mfgMonthYear,
+                pcbSrNo: matchingTagEntry.pcbSrNo,
+              };
+            }
+          } catch (e) {
+            console.error('Error loading tag entries:', e);
+          }
+        }
+      }
+      
+      // Combine tag entry data with consumption data
+      const consolidatedData = {
+        ...tagEntryData,
+        repairDate: formData.repairDate,
+        testing: formData.testing,
+        failure: formData.failure,
+        status: formData.status,
+        pcbSrNo: formData.pcbSrNo,
+        rfObservation: formData.rfObservation,
+        analysis: formData.analysis,
+        validationResult: formData.validationResult,
+        componentChange: formData.componentChange,
+        enggName: formData.enggName,
+        dispatchDate: formData.dispatchDate,
+      };
+      
+      // Save to consolidated data table (this will create a new entry since we don't have an update function)
+      const result = await saveConsolidatedData(consolidatedData);
+      if (result.success) {
+        console.log('Consolidated data updated successfully');
+      } else {
+        console.error('Error updating consolidated data:', result.error);
+      }
+    } catch (error) {
+      console.error('Error updating consolidated data:', error);
+    }
+    
     alert('Consumption entry updated successfully!');
-  };
+  }, [selectedEntryId, formData, srNo, dcNo, partCode]);
 
   const handleDelete = () => {
     if (!selectedEntryId) {
@@ -568,6 +767,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       dispatchDate: entry.dispatchDate,
     });
     setSelectedEntryId(entry.id || null);
+    // Set the search fields if they exist in the entry
+    if (entry.srNo) setSrNo(entry.srNo);
+    if (entry.dcNo) setDcNo(entry.dcNo);
+    if (entry.partCode) setPartCode(entry.partCode);
   };
 
   // Keyboard shortcut handler for Consumption form
@@ -579,11 +782,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     switch (e.key.toLowerCase()) {
       case 's':
         e.preventDefault();
-        if (e.shiftKey) {
-          handleSave();
-        } else {
-          handleConsume(e as unknown as React.FormEvent);
-        }
+        handleConsume(e as unknown as React.FormEvent);
         break;
       case 'u':
         e.preventDefault();
@@ -608,7 +807,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       default:
         break;
     }
-  }, [isSearching, isPcbFound, formData, selectedEntryId]);
+  }, [isSearching, isPcbFound, formData, selectedEntryId, handleUpdate]);
 
   // Add keyboard event listener
   useEffect(() => {
@@ -922,12 +1121,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         {/* Bottom Action Buttons */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex space-x-2">
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Save
-            </button>
             <button
               onClick={handleUpdate}
               disabled={!selectedEntryId}

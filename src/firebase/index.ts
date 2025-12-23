@@ -36,6 +36,6 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
-export * from './auth/use-user';
+// Note: useUser is already exported from ./provider, so we don't re-export it from ./auth/use-user
 
     

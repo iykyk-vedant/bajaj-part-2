@@ -7,6 +7,7 @@ import {
   saveConsumptionEntry as saveConsumptionEntryService,
   getConsumptionEntries as getConsumptionEntriesService
 } from '@/lib/consumption-validation-service';
+import { saveConsolidatedDataEntry } from '@/lib/db';
 
 // Server action to validate consumption
 export async function validateConsumption(analysisText: string, partCode?: string) {
@@ -81,6 +82,23 @@ export async function getConsumptionEntries() {
     };
   } catch (error) {
     console.error('Error fetching consumption entries:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
+// Server action to save consolidated data entry
+export async function saveConsolidatedData(data: any) {
+  try {
+    const result = await saveConsolidatedDataEntry(data);
+    return {
+      success: true,
+      data: result
+    };
+  } catch (error) {
+    console.error('Error saving consolidated data:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred'

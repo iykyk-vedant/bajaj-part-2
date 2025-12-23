@@ -127,8 +127,8 @@ export default function Home() {
       try {
         const result = await getDcNumbersAction();
         if (result.success) {
-          setDcNumbers(result.dcNumbers);
-          setDcPartCodes(result.dcPartCodes);
+          setDcNumbers(result.dcNumbers || []);
+          setDcPartCodes(result.dcPartCodes || {});
         } else {
           throw new Error(result.error);
         }
@@ -153,8 +153,8 @@ export default function Home() {
       
       if (result.success) {
         // Update state
-        setDcNumbers(result.dcNumbers);
-        setDcPartCodes(result.dcPartCodes);
+        setDcNumbers(result.dcNumbers || []);
+        setDcPartCodes(result.dcPartCodes || {});
       } else {
         throw new Error(result.error);
       }

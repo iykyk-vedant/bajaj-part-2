@@ -3,9 +3,9 @@
 # Exit on any error
 set -e
 
-# Install dependencies
+# Install all dependencies for build
 echo "Installing dependencies..."
-npm ci --only=production
+npm ci
 
 # Build the Next.js application
 echo "Building Next.js application..."

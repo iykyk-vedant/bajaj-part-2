@@ -1,7 +1,7 @@
 @echo off
 
 echo Installing dependencies...
-npm ci --only=production
+npm ci
 
 echo Building Next.js application...
 npm run build

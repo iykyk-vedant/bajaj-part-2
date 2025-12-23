@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Configure output for standalone build (needed for Docker)
+  output: 'standalone',
+  
   // Configure image optimization
   images: {
     domains: ['picsum.photos', 'images.unsplash.com'],

@@ -45,12 +45,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 // Import server actions for sheet operations
-import { 
-  getAllSheetsAction, 
-  createSheetAction, 
-  updateSheetNameAction, 
-  deleteSheetAction, 
-  addDataToSheetAction, 
+import {
+  getAllSheetsAction,
+  createSheetAction,
+  updateSheetNameAction,
+  deleteSheetAction,
+  addDataToSheetAction,
   updateSheetDataAction,
   clearSheetDataAction
 } from '@/app/actions/sheet-actions';
@@ -69,7 +69,7 @@ export type Sheet = {
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentExtractedData, setCurrentExtractedData] = useState<ExtractDataOutput | null>(null);
-  
+
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<string | null>(null);
   const [isSheetOverviewOpen, setIsSheetOverviewOpen] = useState(false);
@@ -81,10 +81,10 @@ export default function Home() {
   const [isDuplicateWarningOpen, setIsDuplicateWarningOpen] = useState(false);
   const [newSheetName, setNewSheetName] = useState('');
   const [pendingData, setPendingData] = useState<ExtractDataOutput | null>(null);
-  
+
   // Initialize DC numbers - start with empty array
   const [dcNumbers, setDcNumbers] = useState<string[]>([]);
-  
+
   // Initialize DC-PartCode mappings
   const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
 
@@ -96,7 +96,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<
     "tag-entry" | "dispatch" | "consumption"
   >("tag-entry");
-  
+
   // Sub-tab state for Tag Entry
   const [tagEntrySubTab, setTagEntrySubTab] = useState<"form" | "settings">("form");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -116,20 +116,20 @@ export default function Home() {
         console.error('Error loading DC numbers from database:', error);
       }
     };
-    
+
     // Load initial data from database
     loadFromDatabase();
-    
+
     // Periodic check to ensure data stays in sync (every 10 seconds)
     const interval = setInterval(() => {
       loadFromDatabase();
     }, 10000);
-    
+
     return () => {
       clearInterval(interval);
     };
   }, []);
-  
+
 
 
   // Function to add a new DC number with Part Code
@@ -137,7 +137,7 @@ export default function Home() {
     // Add to database
     try {
       const result = await addDcNumberAction(dcNo, partCode, dcNumbers, dcPartCodes);
-      
+
       if (result.success) {
         // Update state
         setDcNumbers(result.dcNumbers || []);
@@ -167,13 +167,13 @@ export default function Home() {
         setIsCapsLockOn(e.getModifierState("CapsLock"));
       }
     };
-    
+
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.getModifierState) {
         setIsCapsLockOn(e.getModifierState("CapsLock"));
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
@@ -186,8 +186,8 @@ export default function Home() {
 
   const handleImageReady = async (dataUrl: string) => {
     // Clear previous extraction results when a new image is uploaded
-    setCurrentExtractedData(null); 
-    
+    setCurrentExtractedData(null);
+
     if (!dataUrl) {
       return;
     }
@@ -196,16 +196,16 @@ export default function Home() {
     setCurrentExtractedData(null);
 
     if (sheets.length === 0 || !activeSheetId) {
-       handleOpenCreateSheetDialog();
-       toast({ title: 'No Active Sheet', description: 'Please create a sheet to continue.'});
-       setIsLoading(false);
-       return;
+      handleOpenCreateSheetDialog();
+      toast({ title: 'No Active Sheet', description: 'Please create a sheet to continue.' });
+      setIsLoading(false);
+      return;
     }
 
     const result = await extractDataFromImage({
       photoDataUri: dataUrl,
     });
-    
+
     if (result.error) {
       toast({
         variant: 'destructive',
@@ -214,14 +214,14 @@ export default function Home() {
       });
     } else {
       setCurrentExtractedData(result.data);
-      
+
       // Check if a spare part code was extracted and suggest creating a DC entry
       if (result.data?.sparePartCode) {
         toast({
           title: 'Spare Part Code Detected',
           description: `Found spare part code: ${result.data.sparePartCode}. You can create a DC entry for it in the Settings tab.`,
           action: (
-            <ToastAction 
+            <ToastAction
               altText="Go to Settings"
               onClick={() => {
                 // Navigate to the tag-entry page with settings tab active
@@ -238,10 +238,10 @@ export default function Home() {
           description: 'Data has been extracted. Review and add to the active Excel sheet.',
         });
       }
-    }    
+    }
     setIsLoading(false);
   };
-  
+
   const handleAddToSheet = (data: ExtractDataOutput) => {
     if (!activeSheetId) {
       toast({
@@ -267,18 +267,18 @@ export default function Home() {
 
   const addConfirmedData = async (data: ExtractDataOutput) => {
     if (!activeSheetId) return;
-    
+
     try {
       // Add data to MySQL database using server action
       const { error } = await addDataToSheetAction(activeSheetId, data);
       if (error) {
         throw new Error(error);
       }
-      
+
       // Update local state
-      setSheets((prevSheets: Sheet[]) => 
-        prevSheets.map((sheet: Sheet) => 
-          sheet.id === activeSheetId 
+      setSheets((prevSheets: Sheet[]) =>
+        prevSheets.map((sheet: Sheet) =>
+          sheet.id === activeSheetId
             ? { ...sheet, data: [...sheet.data, data] }
             : sheet
         )
@@ -296,7 +296,7 @@ export default function Home() {
         description: 'There was an error adding data to your sheet in the database.',
       });
     }
-  };  const confirmAddDuplicate = () => {
+  }; const confirmAddDuplicate = () => {
     if (pendingData) {
       addConfirmedData(pendingData);
     }
@@ -308,7 +308,7 @@ export default function Home() {
     setNewSheetName(`Sheet ${sheets.length + 1}`);
     setIsCreateSheetDialogOpen(true);
   };
-  
+
   const handleCreateNewSheet = async () => {
     if (!newSheetName.trim()) {
       toast({ variant: 'destructive', title: 'Invalid Name', description: 'Sheet name cannot be empty.' });
@@ -326,7 +326,7 @@ export default function Home() {
       if (error) {
         throw new Error(error);
       }
-      
+
       // Update local state
       setSheets((prev: Sheet[]) => [{ ...(createdSheet || newSheet), data: [] }, ...prev]);
       setActiveSheetId(newSheet.id);
@@ -344,7 +344,7 @@ export default function Home() {
         description: 'There was an error creating your sheet in the database.',
       });
     }
-  };  const handleOpenRenameSheetDialog = () => {
+  }; const handleOpenRenameSheetDialog = () => {
     const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (activeSheet) {
       setNewSheetName(activeSheet.name);
@@ -384,23 +384,23 @@ export default function Home() {
         description: 'There was an error renaming your sheet in the database.',
       });
     }
-  };  
+  };
   const handleDeleteSheet = async () => {
     if (!activeSheetId) return;
 
     const sheetToDelete = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (!sheetToDelete) return;
-    
+
     try {
       // Delete from MySQL database using server action
       const { error } = await deleteSheetAction(activeSheetId);
       if (error) {
         throw new Error(error);
       }
-      
+
       // Update local state
       setSheets((prev: Sheet[]) => prev.filter((s: Sheet) => s.id !== activeSheetId));
-      
+
       // Set new active sheet
       const remainingSheets = sheets.filter((s: Sheet) => s.id !== activeSheetId);
       if (remainingSheets.length > 0) {
@@ -408,7 +408,7 @@ export default function Home() {
       } else {
         setActiveSheetId(null);
       }
-      
+
       toast({
         variant: 'destructive',
         title: 'Sheet Deleted',
@@ -423,7 +423,7 @@ export default function Home() {
         description: 'There was an error deleting your sheet from the database.',
       });
     }
-  };  const exportToCSV = () => {
+  }; const exportToCSV = () => {
     const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
     if (!activeSheet || activeSheet.data.length === 0) {
       toast({
@@ -435,7 +435,7 @@ export default function Home() {
     }
 
     const headers = ['Sr. No.', ...Object.keys(activeSheet.data[0]).filter(key => key !== 'others')].join(',');
-    
+
     const values = activeSheet.data.map((item: ExtractDataOutput, index: number) => {
       const rowData = Object.entries(item)
         .filter(([key]) => key !== 'others')
@@ -445,7 +445,7 @@ export default function Home() {
     }).join('\n');
 
     const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + values;
-    
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -494,8 +494,8 @@ export default function Home() {
         }
       }
     }
-  };  
-  const handleRemoveRow = async (rowIndex: number) => {    
+  };
+  const handleRemoveRow = async (rowIndex: number) => {
     setSheets((prevSheets: Sheet[]) =>
       prevSheets.map((sheet: Sheet) =>
         sheet.id === activeSheetId
@@ -503,7 +503,7 @@ export default function Home() {
           : sheet
       )
     );
-    
+
     // Update in MySQL database using server action
     if (activeSheetId) {
       const updatedSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
@@ -524,7 +524,7 @@ export default function Home() {
         }
       }
     }
-  };  
+  };
   const activeSheet = sheets.find((s: Sheet) => s.id === activeSheetId);
 
   const handleExportExcel = async () => {
@@ -553,22 +553,10 @@ export default function Home() {
       <header className="p-4 border-b bg-card/50 backdrop-blur-lg sticky top-0 z-20">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ScanText className="w-8 h-8 text-primary"/>
+            <ScanText className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold font-headline text-primary">NexScan</h1>
           </div>
           <div className="flex items-center gap-2">
-             {/* <Button 
-                variant="outline" 
-                onClick={() => setIsSheetOverviewOpen(true)} 
-                disabled={!activeSheet || activeSheet.data.length === 0}
-              >
-              <History className="mr-2 h-4 w-4" />
-              View Excel Sheet ({activeSheet?.data.length || 0})
-            </Button>
-            <Button onClick={exportToCSV} disabled={!activeSheet || activeSheet.data.length === 0}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button> */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -603,74 +591,60 @@ export default function Home() {
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setActiveTab("tag-entry")}>
-                  <span>Tag Entry</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("dispatch")}>
-                  <span>Dispatch</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTab("consumption")}>
-                  <span>Consumption</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} disabled={!activeSheet} className="text-red-500 focus:text-red-500">
                   <Trash2 className="mr-2 h-4 w-4" />
                   <span>Delete Current Sheet</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
           </div>
         </div>
       </header>
-      
+
       <main className="flex-1 px-4 py-2 h-[calc(100vh-120px)] flex flex-col">
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-4">
           <button
-            className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "tag-entry"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`py-2 px-4 font-medium text-sm ${activeTab === "tag-entry"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
             onClick={() => setActiveTab("tag-entry")}
           >
             Tag Entry
           </button>
           <button
-            className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "dispatch"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`py-2 px-4 font-medium text-sm ${activeTab === "dispatch"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
             onClick={() => setActiveTab("dispatch")}
           >
             Dispatch
           </button>
           <button
-            className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "consumption"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`py-2 px-4 font-medium text-sm ${activeTab === "consumption"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
             onClick={() => setActiveTab("consumption")}
           >
             Consumption
           </button>
         </div>
-        
+
         {/* Tab Content */}
         {activeTab === "tag-entry" && (
           <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 max-w-[1920px] mx-auto w-full">
             <div className="lg:w-2/5 flex flex-col">
-              <ImageUploader 
-                onImageReady={handleImageReady} 
-                isLoading={isLoading} 
+              <ImageUploader
+                onImageReady={handleImageReady}
+                isLoading={isLoading}
               />
             </div>
             <div className="lg:w-3/5 xl:w-2/3">
-              <ValidateDataSection 
-                initialData={currentExtractedData} 
+              <ValidateDataSection
+                initialData={currentExtractedData}
                 isLoading={isLoading}
                 onSave={handleAddToSheet}
                 sheetActive={!!activeSheet}
@@ -681,20 +655,20 @@ export default function Home() {
             </div>
           </div>
         )}
-        
+
         {activeTab === "dispatch" && (
           <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
-            <FindTab 
+            <FindTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
               onExportExcel={handleTagEntryExportExcel}
             />
           </div>
         )}
-        
+
         {activeTab === "consumption" && (
           <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
-            <ConsumptionTab 
+            <ConsumptionTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
             />
@@ -703,20 +677,20 @@ export default function Home() {
       </main>
 
       {activeSheet && (
-        <SheetOverview 
-          isOpen={isSheetOverviewOpen} 
+        <SheetOverview
+          isOpen={isSheetOverviewOpen}
           onOpenChange={setIsSheetOverviewOpen}
           sheetData={activeSheet.data}
           onUpdateData={handleUpdateSheetData}
           onRemoveRow={handleRemoveRow}
           onClearSheet={async () => {
             // Update local state
-            setSheets(prev => prev.map(s => s.id === activeSheetId ? {...s, data: []} : s));
-            
+            setSheets(prev => prev.map(s => s.id === activeSheetId ? { ...s, data: [] } : s));
+
             // Update in MySQL database
             if (activeSheetId) {
               try {
-                await updateSheetDataAction(activeSheetId, []);                setIsSheetOverviewOpen(false);
+                await updateSheetDataAction(activeSheetId, []); setIsSheetOverviewOpen(false);
                 toast({ title: 'Excel Sheet Cleared' });
               } catch (error) {
                 console.error("Failed to clear sheet data in database:", error);
@@ -727,11 +701,11 @@ export default function Home() {
                 });
               }
             }
-          }}        />
+          }} />
       )}
 
       {/* Delete Sheet Dialog */}
-       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

@@ -78,12 +78,12 @@ interface TableRow {
 export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {} }: ConsumptionTabProps) {
   const { isDcLocked } = useLockStore();
   const router = useRouter();
-  
+
   // State for Find fields
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [srNo, setSrNo] = useState('');
-  
+
   // Form data state
   const [formData, setFormData] = useState<ConsumptionEntry>({
     repairDate: '',
@@ -101,7 +101,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   // Consumption entries state
   const [consumptionEntries, setConsumptionEntries] = useState<ConsumptionEntry[]>([]);
-  
+
   // Unified table data state
   const [tableData, setTableData] = useState<TableRow[]>([]);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
@@ -115,22 +115,22 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     () => formData.analysis.replaceAll('/', '\n'),
     [formData.analysis]
   );
-  
+
   // Effect to validate analysis when partCode changes
   useEffect(() => {
     if (formData.analysis) {
       validateBomAnalysis(formData.analysis);
     }
   }, [partCode]);
-  
+
   // Effect to automatically save to database when form data changes (with debounce)
   useEffect(() => {
     // Only save if we have the required search fields
     if (!srNo || !dcNo || !partCode) return;
-    
+
     // Don't save if any required fields are empty
     if (!formData.repairDate || !formData.testing || !formData.failure || !formData.status) return;
-    
+
     // Debounce the save operation
     const timeoutId = setTimeout(async () => {
       try {
@@ -151,7 +151,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           enggName: formData.enggName,
           dispatchDate: formData.dispatchDate,
         };
-        
+
         // Save to consolidated data table
         const result = await saveConsolidatedData(consolidatedData);
         if (result.success) {
@@ -163,7 +163,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         console.error('Error saving consolidated data automatically:', error);
       }
     }, 2000); // Debounce for 2 seconds
-    
+
     // Cleanup timeout on effect cleanup
     return () => clearTimeout(timeoutId);
   }, [formData, srNo, dcNo, partCode]);
@@ -176,7 +176,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         const { getConsumptionEntries } = await import('@/app/actions/consumption-actions');
         const result = await getConsumptionEntries();
         let loadedConsumptionEntries: ConsumptionEntry[] = [];
-        
+
         if (result.success) {
           loadedConsumptionEntries = result.data || [];
           setConsumptionEntries(loadedConsumptionEntries);
@@ -185,7 +185,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         console.error('Error loading consumption entries from database:', e);
       }
     };
-    
+
     loadConsumptionData();
   }, []);
 
@@ -236,17 +236,17 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
 
     setIsSearching(true);
-    
+
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 800));
-    
+
     // In a real implementation, this would call an API to fetch PCB data
     // For now, we'll generate the same PCB number as in TagEntryForm
-    
+
     try {
       // Generate the same PCB number that would be generated in TagEntryForm
       const pcbSrNo = getPcbNumberForDc(dcNo);
-      
+
       // Auto-populate form with fetched data
       setFormData(prev => ({
         ...prev,
@@ -255,7 +255,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         testing: 'PASS', // Default value
         status: 'OK', // Default value
       }));
-      
+
       setIsPcbFound(true);
     } catch (error) {
       console.error('Error generating PCB number:', error);
@@ -267,7 +267,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     // Special handling for Analysis field - convert / to newlines in validation result
     if (name === 'analysis') {
       setFormData(prev => ({
@@ -275,7 +275,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         [name]: value,
         validationResult: value.replaceAll('/', '\n')
       }));
-      
+
       // Trigger BOM validation
       validateBomAnalysis(value);
     } else {
@@ -285,7 +285,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       }));
     }
   };
-  
+
   // Function to validate BOM analysis
   const validateBomAnalysis = async (analysisText: string) => {
     if (!analysisText.trim()) {
@@ -297,10 +297,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       }));
       return;
     }
-    
+
     try {
       const result = await validateBomComponents(analysisText, partCode || undefined);
-      
+
       if (result.success && result.data) {
         // Update validation result and component change fields
         setFormData(prev => ({
@@ -329,19 +329,19 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   const handleConsume = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate that PCB has been found
     if (!isPcbFound) {
       alert('Please find a PCB first before consuming.');
       return;
     }
-    
+
     // Validate required fields
     if (!formData.repairDate || !formData.testing || !formData.failure || !formData.status) {
       alert('Please fill in all required fields: Repair Date, Testing, Failure, and Status.');
       return;
     }
-    
+
     // Save data automatically when consuming
     const newEntry: any = {
       ...formData,
@@ -351,9 +351,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       dcNo: dcNo, // DC No from the search fields
       partCode: partCode, // Part Code from the search fields
     };
-    
+
     setConsumptionEntries(prev => [...prev, newEntry]);
-    
+
     // Also save to consolidated data table
     try {
       // Combine tag entry data with consumption data
@@ -373,7 +373,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         enggName: formData.enggName,
         dispatchDate: formData.dispatchDate,
       };
-      
+
       // Save to consolidated data table
       const result = await saveConsolidatedData(consolidatedData);
       if (result.success) {
@@ -381,7 +381,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       } else {
         console.error('Error saving consolidated data:', result.error);
       }
-      
+
       // Implementation for consuming data
       alert('Data consumed and saved successfully!');
     } catch (error) {
@@ -397,19 +397,19 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       alert('Please select an entry to update.');
       return;
     }
-    
+
     // Validate required fields
     if (!formData.repairDate || !formData.testing || !formData.failure || !formData.status) {
       alert('Please fill in all required fields: Repair Date, Testing, Failure, and Status.');
       return;
     }
-    
-    setConsumptionEntries(prev => 
-      prev.map(entry => 
+
+    setConsumptionEntries(prev =>
+      prev.map(entry =>
         entry.id === selectedEntryId ? { ...formData, id: selectedEntryId, srNo: srNo, dcNo: dcNo, partCode: partCode } : entry
       )
     );
-    
+
     // Also update consolidated data table
     try {
       // Combine tag entry data with consumption data
@@ -429,7 +429,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         enggName: formData.enggName,
         dispatchDate: formData.dispatchDate,
       };
-      
+
       // Save to consolidated data table (this will create a new entry since we don't have an update function)
       const result = await saveConsolidatedData(consolidatedData);
       if (result.success) {
@@ -440,7 +440,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     } catch (error) {
       console.error('Error updating consolidated data:', error);
     }
-    
+
     alert('Consumption entry updated successfully!');
   }, [selectedEntryId, formData, srNo, dcNo, partCode]);
 
@@ -449,11 +449,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       alert('Please select an entry to delete.');
       return;
     }
-    
+
     if (!confirm('Are you sure you want to delete this entry?')) {
       return;
     }
-    
+
     setConsumptionEntries(prev => prev.filter(entry => entry.id !== selectedEntryId));
     setSelectedEntryId(null);
     handleClearForm();
@@ -475,7 +475,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       enggName: '',
       dispatchDate: '',
     });
-    
+
     // Reset workflow state
     setIsPcbFound(false);
     setDcNo('');
@@ -502,7 +502,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         consumptionEntries,
         tagEntries: [] // Tag entries will be fetched from database in a real implementation
       };
-      
+
       // Call API endpoint with POST request
       const response = await fetch('/api/export-consumption-excel', {
         method: 'POST',
@@ -511,15 +511,15 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         },
         body: JSON.stringify(exportData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to generate Excel file');
       }
-      
+
       // Get the blob from response
       const blob = await response.blob();
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -528,7 +528,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // Clean up the URL object
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -562,7 +562,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
     // Only handle Alt key combinations
     if (!e.altKey) return;
-    
+
     // Prevent browser default behavior for these shortcuts
     switch (e.key.toLowerCase()) {
       case 's':
@@ -623,8 +623,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                   {dcNumbers
                     .filter(dc => dc != null && dc !== '')
                     .map((dc, index) => (
-                    <option key={`${dc}-${index}`} value={dc}>{dc}</option>
-                  ))}
+                      <option key={`${dc}-${index}`} value={dc}>{dc}</option>
+                    ))}
                 </select>
                 <LockButton dcNo={dcNo} partCode={partCode} />
               </div>
@@ -641,8 +641,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 {(dcPartCodes[dcNo] || [])
                   .filter(code => code != null && code !== '')
                   .map((code, index) => (
-                  <option key={`${code}-${index}`} value={code}>{code}</option>
-                ))}
+                    <option key={`${code}-${index}`} value={code}>{code}</option>
+                  ))}
               </select>
             </div>
             <div>
@@ -657,16 +657,15 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               />
             </div>
           </div>
-          
+
           <div className="mt-3 flex justify-center">
             <button
               onClick={handleFind}
               disabled={isSearching || isPcbFound}
-              className={`px-4 py-2 text-sm rounded ${
-                isSearching || isPcbFound
+              className={`px-4 py-2 text-sm rounded ${isSearching || isPcbFound
                   ? 'bg-gray-400 cursor-not-allowed text-gray-200'
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
+                }`}
             >
               {isSearching ? 'Finding...' : 'Find PCB'}
             </button>
@@ -753,18 +752,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 <option value="Engineer 1">Engineer 1</option>
                 <option value="Engineer 2">Engineer 2</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">RF Observation:</label>
-              <input
-                type="text"
-                name="rfObservation"
-                value={formData.rfObservation}
-                onChange={handleChange}
-                className="w-full p-2 text-sm border border-gray-300 rounded h-10"
-                disabled={!isPcbFound}
-              />
-            </div>
+            </div>          
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Dispatch Date:</label>
               <input
@@ -777,8 +765,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               />
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Analysis:</label>
               <textarea
@@ -800,19 +787,19 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 className="w-full p-2 text-sm border border-gray-300 rounded bg-gray-100"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Component Change:</label>
+              <textarea
+                name="componentChange"
+                value={formData.componentChange}
+                onChange={handleChange}
+                rows={3}
+                className="w-full p-2 text-sm border border-gray-300 rounded"
+                disabled={!isPcbFound}
+              />
+            </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Component Change:</label>
-            <textarea
-              name="componentChange"
-              value={formData.componentChange}
-              onChange={handleChange}
-              rows={3}
-              className="w-full p-2 text-sm border border-gray-300 rounded"
-              disabled={!isPcbFound}
-            />
-          </div>
 
           <div className="flex justify-end space-x-3 mt-auto">
             <button
@@ -825,11 +812,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             <button
               type="submit"
               disabled={!isPcbFound}
-              className={`px-4 py-2 text-sm rounded ${
-                isPcbFound
+              className={`px-4 py-2 text-sm rounded ${isPcbFound
                   ? 'bg-green-500 hover:bg-green-600 text-white'
                   : 'bg-gray-400 cursor-not-allowed text-gray-200'
-              }`}
+                }`}
             >
               Consume
             </button>
@@ -859,7 +845,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {tableData.map((entry, index) => (
-                  <tr 
+                  <tr
                     key={entry.id || `entry-${index}`}
                     className={`cursor-pointer ${selectedEntryId === entry.id ? 'bg-blue-100' : 'hover:bg-gray-50'}`}
                     onClick={() => {
@@ -913,22 +899,20 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             <button
               onClick={handleUpdate}
               disabled={!selectedEntryId}
-              className={`px-4 py-2 text-sm rounded ${
-                selectedEntryId 
-                  ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
+              className={`px-4 py-2 text-sm rounded ${selectedEntryId
+                  ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                   : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              }`}
+                }`}
             >
               Update
             </button>
             <button
               onClick={handleDelete}
               disabled={!selectedEntryId}
-              className={`px-4 py-2 text-sm rounded ${
-                selectedEntryId 
-                  ? 'bg-red-500 text-white hover:bg-red-600' 
+              className={`px-4 py-2 text-sm rounded ${selectedEntryId
+                  ? 'bg-red-500 text-white hover:bg-red-600'
                   : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              }`}
+                }`}
             >
               Delete
             </button>

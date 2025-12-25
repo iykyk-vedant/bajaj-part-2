@@ -120,11 +120,11 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
           <h2 className="text-2xl font-bold text-gray-700 mb-2">Validate Data</h2>
           <p className="text-gray-500 mb-4">
             Upload or capture a form image to begin.<br />
-            The extracted fields will appear here for validation.
+            {/* The extracted fields will appear here for validation.  */}
           </p>
-          <p className="text-sm text-gray-400">
+          {/* <p className="text-sm text-gray-400">
             Or switch to the complete Tag Entry system below
-          </p>
+          </p> */}
         </div>
       </div>
     );

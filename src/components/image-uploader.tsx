@@ -130,7 +130,7 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
     <Card className="flex-1 flex flex-col">
       <CardHeader className="p-4">
         <CardTitle className="font-headline text-lg">Image Input</CardTitle>
-        <CardDescription className="text-sm">Upload an image or use your device's camera. Press Enter to capture, Esc to quit.</CardDescription>
+        {/* <CardDescription className="text-sm">Upload an image or use your device's camera. Press Enter to capture, Esc to quit.</CardDescription> */}
       </CardHeader>
       <CardContent className="p-0 relative aspect-[4/5.5] bg-muted/30 flex-1">
         {isLoading && (
@@ -153,7 +153,7 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
               <div className="flex h-full w-full flex-col items-center justify-center text-center text-muted-foreground p-3">
                 <ScanLine className="h-10 w-10 mb-3 animate-pulse text-primary/50" />
                 <p className="font-semibold text-base">Ready to Scan</p>
-                <p className="text-sm">Upload or capture a form to begin.</p>
+                {/* <p className="text-sm">Upload or capture a form to begin.</p> */}
               </div>
             )
         )}

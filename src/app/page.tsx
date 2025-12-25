@@ -635,7 +635,7 @@ export default function Home() {
 
         {/* Tab Content */}
         {activeTab === "tag-entry" && (
-          <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 max-w-[1920px] mx-auto w-full">
+          <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 w-full">
             <div className="lg:w-2/5 flex flex-col">
               <ImageUploader
                 onImageReady={handleImageReady}
@@ -657,7 +657,7 @@ export default function Home() {
         )}
 
         {activeTab === "dispatch" && (
-          <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
+          <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
             <FindTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
@@ -667,7 +667,7 @@ export default function Home() {
         )}
 
         {activeTab === "consumption" && (
-          <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
+          <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
             <ConsumptionTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}

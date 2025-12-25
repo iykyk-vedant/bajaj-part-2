@@ -606,10 +606,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   return (
     <div className="bg-white w-full h-full flex flex-col">
-      <div className="p-4 h-full flex flex-col">
+      <div className="h-full flex flex-col">
         {/* Find Section - Moved to the top */}
-        <div className="bg-white p-4 rounded-md shadow-sm mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-md shadow-sm mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">DC No.</label>
               <div className="flex gap-2">
@@ -673,8 +673,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         </div>
 
         {/* Consumption Form */}
-        <form onSubmit={handleConsume} className="bg-white p-4 rounded-md shadow-sm mb-4 flex-1 flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <form onSubmit={handleConsume} className="bg-white rounded-md shadow-sm mb-4 flex-1 flex flex-col">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Repair Date:</label>
               <input
@@ -823,8 +823,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         </form>
 
         {/* Excel-like Grid */}
-        <div className="bg-white p-4 rounded-md shadow-sm mb-4 flex-1 overflow-hidden flex flex-col">
-          <div className="overflow-x-auto flex-1">
+        <div className="bg-white rounded-md shadow-sm mb-4 flex-1 overflow-hidden flex flex-col">
+          <div className="overflow-x-auto flex-1 p-4">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -894,7 +894,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         </div>
 
         {/* Bottom Action Buttons */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 p-4">
           <div className="flex space-x-2">
             <button
               onClick={handleUpdate}

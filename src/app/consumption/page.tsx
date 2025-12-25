@@ -29,10 +29,10 @@ export default function ConsumptionPage() {
   }, []);
 
   return (
-    <>
+    <div className="min-h-screen w-full flex flex-col bg-background">
       {/* Simple header with back button */}
       <header className="p-4 border-b bg-card/50 backdrop-blur-lg">
-        <div className="container mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <Button 
             variant="outline" 
             onClick={() => router.push('/')}
@@ -47,9 +47,11 @@ export default function ConsumptionPage() {
       </header>
       
       {/* Full-screen consumption content */}
-      <div className="flex-1 overflow-auto">
-        <ConsumptionTab dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />
+      <div className="flex-1 overflow-auto w-full">
+        <div className="w-full h-full">
+          <ConsumptionTab dcNumbers={dcNumbers} dcPartCodes={dcPartCodes} />
+        </div>
       </div>
-    </>
+    </div>
   );
 }

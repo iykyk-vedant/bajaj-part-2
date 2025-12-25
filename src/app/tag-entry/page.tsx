@@ -145,7 +145,7 @@ export default function TagEntryPage() {
         </div>
       </header> */}
 
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6">
+      <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6">
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-6">
           <button
@@ -226,7 +226,7 @@ export default function TagEntryPage() {
             </div>
           )}
           {activeTab === "dispatch" && (
-            <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
+            <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
               <FindTab 
                 dcNumbers={dcNumbers}
                 dcPartCodes={dcPartCodes}
@@ -235,7 +235,7 @@ export default function TagEntryPage() {
             </div>
           )}
           {activeTab === "consumption" && (
-            <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
+            <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
               <ConsumptionTab 
                 dcNumbers={dcNumbers} 
                 dcPartCodes={dcPartCodes} 

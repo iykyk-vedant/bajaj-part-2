@@ -6,6 +6,7 @@ import { useLockStore } from '@/store/lockStore';
 import { LockButton } from './LockButton';
 import { spareParts } from '@/lib/spare-parts';
 import { generatePcbNumber, getMonthCode } from '@/lib/pcb-utils';
+import { tagEntryEventEmitter, TAG_ENTRY_EVENTS } from '@/lib/event-emitter';
 
 interface TagEntryFormProps {
   initialData?: any;
@@ -87,7 +88,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
   // Populate form with initial data when it changes (from image extraction)
   useEffect(() => {
     if (initialData) {
-      console.log('Processing initialData:', initialData);
+
       // Convert mfgMonthYear from YYYY-MM to MM/YYYY format if needed
       let mfgMonthYear = initialData.mfgMonthYear || '';
       if (mfgMonthYear && mfgMonthYear.includes('-')) {
@@ -113,7 +114,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
           mfgMonthYear: mfgMonthYear || prev.mfgMonthYear,
           pcbSrNo: initialData.pcbSrNo || prev.pcbSrNo,
         };
-        console.log('Setting form data:', newFormData);
+
         return newFormData;
       });
     }
@@ -122,12 +123,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
   // Auto-generate PCB serial number when DC number changes
   // Only generate if no PCB number is already set
   useEffect(() => {
-    console.log('Checking PCB auto-generation:', { dcNo: formData.dcNo, pcbSrNo: formData.pcbSrNo });
+    
     if (formData.dcNo && !formData.pcbSrNo) {
       try {
-        console.log('Generating PCB number for DC:', formData.dcNo);
+
         const pcb = generatePcbNumber(formData.dcNo);
-        console.log('Generated PCB number:', pcb);
+
         setFormData(prev => ({
           ...prev,
           pcbSrNo: pcb,
@@ -178,7 +179,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    console.log('Form field changed:', { name, value });
+
     
     // Handle mfgMonthYear field specially to validate and format MM/YYYY
     if (name === 'mfgMonthYear') {
@@ -287,19 +288,19 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     
     const entryToSave: TagEntry = {
       id: formData.id || Date.now().toString(),
-      srNo: formData.srNo,
-      dcNo: formData.dcNo,
-      branch: formData.branch,
-      bccdName: formData.bccdName,
-      productDescription: formData.productDescription,
-      productSrNo: formData.productSrNo,
-      dateOfPurchase: formData.dateOfPurchase,
-      complaintNo: formData.complaintNo,
-      partCode: formData.partCode,
-      natureOfDefect: formData.natureOfDefect,
-      visitingTechName: formData.visitingTechName,
-      mfgMonthYear: formData.mfgMonthYear,
-      pcbSrNo: formData.pcbSrNo,
+      srNo: formData.srNo || '001',
+      dcNo: formData.dcNo || '',
+      branch: formData.branch || 'Mumbai',
+      bccdName: formData.bccdName || '',
+      productDescription: formData.productDescription || '',
+      productSrNo: formData.productSrNo || '',
+      dateOfPurchase: formData.dateOfPurchase || '',
+      complaintNo: formData.complaintNo || '',
+      partCode: formData.partCode || '',
+      natureOfDefect: formData.natureOfDefect || '',
+      visitingTechName: formData.visitingTechName || '',
+      mfgMonthYear: formData.mfgMonthYear || '',
+      pcbSrNo: formData.pcbSrNo || '',
     };
 
     let updatedEntries: TagEntry[];
@@ -338,6 +339,9 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     // Show saved list after save
     setShowSavedList(true);
     setShowSearchResults(false);
+    
+    // Emit event to notify other components that an entry was saved
+    tagEntryEventEmitter.emit(TAG_ENTRY_EVENTS.ENTRY_SAVED, entryToSave);
   };
 
   const handleUpdate = () => {
@@ -384,6 +388,9 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
 
     alert('Entry deleted successfully!');
     handleClear();
+    
+    // Emit event to notify other components that an entry was deleted
+    tagEntryEventEmitter.emit(TAG_ENTRY_EVENTS.ENTRY_DELETED, formData.id);
   };
 
   const handleClear = () => {

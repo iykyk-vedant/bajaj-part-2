@@ -19,7 +19,7 @@ export function FindTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }: Fin
 
   const handleFind = () => {
     // Implementation for finding PCB
-    console.log('Finding PCB with:', { dcNo, partCode, srNo });
+
     // In a real implementation, this would likely call an API or search function
     alert(`Searching for PCB with:\nDC No: ${dcNo}\nPart Code: ${partCode}\nSerial No: ${srNo}`);
   };

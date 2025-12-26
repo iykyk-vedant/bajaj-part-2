@@ -155,7 +155,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         // Save to consolidated data table
         const result = await saveConsolidatedData(consolidatedData);
         if (result.success) {
-          console.log('Consolidated data saved automatically');
+          
         } else {
           console.error('Error saving consolidated data automatically:', result.error);
         }
@@ -377,7 +377,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       // Save to consolidated data table
       const result = await saveConsolidatedData(consolidatedData);
       if (result.success) {
-        console.log('Consolidated data saved successfully');
+        
       } else {
         console.error('Error saving consolidated data:', result.error);
       }
@@ -433,7 +433,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       // Save to consolidated data table (this will create a new entry since we don't have an update function)
       const result = await saveConsolidatedData(consolidatedData);
       if (result.success) {
-        console.log('Consolidated data updated successfully');
+        
       } else {
         console.error('Error updating consolidated data:', result.error);
       }

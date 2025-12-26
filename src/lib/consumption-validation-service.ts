@@ -1,5 +1,4 @@
-import pool from './db';
-import { getBomDescription, checkIfLocationExists, checkComponentForPartCode } from './db';
+import pool, { getBomDescription, checkIfLocationExists, checkComponentForPartCode, convertToMysqlDate } from './db';
 
 // Defect keywords to remove from component analysis
 const DEFECT_KEYWORDS = ['FAULTY', 'DAMAGE', 'BURN', 'DEFECTIVE', 'BAD', 'ERROR'];
@@ -189,10 +188,10 @@ export async function saveConsumptionEntry(entry: {
   consumptionEntryDate: string;
 }): Promise<boolean> {
   try {
-    // Handle empty dates by converting them to NULL
-    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? entry.dispatchDate : null;
-    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? entry.repairDate : null;
-    const consumptionEntryDateValue = entry.consumptionEntryDate && entry.consumptionEntryDate.trim() !== '' ? entry.consumptionEntryDate : null;
+    // Handle empty dates by converting them to NULL and format to MySQL date format
+    const dispatchDateValue = convertToMysqlDate(entry.dispatchDate);
+    const repairDateValue = convertToMysqlDate(entry.repairDate);
+    const consumptionEntryDateValue = convertToMysqlDate(entry.consumptionEntryDate);
     
     await pool.execute(`
       INSERT INTO consumption_entries 

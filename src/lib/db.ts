@@ -420,14 +420,55 @@ export async function addSampleBomData() {
   }
 }
 
+// Helper function to convert date to MySQL format (YYYY-MM-DD)
+export function convertToMysqlDate(dateStr: string | null): string | null {
+  if (!dateStr || dateStr.trim() === '') {
+    return null;
+  }
+  
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  // Try to parse DD/MM/YYYY or MM/DD/YYYY format
+  const parts = dateStr.split(/[\/-]/);
+  if (parts.length === 3) {
+    const [first, second, year] = parts;
+    
+    // If year is 2 digits, convert to 4 digits (assuming 20xx)
+    let fullYear = year.length === 2 ? `20${year}` : year;
+    
+    // Check if first part looks like day (1-31) or month (1-12)
+    const firstNum = parseInt(first, 10);
+    const secondNum = parseInt(second, 10);
+    
+    // If first number is more than 12, assume it's DD/MM/YYYY
+    if (firstNum > 12) {
+      // DD/MM/YYYY format
+      const day = first.padStart(2, '0');
+      const month = second.padStart(2, '0');
+      return `${fullYear}-${month}-${day}`;
+    } else {
+      // Assume MM/DD/YYYY format
+      const month = first.padStart(2, '0');
+      const day = second.padStart(2, '0');
+      return `${fullYear}-${month}-${day}`;
+    }
+  }
+  
+  // If we can't parse it, return as is and let MySQL handle the error
+  return dateStr;
+}
+
 // Save consolidated data entry
 export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
   try {
-    // Handle empty dates by converting them to NULL
-    const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? entry.dcDate : null;
-    const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? entry.dateOfPurchase : null;
-    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? entry.repairDate : null;
-    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? entry.dispatchDate : null;
+    // Handle empty dates by converting them to NULL and format to MySQL date format
+    const dcDateValue = convertToMysqlDate(entry.dcDate);
+    const dateOfPurchaseValue = convertToMysqlDate(entry.dateOfPurchase);
+    const repairDateValue = convertToMysqlDate(entry.repairDate);
+    const dispatchDateValue = convertToMysqlDate(entry.dispatchDate);
     
     await pool.execute(`
       INSERT INTO consolidated_data 
@@ -437,29 +478,29 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
        validation_result, component_change, engg_name, dispatch_date)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      entry.srNo,
-      entry.dcNo,
+      entry.srNo || null,
+      entry.dcNo || null,
       dcDateValue,
-      entry.branch,
-      entry.bccdName,
-      entry.productDescription,
-      entry.productSrNo,
+      entry.branch || null,
+      entry.bccdName || null,
+      entry.productDescription || null,
+      entry.productSrNo || null,
       dateOfPurchaseValue,
-      entry.complaintNo,
-      entry.partCode,
-      entry.defect,
-      entry.visitingTechName,
-      entry.mfgMonthYear,
+      entry.complaintNo || null,
+      entry.partCode || null,
+      entry.defect || null,
+      entry.visitingTechName || null,
+      entry.mfgMonthYear || null,
       repairDateValue,
-      entry.testing,
-      entry.failure,
-      entry.status,
-      entry.pcbSrNo,
-      entry.rfObservation,
-      entry.analysis,
-      entry.validationResult,
-      entry.componentChange,
-      entry.enggName,
+      entry.testing || null,
+      entry.failure || null,
+      entry.status || null,
+      entry.pcbSrNo || null,
+      entry.rfObservation || null,
+      entry.analysis || null,
+      entry.validationResult || null,
+      entry.componentChange || null,
+      entry.enggName || null,
       dispatchDateValue
     ]);
     

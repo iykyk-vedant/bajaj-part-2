@@ -36,22 +36,22 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
 
   const handleAddUser = () => {
     // Implementation for adding user
-    console.log('Adding user with:', { userId, password, userStatus });
+    
   };
 
   const handleAddEngineer = () => {
     // Implementation for adding engineer
-    console.log('Adding engineer with:', { engineerName });
+    
   };
 
   const handleCreateTable = () => {
     // Implementation for creating table
-    console.log('Creating table');
+    
   };
 
   const handleExport = () => {
     // Implementation for exporting data
-    console.log('Exporting data');
+    
   };
 
   const handleResetPcbCounter = () => {

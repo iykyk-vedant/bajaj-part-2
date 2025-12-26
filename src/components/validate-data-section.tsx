@@ -120,11 +120,7 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
           <h2 className="text-2xl font-bold text-gray-700 mb-2">Validate Data</h2>
           <p className="text-gray-500 mb-4">
             Upload or capture a form image to begin.<br />
-            {/* The extracted fields will appear here for validation.  */}
           </p>
-          {/* <p className="text-sm text-gray-400">
-            Or switch to the complete Tag Entry system below
-          </p> */}
         </div>
       </div>
     );
@@ -146,10 +142,7 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
   // Show the complete Tag Entry system
   return (
     <div className="flex-1 bg-white rounded-lg shadow-md p-6">
-      {/* Header */}
-      {/* <div className="bg-gray-800 text-white p-4 rounded-lg mb-6">
-        <h1 className="text-2xl font-bold">Bajaj Electronics - Tag Entry</h1>
-      </div> */}
+
 
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200 mb-6">

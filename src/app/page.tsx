@@ -12,12 +12,13 @@ import { FindTab } from '@/components/tag-entry/FindTab';
 import { ConsumptionTab } from '@/components/tag-entry/ConsumptionTab';
 import { ValidateDataSection } from '@/components/validate-data-section';
 
-import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit } from 'lucide-react';
+import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SheetOverview } from '@/components/sheet-overview';
 import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
 import { addDcNumberWithPartCode } from '@/lib/dc-data-sync';
 import { getDcNumbersAction, addDcNumberAction } from '@/app/actions/db-actions';
+import { TagEntryPreview } from '@/components/tag-entry/TagEntryPreview';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,6 +82,8 @@ export default function Home() {
   const [isDuplicateWarningOpen, setIsDuplicateWarningOpen] = useState(false);
   const [newSheetName, setNewSheetName] = useState('');
   const [pendingData, setPendingData] = useState<ExtractDataOutput | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewRefreshTrigger, setPreviewRefreshTrigger] = useState(0);
 
   // Initialize DC numbers - start with empty array
   const [dcNumbers, setDcNumbers] = useState<string[]>([]);
@@ -597,9 +600,24 @@ export default function Home() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsPreviewOpen(true)}
+              className="ml-2"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </Button>
           </div>
         </div>
       </header>
+
+      <TagEntryPreview 
+        open={isPreviewOpen} 
+        onOpenChange={setIsPreviewOpen} 
+        refreshTrigger={previewRefreshTrigger}
+      />
 
       <main className="flex-1 px-4 py-2 h-[calc(100vh-120px)] flex flex-col">
         {/* Tab Navigation */}

@@ -7,7 +7,7 @@ export function FindPCBSection() {
 
   const handleFind = () => {
     // Implementation for finding PCB
-    console.log('Finding PCB with search term:', searchTerm);
+
   };
 
   return (

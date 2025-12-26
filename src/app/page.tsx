@@ -103,6 +103,7 @@ export default function Home() {
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
   const { toast } = useToast();
+  
   // Load DC numbers and mappings from database only after mount
   useEffect(() => {
     const loadFromDatabase = async () => {
@@ -128,6 +129,40 @@ export default function Home() {
     return () => {
       clearInterval(interval);
     };
+  }, []);
+  
+  // Load all sheets from database when component mounts
+  useEffect(() => {
+    const loadSheetsFromDatabase = async () => {
+      try {
+        const result = await getAllSheetsAction();
+        if (result.error) {
+          console.error('Error loading sheets from database:', result.error);
+          toast({
+            variant: 'destructive',
+            title: 'Error loading sheets',
+            description: result.error,
+          });
+          return;
+        }
+        
+        setSheets(result.sheets || []);
+        
+        // If there are sheets and no active sheet is selected, set the first one as active
+        if (result.sheets.length > 0 && !activeSheetId) {
+          setActiveSheetId(result.sheets[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading sheets from database:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error loading sheets',
+          description: 'Failed to load sheets from database',
+        });
+      }
+    };
+    
+    loadSheetsFromDatabase();
   }, []);
 
 

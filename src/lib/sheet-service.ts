@@ -1,4 +1,4 @@
-import pool from './db';
+import pool from './pg-db';
 import { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
 
 export interface Sheet {
@@ -11,20 +11,20 @@ export interface Sheet {
 // Get all sheets for a user
 export async function getAllSheets(): Promise<Sheet[]> {
   try {
-    const [rows]: any = await pool.execute(
+    const result = await pool.query(
       `SELECT s.id, s.name, s.created_at, 
-              JSON_ARRAYAGG(sd.data) as sheet_data
+              COALESCE(json_agg(sd.data) FILTER (WHERE sd.data IS NOT NULL), '[]'::json) as sheet_data
        FROM sheets s
        LEFT JOIN sheet_data sd ON s.id = sd.sheet_id
        GROUP BY s.id, s.name, s.created_at
        ORDER BY s.created_at DESC`
     );
 
-    return rows.map((row: any) => ({
+    return result.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
       data: row.sheet_data && row.sheet_data[0] !== null ? row.sheet_data : [],
-      createdAt: row.created_at.toISOString()
+      createdAt: new Date(row.created_at).toISOString()
     }));
   } catch (error) {
     console.error('Error fetching sheets:', error);
@@ -35,26 +35,26 @@ export async function getAllSheets(): Promise<Sheet[]> {
 // Get a specific sheet by ID
 export async function getSheetById(sheetId: string): Promise<Sheet | null> {
   try {
-    const [rows]: any = await pool.execute(
+    const result = await pool.query(
       `SELECT s.id, s.name, s.created_at, 
-              JSON_ARRAYAGG(sd.data) as sheet_data
+              COALESCE(json_agg(sd.data) FILTER (WHERE sd.data IS NOT NULL), '[]'::json) as sheet_data
        FROM sheets s
        LEFT JOIN sheet_data sd ON s.id = sd.sheet_id
-       WHERE s.id = ?
+       WHERE s.id = $1
        GROUP BY s.id, s.name, s.created_at`,
       [sheetId]
     );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       return null;
     }
 
-    const row = rows[0];
+    const row = result.rows[0];
     return {
       id: row.id,
       name: row.name,
       data: row.sheet_data && row.sheet_data[0] !== null ? row.sheet_data : [],
-      createdAt: row.created_at.toISOString()
+      createdAt: new Date(row.created_at).toISOString()
     };
   } catch (error) {
     console.error('Error fetching sheet:', error);
@@ -69,9 +69,9 @@ export async function createSheet(sheet: Omit<Sheet, 'data'>): Promise<Sheet> {
     const createdAt = new Date(sheet.createdAt).toISOString().slice(0, 19).replace('T', ' ');
     const updatedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
     
-    await pool.execute(
+    await pool.query(
       `INSERT INTO sheets (id, name, created_at, updated_at) 
-       VALUES (?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4)`,
       [sheet.id, sheet.name, createdAt, updatedAt]
     );
 
@@ -91,8 +91,8 @@ export async function updateSheetName(sheetId: string, name: string): Promise<vo
     // Convert date to MySQL compatible format
     const updatedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
     
-    await pool.execute(
-      `UPDATE sheets SET name = ?, updated_at = ? WHERE id = ?`,
+    await pool.query(
+      `UPDATE sheets SET name = $1, updated_at = $2 WHERE id = $3`,
       [name, updatedAt, sheetId]
     );
   } catch (error) {
@@ -104,8 +104,8 @@ export async function updateSheetName(sheetId: string, name: string): Promise<vo
 // Delete a sheet
 export async function deleteSheet(sheetId: string): Promise<void> {
   try {
-    await pool.execute(
-      `DELETE FROM sheets WHERE id = ?`,
+    await pool.query(
+      `DELETE FROM sheets WHERE id = $1`,
       [sheetId]
     );
   } catch (error) {
@@ -120,9 +120,9 @@ export async function addDataToSheet(sheetId: string, data: ExtractDataOutput): 
     // Convert date to MySQL compatible format
     const createdAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
     
-    await pool.execute(
+    await pool.query(
       `INSERT INTO sheet_data (sheet_id, data, created_at) 
-       VALUES (?, ?, ?)`,
+       VALUES ($1, $2, $3)`,
       [sheetId, JSON.stringify(data), createdAt]
     );
   } catch (error) {
@@ -138,16 +138,16 @@ export async function updateSheetData(sheetId: string, data: ExtractDataOutput[]
     const createdAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
     
     // First, delete all existing data for this sheet
-    await pool.execute(
-      `DELETE FROM sheet_data WHERE sheet_id = ?`,
+    await pool.query(
+      `DELETE FROM sheet_data WHERE sheet_id = $1`,
       [sheetId]
     );
 
     // Then insert all new data
     for (const item of data) {
-      await pool.execute(
+      await pool.query(
         `INSERT INTO sheet_data (sheet_id, data, created_at) 
-         VALUES (?, ?, ?)`,
+         VALUES ($1, $2, $3)`,
         [sheetId, JSON.stringify(item), createdAt]
       );
     }
@@ -160,8 +160,8 @@ export async function updateSheetData(sheetId: string, data: ExtractDataOutput[]
 // Clear all data from a sheet
 export async function clearSheetData(sheetId: string): Promise<void> {
   try {
-    await pool.execute(
-      `DELETE FROM sheet_data WHERE sheet_id = ?`,
+    await pool.query(
+      `DELETE FROM sheet_data WHERE sheet_id = $1`,
       [sheetId]
     );
   } catch (error) {

@@ -1,5 +1,5 @@
-import pool from './db';
-import { getBomDescription, checkIfLocationExists, checkComponentForPartCode } from './db';
+import pool from './pg-db';
+import { getBomDescription, checkIfLocationExists, checkComponentForPartCode } from './pg-db';
 
 // Defect keywords to remove from component analysis
 const DEFECT_KEYWORDS = ['FAULTY', 'DAMAGE', 'BURN', 'DEFECTIVE', 'BAD', 'ERROR'];
@@ -194,12 +194,12 @@ export async function saveConsumptionEntry(entry: {
     const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? entry.repairDate : null;
     const consumptionEntryDateValue = entry.consumptionEntryDate && entry.consumptionEntryDate.trim() !== '' ? entry.consumptionEntryDate : null;
     
-    await pool.execute(`
+    await pool.query(`
       INSERT INTO consumption_entries 
       (id, repair_date, testing, failure, status, pcb_sr_no, rf_observation, analysis, 
        validation_result, component_change, engg_name, dispatch_date, component_consumption, 
        consumption_entry, consumption_entry_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     `, [
       entry.id,
       repairDateValue,
@@ -228,8 +228,8 @@ export async function saveConsumptionEntry(entry: {
 // Get all consumption entries
 export async function getConsumptionEntries(): Promise<any[]> {
   try {
-    const [rows]: any = await pool.execute('SELECT * FROM consumption_entries ORDER BY created_at DESC');
-    return rows;
+    const result = await pool.query('SELECT * FROM consumption_entries ORDER BY created_at DESC');
+    return result.rows;
   } catch (error) {
     console.error('Error fetching consumption entries:', error);
     return [];

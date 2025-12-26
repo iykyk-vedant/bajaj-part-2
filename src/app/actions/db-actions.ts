@@ -1,6 +1,6 @@
 'use server';
 
-import { getAllDcNumbers, addDcNumber } from '@/lib/db';
+import { getAllDcNumbers, addDcNumber } from '@/lib/pg-db';
 
 // Server action to get all DC numbers
 export async function getDcNumbersAction() {

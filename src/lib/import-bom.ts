@@ -1,4 +1,5 @@
 import { importBomFromCsv, importBomFromJson, importBomFromExcel } from './bom-import';
+// Note: This now uses PostgreSQL as the database backend
 
 async function importBom() {
   try {

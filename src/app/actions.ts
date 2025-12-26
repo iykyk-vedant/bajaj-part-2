@@ -38,8 +38,8 @@ export async function extractDataFromImage(
           productSrNo: '',
           dateOfPurchase: '',
           complaintNo: '',
-          defect: '',
-          visitingTechName: '',
+          natureOfDefect: '',
+          technicianName: '',
           others: '',
         }, error: null };
       } else {

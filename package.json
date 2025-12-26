@@ -10,9 +10,10 @@
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "init-db": "tsx src/lib/init-db.ts",
+    "init-db": "tsx src/lib/pg-init-db.ts",
     "import-bom": "tsx src/lib/import-bom.ts"
-  },  "dependencies": {
+  },
+  "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
     "@hookform/resolvers": "^4.1.3",
@@ -49,6 +50,7 @@
     "mysql2": "^3.16.0",
     "next": "15.3.3",
     "patch-package": "^8.0.0",
+    "pg": "^8.16.3",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -61,6 +63,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pg": "^8.10.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "genkit-cli": "^1.20.0",

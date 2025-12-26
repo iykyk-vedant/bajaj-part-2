@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import pool from './db';
+import pool from './pg-db';
 import ExcelJS from 'exceljs';
 /**
  * Import BOM data from a CSV file
@@ -43,8 +43,8 @@ export async function importBomFromCsv(csvFilePath: string): Promise<{ success: 
     let insertedCount = 0;
     for (const [partCode, location, description] of bomData) {
       try {
-        await pool.execute(
-          'INSERT IGNORE INTO bom (part_code, location, description) VALUES (?, ?, ?)',
+        await pool.query(
+          'INSERT INTO bom (part_code, location, description) VALUES ($1, $2, $3) ON CONFLICT (part_code, location) DO NOTHING',
           [partCode, location, description]
         );
         insertedCount++;
@@ -105,8 +105,8 @@ export async function importBomFromJson(jsonFilePath: string): Promise<{ success
     for (const entry of bomData) {
       if (entry.part_code && entry.location) {
         try {
-          await pool.execute(
-            'INSERT IGNORE INTO bom (part_code, location, description) VALUES (?, ?, ?)',
+          await pool.query(
+            'INSERT INTO bom (part_code, location, description) VALUES ($1, $2, $3) ON CONFLICT (part_code, location) DO NOTHING',
             [entry.part_code, entry.location, entry.description || '']
           );
           insertedCount++;
@@ -174,8 +174,8 @@ export async function importBomFromExcel(excelFilePath: string): Promise<{ succe
     let insertedCount = 0;
     for (const [partCode, location, description] of bomData) {
       try {
-        await pool.execute(
-          'INSERT IGNORE INTO bom (part_code, location, description) VALUES (?, ?, ?)',
+        await pool.query(
+          'INSERT INTO bom (part_code, location, description) VALUES ($1, $2, $3) ON CONFLICT (part_code, location) DO NOTHING',
           [partCode, location, description]
         );
         insertedCount++;

@@ -1,12 +1,8 @@
 // Utility functions for synchronizing DC numbers and Part Code mappings between pages
 
-// Default values - empty as per requirement
-const DEFAULT_DC_NUMBERS: string[] = [];
-const DEFAULT_DC_PARTCODES: Record<string, string[]> = {};
-
 // Load DC numbers from database
 export async function loadDcNumbersFromDb(): Promise<string[]> {
-  if (typeof window === 'undefined') return DEFAULT_DC_NUMBERS;
+  if (typeof window === 'undefined') return [];
 
   try {
     // Import the server action dynamically to avoid importing it on the client
@@ -20,12 +16,12 @@ export async function loadDcNumbersFromDb(): Promise<string[]> {
     console.error('Error loading DC numbers from database:', e);
   }
 
-  return DEFAULT_DC_NUMBERS;
+  return [];
 }
 
 // Load DC-PartCode mappings from database
 export async function loadDcPartCodesFromDb(): Promise<Record<string, string[]>> {
-  if (typeof window === 'undefined') return DEFAULT_DC_PARTCODES;
+  if (typeof window === 'undefined') return {};
 
   try {
     // Import the server action dynamically to avoid importing it on the client
@@ -39,7 +35,7 @@ export async function loadDcPartCodesFromDb(): Promise<Record<string, string[]>>
     console.error('Error loading DC-PartCode mappings from database:', e);
   }
 
-  return DEFAULT_DC_PARTCODES;
+  return {};
 }
 
 // Add a new DC number with Part Code

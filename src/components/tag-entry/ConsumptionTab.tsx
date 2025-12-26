@@ -75,7 +75,7 @@ interface TableRow {
   dispatchDate?: string;
 }
 
-export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {} }: ConsumptionTabProps) {
+export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: ConsumptionTabProps) {
   const { isDcLocked } = useLockStore();
   const router = useRouter();
 

@@ -7,7 +7,7 @@ import {
   saveConsumptionEntry as saveConsumptionEntryService,
   getConsumptionEntries as getConsumptionEntriesService
 } from '@/lib/consumption-validation-service';
-import { saveConsolidatedDataEntry } from '@/lib/db';
+import { saveConsolidatedDataEntry } from '@/lib/pg-db';
 
 // Server action to validate consumption
 export async function validateConsumption(analysisText: string, partCode?: string) {
@@ -109,7 +109,7 @@ export async function saveConsolidatedData(data: any) {
 // Server action to get consolidated data entries
 export async function getConsolidatedDataEntries() {
   try {
-    const { getAllConsolidatedDataEntries } = await import('@/lib/db');
+    const { getAllConsolidatedDataEntries } = await import('@/lib/pg-db');
     const entries = await getAllConsolidatedDataEntries();
     return {
       success: true,
@@ -127,7 +127,7 @@ export async function getConsolidatedDataEntries() {
 // Server action to delete consolidated data entry
 export async function deleteConsolidatedDataEntryAction(id: string) {
   try {
-    const { deleteConsolidatedDataEntry } = await import('@/lib/db');
+    const { deleteConsolidatedDataEntry } = await import('@/lib/pg-db');
     const result = await deleteConsolidatedDataEntry(id);
     return {
       success: result,

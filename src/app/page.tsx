@@ -622,7 +622,7 @@ export default function Home() {
 
       <main className="flex-1 px-4 h-[calc(100vh-120px)] flex flex-col">
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 mb-2">
+        <div className="flex border-b border-gray-200 mb-4">
           <button
             className={`py-2 px-4 font-medium text-sm ${activeTab === "tag-entry"
               ? "border-b-2 border-blue-500 text-blue-600"
@@ -676,7 +676,7 @@ export default function Home() {
         )}
 
         {activeTab === "dispatch" && (
-          <div className="w-full bg-white rounded-lg shadow-md p-6 flex-1">
+          <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
             <FindTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
@@ -686,7 +686,7 @@ export default function Home() {
         )}
 
         {activeTab === "consumption" && (
-          <div className="w-full bg-white rounded-lg shadow-md p-6 flex-1">
+          <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
             <ConsumptionTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}

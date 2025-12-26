@@ -16,53 +16,12 @@ export function FindTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }: Fin
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [srNo, setSrNo] = useState('');
-  const [dispatchDate, setDispatchDate] = useState('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    switch(name) {
-      case 'dcNo':
-        setDcNo(value);
-        break;
-      case 'partCode':
-        setPartCode(value);
-        break;
-      case 'srNo':
-        setSrNo(value);
-        break;
-      case 'dispatchDate':
-        setDispatchDate(value);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleSrNoIncrement = () => {
-    const currentSrNo = parseInt(srNo || '0');
-    if (!isNaN(currentSrNo)) {
-      const newSrNo = currentSrNo + 1;
-      setSrNo(String(newSrNo).padStart(3, '0'));
-    }
-  };
-
-  const handleSrNoDecrement = () => {
-    const currentSrNo = parseInt(srNo || '0');
-    if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
-      const newSrNo = currentSrNo - 1;
-      setSrNo(String(newSrNo).padStart(3, '0'));
-    }
-  };
 
   const handleFind = () => {
     // Implementation for finding PCB
 
     // In a real implementation, this would likely call an API or search function
-    alert(`Searching for PCB with:
-DC No: ${dcNo}
-Part Code: ${partCode}
-Dispatch Date: ${dispatchDate}
-Serial No: ${srNo}`);
+    alert(`Searching for PCB with:\nDC No: ${dcNo}\nPart Code: ${partCode}\nSerial No: ${srNo}`);
   };
 
   return (
@@ -79,14 +38,13 @@ Serial No: ${srNo}`);
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">DC No.</label>
           <div className="flex gap-2">
             <select
-              name="dcNo"
               value={isDcLocked ? useLockStore.getState().lockedDcNo : dcNo}
-              onChange={handleChange}
+              onChange={(e) => setDcNo(e.target.value)}
               disabled={isDcLocked}
               className={`flex-1 p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-10`}
             >
@@ -103,9 +61,8 @@ Serial No: ${srNo}`);
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Part Code</label>
           <select
-            name="partCode"
             value={isDcLocked ? useLockStore.getState().lockedPartCode : partCode}
-            onChange={handleChange}
+            onChange={(e) => setPartCode(e.target.value)}
             disabled={isDcLocked}
             className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-10`}
           >
@@ -118,41 +75,11 @@ Serial No: ${srNo}`);
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Dispatch Date:</label>
-          <input
-            type="date"
-            name="dispatchDate"
-            value={dispatchDate}
-            onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-10"
-            placeholder="Select Dispatch Date"
-          />
-        </div>
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <label className="text-sm font-medium text-gray-700">Serial No.</label>
-            <div className="flex space-x-1">
-              <button 
-                type="button" 
-                onClick={() => handleSrNoIncrement()}
-                className="text-gray-700 hover:text-gray-900 px-1"
-              >
-                +
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleSrNoDecrement()}
-                className="text-gray-700 hover:text-gray-900 px-1"
-              >
-                -
-              </button>
-            </div>
-          </div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Serial No.</label>
           <input
             type="text"
-            name="srNo"
             value={srNo}
-            onChange={handleChange}
+            onChange={(e) => setSrNo(e.target.value)}
             className="w-full p-2 text-sm border border-gray-300 rounded h-10"
             placeholder="Enter Serial No."
           />

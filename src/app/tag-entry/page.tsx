@@ -230,6 +230,7 @@ export default function TagEntryPage() {
                   <TagEntryForm 
                     dcNumbers={dcNumbers}
                     dcPartCodes={dcPartCodes}
+                    onAddDcNumber={addDcNumber}
                   />
                 )}
                 {tagEntrySubTab === "settings" && (

@@ -553,13 +553,22 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="p-4 border-b bg-card/50 backdrop-blur-lg sticky top-0 z-20">
+      <header className="p-1.5 border-b bg-card/50 backdrop-blur-lg sticky top-0 z-20">
         <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ScanText className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold font-headline text-primary">NexScan</h1>
+          <div className="flex items-center gap-1">
+            <ScanText className="w-6 h-6 text-primary" />
+            <h1 className="text-xl font-bold font-headline text-primary">NexScan</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsPreviewOpen(true)}
+              className="ml-2"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -600,15 +609,7 @@ export default function Home() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setIsPreviewOpen(true)}
-              className="ml-2"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Preview
-            </Button>
+            
           </div>
         </div>
       </header>
@@ -619,7 +620,7 @@ export default function Home() {
         refreshTrigger={previewRefreshTrigger}
       />
 
-      <main className="flex-1 px-4 py-2 h-[calc(100vh-120px)] flex flex-col">
+      <main className="flex-1 px-4 h-[calc(100vh-120px)] flex flex-col">
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-4">
           <button
@@ -632,15 +633,6 @@ export default function Home() {
             Tag Entry
           </button>
           <button
-            className={`py-2 px-4 font-medium text-sm ${activeTab === "dispatch"
-              ? "border-b-2 border-blue-500 text-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-            onClick={() => setActiveTab("dispatch")}
-          >
-            Dispatch
-          </button>
-          <button
             className={`py-2 px-4 font-medium text-sm ${activeTab === "consumption"
               ? "border-b-2 border-blue-500 text-blue-600"
               : "text-gray-500 hover:text-gray-700"
@@ -648,6 +640,15 @@ export default function Home() {
             onClick={() => setActiveTab("consumption")}
           >
             Consumption
+          </button>
+          <button
+            className={`py-2 px-4 font-medium text-sm ${activeTab === "dispatch"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
+            onClick={() => setActiveTab("dispatch")}
+          >
+            Dispatch
           </button>
         </div>
 

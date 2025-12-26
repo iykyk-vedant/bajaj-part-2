@@ -28,22 +28,18 @@ export function LockButton({ className = '', dcNo = '', partCode = '' }: LockBut
     <button
       type="button"
       onClick={handleClick}
-      className={`flex items-center justify-center p-2 rounded-md transition-colors ${
-        isDcLocked 
-          ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-          : 'bg-green-100 text-green-700 hover:bg-green-200'
-      } ${className}`}
+      className={'flex items-center justify-center  rounded-md transition-colors'}
       title={isDcLocked ? 'Unlock DC Number and Part Code' : 'Lock DC Number and Part Code'}
     >
       {isDcLocked ? (
         <>
           <Lock className="h-4 w-4 mr-1" />
-          <span>Locked</span>
+          {/* <span>Locked</span> */}
         </>
       ) : (
         <>
           <Unlock className="h-4 w-4 mr-1" />
-          <span>Unlocked</span>
+          {/* <span>Unlocked</span> */}
         </>
       )}
     </button>

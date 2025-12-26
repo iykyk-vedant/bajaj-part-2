@@ -72,9 +72,23 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
   }, [localDcPartCodes]);
 
   // Function to add a new DC number
-  const addDcNumber = (dcNo: string) => {
+  const addDcNumber = async (dcNo: string, partCode: string) => {
     if (dcNo && !localDcNumbers.includes(dcNo)) {
       setLocalDcNumbers(prev => [...prev, dcNo]);
+      
+      // Also add to part codes mapping if partCode is provided
+      if (partCode) {
+        setLocalDcPartCodes(prev => ({
+          ...prev,
+          [dcNo]: [...(prev[dcNo] || []), partCode]
+        }));
+      } else {
+        // Initialize with empty array if no part code provided
+        setLocalDcPartCodes(prev => ({
+          ...prev,
+          [dcNo]: prev[dcNo] || []
+        }));
+      }
     }
   };
 
@@ -170,7 +184,7 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
 
       {/* Tab Content */}
       <div className="mb-6">
-        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={localDcNumbers} dcPartCodes={localDcPartCodes} />}
+        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={localDcNumbers} dcPartCodes={localDcPartCodes} onAddDcNumber={addDcNumber} />}
         {activeTab === 'settings' && <SettingsTab dcNumbers={localDcNumbers} onAddDcNumber={addDcNumber} />}
       </div>
 

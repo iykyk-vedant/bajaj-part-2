@@ -574,7 +574,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   }, [handleKeyboardShortcut]);
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-sm flex flex-col h-full">
+    <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-sm flex flex-col flex-1 min-h-0">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Sr. No.:</label>

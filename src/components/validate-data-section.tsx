@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { TagEntryForm } from './tag-entry/TagEntryForm';
 import { ConsumptionTab } from './tag-entry/ConsumptionTab';
-import { SettingsTab } from './tag-entry/SettingsTab';
+
 import { StatusBar } from './tag-entry/StatusBar';
 
 interface ValidateDataSectionProps {
@@ -17,7 +17,7 @@ interface ValidateDataSectionProps {
 }
 
 export function ValidateDataSection({ initialData, isLoading, onSave, sheetActive, onFormChange, dcNumbers, dcPartCodes }: ValidateDataSectionProps) {
-  const [activeTab, setActiveTab] = useState<'tag-entry' | 'settings'>('tag-entry');
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   
@@ -155,37 +155,12 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
 
   // Show the complete Tag Entry system
   return (
-    <div className="flex-1 bg-white rounded-lg shadow-md p-6">
+    <div className="flex-1 flex flex-col bg-white rounded-lg shadow-md p-3">
 
 
-      {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200 mb-6">
-        <button
-          className={`py-2 px-4 font-medium text-sm ${
-            activeTab === 'tag-entry'
-              ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => setActiveTab('tag-entry')}
-        >
-          Tag Entry
-        </button>
-        <button
-          className={`py-2 px-4 font-medium text-sm ${
-            activeTab === 'settings'
-              ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => setActiveTab('settings')}
-        >
-          Settings
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      <div className="mb-6">
-        {activeTab === 'tag-entry' && <TagEntryForm initialData={initialData} dcNumbers={localDcNumbers} dcPartCodes={localDcPartCodes} onAddDcNumber={addDcNumber} />}
-        {activeTab === 'settings' && <SettingsTab dcNumbers={localDcNumbers} onAddDcNumber={addDcNumber} />}
+      {/* Tag Entry Form */}
+      <div className="flex-1 mb-4">
+        <TagEntryForm initialData={initialData} dcNumbers={localDcNumbers} dcPartCodes={localDcPartCodes} onAddDcNumber={addDcNumber} />
       </div>
 
       {/* Status Bar */}

@@ -605,18 +605,18 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   }, [handleKeyboardShortcut]);
 
   return (
-    <div className="bg-white w-full h-full flex flex-col">
-      <div className="h-full flex flex-col">
+    <div className="bg-white w-full flex flex-col flex-1 min-h-0">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Find Section - Moved to the top */}
-        <div className="bg-white rounded-md shadow-sm mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+        <div className="bg-white rounded-md shadow-sm ">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 ">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">DC No.</label>
-              <div className="flex gap-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
+              <div className="flex gap-1">
                 <select
                   value={isDcLocked ? useLockStore.getState().lockedDcNo : dcNo}
                   onChange={(e) => setDcNo(e.target.value)}
-                  className={`flex-1 p-2 text-sm border border-gray-300 rounded ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''} h-10`}
+                  className={`flex-1 p-1 text-sm border border-gray-300 rounded ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''} h-8`}
                   disabled={isDcLocked || isPcbFound}
                 >
                   <option value="">Select DC</option>
@@ -630,11 +630,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Part Code</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
               <select
                 value={isDcLocked ? useLockStore.getState().lockedPartCode : partCode}
                 onChange={(e) => setPartCode(e.target.value)}
-                className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''} h-10`}
+                className={`w-full p-1 text-sm border border-gray-300 rounded ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''} h-8`}
                 disabled={isDcLocked || isPcbFound}
               >
                 <option value="">Select Part</option>
@@ -646,23 +646,21 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Serial No.</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Serial No.</label>
               <input
                 type="text"
                 value={srNo}
                 onChange={(e) => setSrNo(e.target.value)}
-                className={`w-full p-2 text-sm border border-gray-300 rounded ${isPcbFound ? 'bg-gray-100' : ''} h-10`}
+                className={`w-full p-1 text-sm border border-gray-300 rounded ${isPcbFound ? 'bg-gray-100' : ''} h-8`}
                 placeholder="Enter Serial No."
                 disabled={isPcbFound}
               />
             </div>
-          </div>
-
-          <div className="mt-3 flex justify-center">
+          <div className="mt-2 flex justify-center items-center">
             <button
               onClick={handleFind}
               disabled={isSearching || isPcbFound}
-              className={`px-4 py-2 text-sm rounded ${isSearching || isPcbFound
+              className={`px-3 py-1 text-sm rounded ${isSearching || isPcbFound
                   ? 'bg-gray-400 cursor-not-allowed text-gray-200'
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
@@ -670,29 +668,31 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               {isSearching ? 'Finding...' : 'Find PCB'}
             </button>
           </div>
+          </div>
+
         </div>
 
         {/* Consumption Form */}
-        <form onSubmit={handleConsume} className="bg-white rounded-md shadow-sm mb-4 flex-1 flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4">
+        <form onSubmit={handleConsume} className="bg-white rounded-md shadow-sm mb-2 flex-1 flex flex-col">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 p-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Repair Date:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Repair Date:</label>
               <input
                 type="date"
                 name="repairDate"
                 value={formData.repairDate}
                 onChange={handleChange}
-                className="w-full p-2 text-sm border border-gray-300 rounded h-10"
+                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
                 disabled={!isPcbFound}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Testing:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Testing:</label>
               <select
                 name="testing"
                 value={formData.testing}
                 onChange={handleChange}
-                className="w-full p-2 text-sm border border-gray-300 rounded h-10"
+                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
                 disabled={!isPcbFound}
               >
                 <option value="">Select</option>
@@ -701,12 +701,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Failure:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Failure:</label>
               <select
                 name="failure"
                 value={formData.failure}
                 onChange={handleChange}
-                className="w-full p-2 text-sm border border-gray-300 rounded h-10"
+                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
                 disabled={!isPcbFound}
               >
                 <option value="">Select</option>
@@ -716,12 +716,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status:</label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full p-2 text-sm border border-gray-300 rounded h-10"
+                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
                 disabled={!isPcbFound}
               >
                 <option value="">Select</option>
@@ -732,20 +732,20 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">PCB Sr No:</label>
-              <div className="p-2 text-sm border border-gray-300 rounded bg-gray-100 font-mono truncate h-10 flex items-center">
+              <label className="block text-sm font-medium text-gray-700 mb-1">PCB Sr No:</label>
+              <div className="p-1 text-sm border border-gray-300 rounded bg-gray-100 font-mono truncate h-8 flex items-center">
                 {formData.pcbSrNo}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Engg Name:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Engg Name:</label>
               <select
                 name="enggName"
                 value={formData.enggName}
                 onChange={handleChange}
-                className="w-full p-2 text-sm border border-gray-300 rounded h-10"
+                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
                 disabled={!isPcbFound}
               >
                 <option value="">Select</option>
@@ -754,65 +754,65 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               </select>
             </div>          
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Dispatch Date:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dispatch Date:</label>
               <input
                 type="date"
                 name="dispatchDate"
                 value={formData.dispatchDate}
                 onChange={handleChange}
-                className="w-full p-2 text-sm border border-gray-300 rounded h-10"
+                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
                 disabled={!isPcbFound}
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Analysis:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Analysis:</label>
               <textarea
                 name="analysis"
                 value={formData.analysis} // Keep original text with / characters
                 onChange={handleChange}
                 rows={3}
-                className="w-full p-2 text-sm border border-gray-300 rounded"
+                className="w-full p-1 text-sm border border-gray-300 rounded"
                 disabled={!isPcbFound}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Validation Result:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Validation Result:</label>
               <textarea
                 name="validationResult"
                 value={transformedAnalysisText} // Use transformed text with \n instead of /
                 readOnly
                 rows={3}
-                className="w-full p-2 text-sm border border-gray-300 rounded bg-gray-100"
+                className="w-full p-1 text-sm border border-gray-300 rounded bg-gray-100"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Component Change:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Component Change:</label>
               <textarea
                 name="componentChange"
                 value={formData.componentChange}
                 onChange={handleChange}
                 rows={3}
-                className="w-full p-2 text-sm border border-gray-300 rounded"
+                className="w-full p-1 text-sm border border-gray-300 rounded"
                 disabled={!isPcbFound}
               />
             </div>
           </div>
 
 
-          <div className="flex justify-end space-x-3 mt-auto">
+          <div className="flex justify-end space-x-2 mt-auto">
             <button
               type="button"
               onClick={handleClear}
-              className="px-4 py-2 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded"
+              className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded"
             >
               Clear
             </button>
             <button
               type="submit"
               disabled={!isPcbFound}
-              className={`px-4 py-2 text-sm rounded ${isPcbFound
+              className={`px-3 py-1 text-sm rounded ${isPcbFound
                   ? 'bg-green-500 hover:bg-green-600 text-white'
                   : 'bg-gray-400 cursor-not-allowed text-gray-200'
                 }`}
@@ -823,24 +823,24 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         </form>
 
         {/* Excel-like Grid */}
-        <div className="bg-white rounded-md shadow-sm mb-4 flex-1 overflow-hidden flex flex-col">
-          <div className="overflow-x-auto flex-1 p-4">
+        <div className="bg-white rounded-md shadow-sm mb-2 flex-1 overflow-hidden flex flex-col">
+          <div className="overflow-x-auto flex-1 p-2">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Sr No</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">DC No</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">DC Date</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">BCCD Name</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Product Desc</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Product Sr No</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Date of Purchase</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Complaint No</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Part Code</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Defect</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Visiting Tech</th>
-                  <th className="px-3 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Mfg Month/Year</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Sr No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">DC No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">DC Date</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Branch</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">BCCD Name</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Product Desc</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Product Sr No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Date of Purchase</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Complaint No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Part Code</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Defect</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Visiting Tech</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Mfg Month/Year</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -866,24 +866,24 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                       setSelectedEntryId(entry.id || null);
                     }}
                   >
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800 font-medium">{entry.srNo}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.dcNo}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.dcDate}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.branch}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.bccdName}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.productDescription}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.productSrNo}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.dateOfPurchase}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.complaintNo}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.partCode}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.defect}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.visitingTechName}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">{entry.mfgMonthYear}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 font-medium">{entry.srNo}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dcNo}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dcDate}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.branch}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.bccdName}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.productDescription}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.productSrNo}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dateOfPurchase}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.complaintNo}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.partCode}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.defect}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.visitingTechName}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.mfgMonthYear}</td>
                   </tr>
                 ))}
                 {tableData.length === 0 && (
                   <tr>
-                    <td colSpan={13} className="px-3 py-2 text-center text-sm text-gray-500">
+                    <td colSpan={13} className="px-2 py-1 text-center text-sm text-gray-500">
                       No tag entries found
                     </td>
                   </tr>
@@ -894,12 +894,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         </div>
 
         {/* Bottom Action Buttons */}
-        <div className="flex justify-between items-center mb-4 p-4">
+        <div className="flex justify-between items-center mb-2 p-2">
           <div className="flex space-x-2">
             <button
               onClick={handleUpdate}
               disabled={!selectedEntryId}
-              className={`px-4 py-2 text-sm rounded ${selectedEntryId
+              className={`px-3 py-1 text-sm rounded ${selectedEntryId
                   ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                   : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 }`}
@@ -909,7 +909,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             <button
               onClick={handleDelete}
               disabled={!selectedEntryId}
-              className={`px-4 py-2 text-sm rounded ${selectedEntryId
+              className={`px-3 py-1 text-sm rounded ${selectedEntryId
                   ? 'bg-red-500 text-white hover:bg-red-600'
                   : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 }`}
@@ -920,19 +920,19 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           <div className="flex space-x-2">
             <button
               onClick={handleClear}
-              className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
             >
               Clear
             </button>
             <button
               onClick={handleExportExcel}
-              className="px-4 py-2 text-sm bg-green-500 text-white rounded hover:bg-green-600"
+              className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600"
             >
               Export Excel
             </button>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"
+              className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"
             >
               Logout
             </button>

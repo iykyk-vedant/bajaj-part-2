@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { TagEntryForm } from "../../components/tag-entry/TagEntryForm";
-import { SettingsTab } from "../../components/tag-entry/SettingsTab";
+
 import { FindTab } from "../../components/tag-entry/FindTab";
 import { ConsumptionTab } from "../../components/tag-entry/ConsumptionTab";
 import { StatusBar } from "../../components/tag-entry/StatusBar";
@@ -16,8 +16,7 @@ export default function TagEntryPage() {
     "tag-entry" | "dispatch" | "consumption"
   >("tag-entry");
   
-  // Sub-tab state for Tag Entry
-  const [tagEntrySubTab, setTagEntrySubTab] = useState<"form" | "settings">("form");
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -147,7 +146,7 @@ export default function TagEntryPage() {
         </div>
       </header> */}
 
-      <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6">
+      <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex flex-col flex-1 min-h-0">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Tag Entry System</h2>
           <button 
@@ -197,48 +196,16 @@ export default function TagEntryPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="mb-6">
+        <div className="flex-1 min-h-0 mb-6">
           {activeTab === "tag-entry" && (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              {/* Sub-tab Navigation */}
-              <div className="flex border-b border-gray-200 mb-6">
-                <button
-                  className={`py-2 px-4 font-medium text-sm ${
-                    tagEntrySubTab === "form"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                  onClick={() => setTagEntrySubTab("form")}
-                >
-                  Tag Entry
-                </button>
-                <button
-                  className={`py-2 px-4 font-medium text-sm ${
-                    tagEntrySubTab === "settings"
-                      ? "border-b-2 border-blue-500 text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                  onClick={() => setTagEntrySubTab("settings")}
-                >
-                  Settings
-                </button>
-              </div>
-              
-              {/* Sub-tab Content */}
-              <div className="mb-6">
-                {tagEntrySubTab === "form" && (
-                  <TagEntryForm 
-                    dcNumbers={dcNumbers}
-                    dcPartCodes={dcPartCodes}
-                    onAddDcNumber={addDcNumber}
-                  />
-                )}
-                {tagEntrySubTab === "settings" && (
-                  <SettingsTab 
-                    dcNumbers={dcNumbers}
-                    onAddDcNumber={addDcNumber}
-                  />
-                )}
+            <div className="bg-white rounded-lg shadow-md p-6 flex flex-col flex-1 min-h-0">
+              {/* Main Tag Entry Form */}
+              <div className="flex-1 min-h-0 mb-6">
+                <TagEntryForm 
+                  dcNumbers={dcNumbers}
+                  dcPartCodes={dcPartCodes}
+                  onAddDcNumber={addDcNumber}
+                />
               </div>
             </div>
           )}

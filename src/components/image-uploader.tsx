@@ -132,7 +132,7 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
         <CardTitle className="font-headline text-lg">Image Input</CardTitle>
 
       </CardHeader>
-      <CardContent className="p-0 relative aspect-[4/5.5] bg-muted/30 flex-1">
+      <CardContent className="p-0 relative bg-muted/30 flex-1">
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />

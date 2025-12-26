@@ -661,7 +661,7 @@ export default function Home() {
                 isLoading={isLoading}
               />
             </div>
-            <div className="lg:w-3/5 xl:w-2/3">
+            <div className="lg:w-3/5 xl:w-2/3 flex flex-col">
               <ValidateDataSection
                 initialData={currentExtractedData}
                 isLoading={isLoading}

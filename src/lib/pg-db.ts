@@ -466,6 +466,47 @@ export async function deleteConsolidatedDataEntry(id: string): Promise<boolean> 
   }
 }
 
+// Helper function to convert date to MySQL format (YYYY-MM-DD)
+export function convertToMysqlDate(dateStr: string | null): string | null {
+  if (!dateStr || dateStr.trim() === '') {
+    return null;
+  }
+  
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  // Try to parse DD/MM/YYYY or MM/DD/YYYY format
+  const parts = dateStr.split(/[\/-]/);
+  if (parts.length === 3) {
+    const [first, second, year] = parts;
+    
+    // If year is 2 digits, convert to 4 digits (assuming 20xx)
+    let fullYear = year.length === 2 ? `20${year}` : year;
+    
+    // Check if first part looks like day (1-31) or month (1-12)
+    const firstNum = parseInt(first, 10);
+    const secondNum = parseInt(second, 10);
+    
+    // If first number is more than 12, assume it's DD/MM/YYYY
+    if (firstNum > 12) {
+      // DD/MM/YYYY format
+      const day = first.padStart(2, '0');
+      const month = second.padStart(2, '0');
+      return `${fullYear}-${month}-${day}`;
+    } else {
+      // Assume MM/DD/YYYY format
+      const month = first.padStart(2, '0');
+      const day = second.padStart(2, '0');
+      return `${fullYear}-${month}-${day}`;
+    }
+  }
+  
+  // If we can't parse it, return as is and let PostgreSQL handle the error
+  return dateStr;
+}
+
 // Clear all consolidated data entries
 export async function clearConsolidatedData(): Promise<void> {
   try {

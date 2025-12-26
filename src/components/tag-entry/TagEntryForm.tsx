@@ -196,17 +196,17 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-
-    
+  
+      
     // Handle mfgMonthYear field specially to validate and format MM/YYYY
     if (name === 'mfgMonthYear') {
       // Allow only digits and forward slash
       if (!/^[0-9\/]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-      
+        
       let formattedValue = value;
-      
+        
       // Auto-format as user types
       if (value.length === 2 && !value.includes('/')) {
         formattedValue = value + '/';
@@ -217,7 +217,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         // Limit to MM/YYYY format (7 characters max)
         formattedValue = value.substring(0, 7);
       }
-      
+        
       setFormData(prev => ({
         ...prev,
         [name]: formattedValue
@@ -226,10 +226,10 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     // Handle dateOfPurchase field to validate and format date
     else if (name === 'dateOfPurchase') {
       // Allow only digits, forward slashes, and hyphens
-      if (!/^[0-9\/\-]*$/.test(value) && value !== '') {
+      if (!/^[0-9\/-]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-      
+        
       setFormData(prev => ({
         ...prev,
         [name]: value
@@ -239,7 +239,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         ...prev,
         [name]: value
       }));
-      
+        
       // Update locked values if lock is active and we're changing DC No or Part Code
       // But prevent changes to locked fields
       if (isDcLocked && (name === 'dcNo' || name === 'partCode')) {
@@ -253,6 +253,28 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         }));
         return;
       }
+    }
+  };
+  
+  const handleSrNoIncrement = () => {
+    const currentSrNo = parseInt(formData.srNo || '0');
+    if (!isNaN(currentSrNo)) {
+      const newSrNo = currentSrNo + 1;
+      setFormData(prev => ({
+        ...prev,
+        srNo: String(newSrNo).padStart(3, '0')
+      }));
+    }
+  };
+  
+  const handleSrNoDecrement = () => {
+    const currentSrNo = parseInt(formData.srNo || '0');
+    if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
+      const newSrNo = currentSrNo - 1;
+      setFormData(prev => ({
+        ...prev,
+        srNo: String(newSrNo).padStart(3, '0')
+      }));
     }
   };
 
@@ -577,13 +599,31 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-sm flex flex-col flex-1 min-h-0">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Sr. No.:</label>
+          <div className="flex justify-between items-center mb-1">
+            <label className="text-sm font-medium text-gray-700">Sr. No.:</label>
+            <div className="flex space-x-1">
+              <button 
+                type="button" 
+                onClick={() => handleSrNoIncrement()}
+                className="text-gray-700 hover:text-gray-900 px-1"
+              >
+                +
+              </button>
+              <button 
+                type="button" 
+                onClick={() => handleSrNoDecrement()}
+                className="text-gray-700 hover:text-gray-900 px-1"
+              >
+                -
+              </button>
+            </div>
+          </div>
           <input
             type="text"
             name="srNo"
             value={formData.srNo || ''}
-            readOnly
-            className="w-full p-2 text-sm border border-gray-300 rounded bg-gray-100 h-9"
+            onChange={handleChange}
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
         <div>

@@ -155,7 +155,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         // Save to consolidated data table
         const result = await saveConsolidatedData(consolidatedData);
         if (result.success) {
-          
+
         } else {
           console.error('Error saving consolidated data automatically:', result.error);
         }
@@ -286,6 +286,22 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
   };
 
+  const handleSrNoIncrement = () => {
+    const currentSrNo = parseInt(srNo || '0');
+    if (!isNaN(currentSrNo)) {
+      const newSrNo = currentSrNo + 1;
+      setSrNo(String(newSrNo).padStart(3, '0'));
+    }
+  };
+
+  const handleSrNoDecrement = () => {
+    const currentSrNo = parseInt(srNo || '0');
+    if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
+      const newSrNo = currentSrNo - 1;
+      setSrNo(String(newSrNo).padStart(3, '0'));
+    }
+  };
+
   // Function to validate BOM analysis
   const validateBomAnalysis = async (analysisText: string) => {
     if (!analysisText.trim()) {
@@ -377,7 +393,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       // Save to consolidated data table
       const result = await saveConsolidatedData(consolidatedData);
       if (result.success) {
-        
+
       } else {
         console.error('Error saving consolidated data:', result.error);
       }
@@ -433,7 +449,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       // Save to consolidated data table (this will create a new entry since we don't have an update function)
       const result = await saveConsolidatedData(consolidatedData);
       if (result.success) {
-        
+
       } else {
         console.error('Error updating consolidated data:', result.error);
       }
@@ -609,7 +625,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       <div className="flex-1 flex flex-col min-h-0">
         {/* Find Section - Moved to the top */}
         <div className="bg-white rounded-md shadow-sm ">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 ">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
               <div className="flex gap-1">
@@ -646,7 +662,27 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Serial No.</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-sm font-medium text-gray-700">Serial No.</label>
+                <div className="flex space-x-1">
+                  <button 
+                    type="button" 
+                    onClick={() => handleSrNoIncrement()}
+                    className="text-gray-700 hover:text-gray-900 px-1"
+                    disabled={isPcbFound}
+                  >
+                    +
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleSrNoDecrement()}
+                    className="text-gray-700 hover:text-gray-900 px-1"
+                    disabled={isPcbFound}
+                  >
+                    -
+                  </button>
+                </div>
+              </div>
               <input
                 type="text"
                 value={srNo}
@@ -656,18 +692,18 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 disabled={isPcbFound}
               />
             </div>
-          <div className="mt-2 flex justify-center items-center">
-            <button
-              onClick={handleFind}
-              disabled={isSearching || isPcbFound}
-              className={`px-3 py-1 text-sm rounded ${isSearching || isPcbFound
+            <div className="mt-2 flex justify-center items-center">
+              <button
+                onClick={handleFind}
+                disabled={isSearching || isPcbFound}
+                className={`px-3 py-1 text-sm rounded ${isSearching || isPcbFound
                   ? 'bg-gray-400 cursor-not-allowed text-gray-200'
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-            >
-              {isSearching ? 'Finding...' : 'Find PCB'}
-            </button>
-          </div>
+                  }`}
+              >
+                {isSearching ? 'Finding...' : 'Find PCB'}
+              </button>
+            </div>
           </div>
 
         </div>
@@ -732,7 +768,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2 p-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">PCB Sr No:</label>
               <div className="p-1 text-sm border border-gray-300 rounded bg-gray-100 font-mono truncate h-8 flex items-center">
@@ -752,18 +788,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 <option value="Engineer 1">Engineer 1</option>
                 <option value="Engineer 2">Engineer 2</option>
               </select>
-            </div>          
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dispatch Date:</label>
-              <input
-                type="date"
-                name="dispatchDate"
-                value={formData.dispatchDate}
-                onChange={handleChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
-                disabled={!isPcbFound}
-              />
             </div>
+
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
             <div>
@@ -813,8 +839,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               type="submit"
               disabled={!isPcbFound}
               className={`px-3 py-1 text-sm rounded ${isPcbFound
-                  ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'bg-gray-400 cursor-not-allowed text-gray-200'
+                ? 'bg-green-500 hover:bg-green-600 text-white'
+                : 'bg-gray-400 cursor-not-allowed text-gray-200'
                 }`}
             >
               Consume
@@ -900,8 +926,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               onClick={handleUpdate}
               disabled={!selectedEntryId}
               className={`px-3 py-1 text-sm rounded ${selectedEntryId
-                  ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                  : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 }`}
             >
               Update
@@ -910,8 +936,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               onClick={handleDelete}
               disabled={!selectedEntryId}
               className={`px-3 py-1 text-sm rounded ${selectedEntryId
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 }`}
             >
               Delete

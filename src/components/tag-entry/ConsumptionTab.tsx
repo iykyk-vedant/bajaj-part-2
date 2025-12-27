@@ -139,6 +139,17 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
           srNo: srNo,
           dcNo: dcNo,
           partCode: partCode,
+          // Include default tag entry values that are not available in consumption
+          branch: '',
+          bccdName: '',
+          productDescription: '',
+          productSrNo: '',
+          dateOfPurchase: '',
+          complaintNo: '',
+          defect: '',
+          visitingTechName: '',
+          mfgMonthYear: '',
+          // Consumption-specific fields
           repairDate: formData.repairDate,
           testing: formData.testing,
           failure: formData.failure,
@@ -152,12 +163,44 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
           dispatchDate: formData.dispatchDate,
         };
 
-        // Save to consolidated data table
-        const result = await saveConsolidatedData(consolidatedData);
+        // First try to find an existing consolidated data entry with the same srNo, dcNo, and partCode
+        const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+        const result = await getConsolidatedDataEntries();
+        
         if (result.success) {
+          const allEntries = result.data || [];
+          // Find an entry with matching srNo, dcNo, and partCode
+          const existingEntry = allEntries.find((entry: any) => 
+            entry.sr_no === srNo && entry.dc_no === dcNo && entry.part_code === partCode
+          );
           
+          if (existingEntry) {
+            // Update the existing entry
+            const { updateConsolidatedData } = await import('@/app/actions/consumption-actions');
+            const updateResult = await updateConsolidatedData(existingEntry.id, consolidatedData);
+            if (updateResult.success) {
+              console.log('Consolidated data entry updated successfully');
+            } else {
+              console.error('Error updating consolidated data:', updateResult.error);
+              // If update fails, try to save as new entry
+              const saveResult = await saveConsolidatedData(consolidatedData);
+              if (!saveResult.success) {
+                console.error('Error saving consolidated data as new entry:', saveResult.error);
+              }
+            }
+          } else {
+            // No existing entry found, save as new
+            const saveResult = await saveConsolidatedData(consolidatedData);
+            if (!saveResult.success) {
+              console.error('Error saving consolidated data:', saveResult.error);
+            }
+          }
         } else {
-          console.error('Error saving consolidated data automatically:', result.error);
+          // If we can't fetch existing entries, save as new
+          const saveResult = await saveConsolidatedData(consolidatedData);
+          if (!saveResult.success) {
+            console.error('Error saving consolidated data:', saveResult.error);
+          }
         }
       } catch (error) {
         console.error('Error saving consolidated data automatically:', error);
@@ -361,6 +404,17 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         srNo: srNo,
         dcNo: dcNo,
         partCode: partCode,
+        // Include default tag entry values that are not available in consumption
+        branch: '',
+        bccdName: '',
+        productDescription: '',
+        productSrNo: '',
+        dateOfPurchase: '',
+        complaintNo: '',
+        defect: '',
+        visitingTechName: '',
+        mfgMonthYear: '',
+        // Consumption-specific fields
         repairDate: formData.repairDate,
         testing: formData.testing,
         failure: formData.failure,
@@ -374,12 +428,44 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         dispatchDate: formData.dispatchDate,
       };
 
-      // Save to consolidated data table
-      const result = await saveConsolidatedData(consolidatedData);
+      // First try to find an existing consolidated data entry with the same srNo, dcNo, and partCode
+      const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+      const result = await getConsolidatedDataEntries();
+      
       if (result.success) {
+        const allEntries = result.data || [];
+        // Find an entry with matching srNo, dcNo, and partCode
+        const existingEntry = allEntries.find((entry: any) => 
+          entry.sr_no === srNo && entry.dc_no === dcNo && entry.part_code === partCode
+        );
         
+        if (existingEntry) {
+          // Update the existing entry
+          const { updateConsolidatedData } = await import('@/app/actions/consumption-actions');
+          const updateResult = await updateConsolidatedData(existingEntry.id, consolidatedData);
+          if (updateResult.success) {
+            console.log('Consolidated data entry updated successfully');
+          } else {
+            console.error('Error updating consolidated data:', updateResult.error);
+            // If update fails, try to save as new entry
+            const saveResult = await saveConsolidatedData(consolidatedData);
+            if (!saveResult.success) {
+              console.error('Error saving consolidated data as new entry:', saveResult.error);
+            }
+          }
+        } else {
+          // No existing entry found, save as new
+          const saveResult = await saveConsolidatedData(consolidatedData);
+          if (!saveResult.success) {
+            console.error('Error saving consolidated data:', saveResult.error);
+          }
+        }
       } else {
-        console.error('Error saving consolidated data:', result.error);
+        // If we can't fetch existing entries, save as new
+        const saveResult = await saveConsolidatedData(consolidatedData);
+        if (!saveResult.success) {
+          console.error('Error saving consolidated data:', saveResult.error);
+        }
       }
 
       // Implementation for consuming data
@@ -417,6 +503,17 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         srNo: srNo,
         dcNo: dcNo,
         partCode: partCode,
+        // Include default tag entry values that are not available in consumption
+        branch: '',
+        bccdName: '',
+        productDescription: '',
+        productSrNo: '',
+        dateOfPurchase: '',
+        complaintNo: '',
+        defect: '',
+        visitingTechName: '',
+        mfgMonthYear: '',
+        // Consumption-specific fields
         repairDate: formData.repairDate,
         testing: formData.testing,
         failure: formData.failure,
@@ -430,12 +527,44 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         dispatchDate: formData.dispatchDate,
       };
 
-      // Save to consolidated data table (this will create a new entry since we don't have an update function)
-      const result = await saveConsolidatedData(consolidatedData);
+      // First try to find an existing consolidated data entry with the same srNo, dcNo, and partCode
+      const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+      const result = await getConsolidatedDataEntries();
+      
       if (result.success) {
+        const allEntries = result.data || [];
+        // Find an entry with matching srNo, dcNo, and partCode
+        const existingEntry = allEntries.find((entry: any) => 
+          entry.sr_no === srNo && entry.dc_no === dcNo && entry.part_code === partCode
+        );
         
+        if (existingEntry) {
+          // Update the existing entry
+          const { updateConsolidatedData } = await import('@/app/actions/consumption-actions');
+          const updateResult = await updateConsolidatedData(existingEntry.id, consolidatedData);
+          if (updateResult.success) {
+            console.log('Consolidated data entry updated successfully');
+          } else {
+            console.error('Error updating consolidated data:', updateResult.error);
+            // If update fails, try to save as new entry
+            const saveResult = await saveConsolidatedData(consolidatedData);
+            if (!saveResult.success) {
+              console.error('Error saving consolidated data as new entry:', saveResult.error);
+            }
+          }
+        } else {
+          // No existing entry found, save as new
+          const saveResult = await saveConsolidatedData(consolidatedData);
+          if (!saveResult.success) {
+            console.error('Error saving consolidated data:', saveResult.error);
+          }
+        }
       } else {
-        console.error('Error updating consolidated data:', result.error);
+        // If we can't fetch existing entries, save as new
+        const saveResult = await saveConsolidatedData(consolidatedData);
+        if (!saveResult.success) {
+          console.error('Error saving consolidated data:', saveResult.error);
+        }
       }
     } catch (error) {
       console.error('Error updating consolidated data:', error);

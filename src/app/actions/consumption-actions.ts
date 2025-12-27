@@ -124,6 +124,24 @@ export async function getConsolidatedDataEntries() {
   }
 }
 
+// Server action to update consolidated data entry
+export async function updateConsolidatedData(id: string, data: any) {
+  try {
+    const { updateConsolidatedDataEntry } = await import('@/lib/pg-db');
+    const result = await updateConsolidatedDataEntry(id, data);
+    return {
+      success: result,
+      data: result
+    };
+  } catch (error) {
+    console.error('Error updating consolidated data entry:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
 // Server action to delete consolidated data entry
 export async function deleteConsolidatedDataEntryAction(id: string) {
   try {

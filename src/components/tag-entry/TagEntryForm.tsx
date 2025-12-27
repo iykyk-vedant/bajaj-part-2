@@ -337,11 +337,66 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     // Save to database
     const saveToDatabase = async () => {
       try {
-        const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
-        const result = await saveConsolidatedData(entryToSave);
+        const { saveConsolidatedData, updateConsolidatedData } = await import('@/app/actions/consumption-actions');
+        // Map tag entry data to consolidated format
+        const consolidatedData = {
+          ...entryToSave,
+          // Map natureOfDefect to defect for consolidated table
+          defect: entryToSave.natureOfDefect,
+          // Initialize consumption-specific fields as empty
+          repairDate: '',
+          testing: '',
+          failure: '',
+          status: '',
+          rfObservation: '',
+          analysis: '',
+          validationResult: '',
+          componentChange: '',
+          enggName: '',
+          dispatchDate: '',
+        };
         
-        if (!result.success) {
-          console.error('Failed to save entry to database:', result.error);
+        if (formData.id) {
+          // If we have an ID, this is an update operation
+          // We need to find the consolidated data entry by some unique identifier
+          // Since consolidated_data doesn't have a direct id match with form data, 
+          // we'll need to find by srNo, dcNo, and partCode
+          const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+          const result = await getConsolidatedDataEntries();
+          
+          if (result.success) {
+            const allEntries = result.data || [];
+            // Find an entry with matching srNo, dcNo, and partCode
+            const existingEntry = allEntries.find((entry: any) => 
+              entry.sr_no === entryToSave.srNo && entry.dc_no === entryToSave.dcNo && entry.part_code === entryToSave.partCode
+            );
+            
+            if (existingEntry) {
+              // Update the existing entry
+              const updateResult = await updateConsolidatedData(existingEntry.id, consolidatedData);
+              if (!updateResult.success) {
+                console.error('Failed to update entry in database:', updateResult.error);
+              }
+            } else {
+              // No existing entry found, save as new
+              const saveResult = await saveConsolidatedData(consolidatedData);
+              if (!saveResult.success) {
+                console.error('Failed to save entry to database:', saveResult.error);
+              }
+            }
+          } else {
+            // If we can't fetch existing entries, save as new
+            const saveResult = await saveConsolidatedData(consolidatedData);
+            if (!saveResult.success) {
+              console.error('Failed to save entry to database:', saveResult.error);
+            }
+          }
+        } else {
+          // New entry, save to database
+          const saveResult = await saveConsolidatedData(consolidatedData);
+          if (!saveResult.success) {
+            console.error('Failed to save entry to database:', saveResult.error);
+          }
         }
       } catch (e) {
         console.error('Error saving entry to database:', e);
@@ -388,11 +443,23 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     const deleteFromDatabase = async () => {
       if (formData.id) {
         try {
-          const { deleteConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
-          const result = await deleteConsolidatedDataEntryAction(formData.id);
+          // For deletion, we need to find the consolidated data entry by matching fields
+          const { getConsolidatedDataEntries, deleteConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
+          const result = await getConsolidatedDataEntries();
           
-          if (!result.success) {
-            console.error('Failed to delete entry from database:', result.error);
+          if (result.success) {
+            const allEntries = result.data || [];
+            // Find an entry with matching srNo, dcNo, and partCode
+            const entryToDelete = allEntries.find((entry: any) => 
+              entry.sr_no === formData.srNo && entry.dc_no === formData.dcNo && entry.part_code === formData.partCode
+            );
+            
+            if (entryToDelete) {
+              const deleteResult = await deleteConsolidatedDataEntryAction(entryToDelete.id);
+              if (!deleteResult.success) {
+                console.error('Failed to delete entry from database:', deleteResult.error);
+              }
+            }
           }
         } catch (e) {
           console.error('Error deleting entry from database:', e);

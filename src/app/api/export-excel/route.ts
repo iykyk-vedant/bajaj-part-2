@@ -16,9 +16,9 @@ import { TagEntry } from '@/lib/tag-entry/types';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get tag entries from request body
-    const body = await request.json();
-    const entries: TagEntry[] = body.entries;
+    // Get all consolidated data entries from the database instead of from request body
+    const { getAllConsolidatedDataEntries } = await import('@/lib/pg-db');
+    const entries = await getAllConsolidatedDataEntries();
 
     if (!entries || entries.length === 0) {
       return NextResponse.json(
@@ -71,34 +71,34 @@ export async function POST(request: NextRequest) {
       const dateTimeStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
 
       // Map each field according to template column order
-      row.getCell(1).value = entry.srNo || (index + 1).toString(); // Sr_No
-      row.getCell(2).value = entry.dcNo || ''; // DC_No
-      row.getCell(3).value = dateStr; // DC_Date (using current date as placeholder)
+      row.getCell(1).value = entry.sr_no || (index + 1).toString(); // Sr_No
+      row.getCell(2).value = entry.dc_no || ''; // DC_No
+      row.getCell(3).value = entry.dc_date || dateStr; // DC_Date
       row.getCell(4).value = entry.branch || ''; // Branch
-      row.getCell(5).value = entry.bccdName || ''; // BCCD_Name
-      row.getCell(6).value = entry.productDescription || ''; // Product_Description
-      row.getCell(7).value = entry.productSrNo || ''; // Product_Sr_No
-      row.getCell(8).value = entry.dateOfPurchase || ''; // Date_of_Purchase
-      row.getCell(9).value = entry.complaintNo || ''; // Complaint_No
-      row.getCell(10).value = entry.partCode || ''; // PartCode
-      row.getCell(11).value = entry.natureOfDefect || ''; // Defect
-      row.getCell(12).value = entry.visitingTechName || ''; // Visiting_Tech_Name
-      row.getCell(13).value = entry.mfgMonthYear || ''; // Mfg_Month_Year
-      row.getCell(14).value = ''; // Repair_Date (not in tag entry, leave blank)
-      row.getCell(15).value = ''; // Defect_Age (not in tag entry, leave blank)
-      row.getCell(16).value = entry.pcbSrNo || ''; // PCB_Sr_No
-      row.getCell(17).value = ''; // RF_Observation (not in tag entry, leave blank)
-      row.getCell(18).value = ''; // Testing (not in tag entry, leave blank)
-      row.getCell(19).value = ''; // Failuer (not in tag entry, leave blank)
-      row.getCell(20).value = ''; // Analysis (not in tag entry, leave blank)
-      row.getCell(21).value = ''; // Component_Consumption (not in tag entry, leave blank)
-      row.getCell(22).value = ''; // Status (not in tag entry, leave blank)
-      row.getCell(23).value = ''; // Send_Date (not in tag entry, leave blank)
-      row.getCell(24).value = ''; // Engg_Name (not in tag entry, leave blank)
-      row.getCell(25).value = 'Yes'; // Tag_Entry (mark as Yes since we're exporting tag entries)
+      row.getCell(5).value = entry.bccd_name || ''; // BCCD_Name
+      row.getCell(6).value = entry.product_description || ''; // Product_Description
+      row.getCell(7).value = entry.product_sr_no || ''; // Product_Sr_No
+      row.getCell(8).value = entry.date_of_purchase || ''; // Date_of_Purchase
+      row.getCell(9).value = entry.complaint_no || ''; // Complaint_No
+      row.getCell(10).value = entry.part_code || ''; // PartCode
+      row.getCell(11).value = entry.defect || ''; // Defect (was natureOfDefect)
+      row.getCell(12).value = entry.visiting_tech_name || ''; // Visiting_Tech_Name
+      row.getCell(13).value = entry.mfg_month_year || ''; // Mfg_Month_Year
+      row.getCell(14).value = entry.repair_date || ''; // Repair_Date
+      row.getCell(15).value = ''; // Defect_Age (not in consolidated data, leave blank)
+      row.getCell(16).value = entry.pcb_sr_no || ''; // PCB_Sr_No
+      row.getCell(17).value = entry.rf_observation || ''; // RF_Observation
+      row.getCell(18).value = entry.testing || ''; // Testing
+      row.getCell(19).value = entry.failure || ''; // Failure
+      row.getCell(20).value = entry.analysis || ''; // Analysis
+      row.getCell(21).value = entry.component_change || ''; // Component_Consumption
+      row.getCell(22).value = entry.status || ''; // Status
+      row.getCell(23).value = entry.dispatch_date || ''; // Send_Date (using dispatch date)
+      row.getCell(24).value = entry.engg_name || ''; // Engg_Name
+      row.getCell(25).value = 'Yes'; // Tag_Entry (mark as Yes since we're exporting consolidated entries)
       row.getCell(26).value = dateTimeStr; // Tag_Entry_Date (current date)
-      row.getCell(27).value = ''; // Consumption_Entry (not applicable for tag entries)
-      row.getCell(28).value = ''; // Consumption_Entry_Date (not applicable for tag entries)
+      row.getCell(27).value = 'Yes'; // Consumption_Entry (mark as Yes since we're exporting consolidated entries)
+      row.getCell(28).value = dateTimeStr; // Consumption_Entry_Date (current date)
 
       // Apply formatting to match template style
       row.eachCell((cell) => {

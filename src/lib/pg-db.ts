@@ -452,6 +452,61 @@ export async function getAllConsolidatedDataEntries(): Promise<any[]> {
   }
 }
 
+// Update a specific consolidated data entry
+export async function updateConsolidatedDataEntry(id: string, entry: any): Promise<boolean> {
+  try {
+    // Handle empty dates by converting them to NULL
+    const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? entry.dcDate : null;
+    const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? entry.dateOfPurchase : null;
+    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? entry.repairDate : null;
+    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? entry.dispatchDate : null;
+    
+    await pool.query(
+      `UPDATE consolidated_data SET
+         sr_no = $1, dc_no = $2, dc_date = $3, branch = $4, bccd_name = $5,
+         product_description = $6, product_sr_no = $7, date_of_purchase = $8,
+         complaint_no = $9, part_code = $10, defect = $11, visiting_tech_name = $12,
+         mfg_month_year = $13, repair_date = $14, testing = $15, failure = $16,
+         status = $17, pcb_sr_no = $18, rf_observation = $19, analysis = $20,
+         validation_result = $21, component_change = $22, engg_name = $23, dispatch_date = $24,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $25`,
+      [
+        entry.srNo,
+        entry.dcNo,
+        dcDateValue,
+        entry.branch,
+        entry.bccdName,
+        entry.productDescription,
+        entry.productSrNo,
+        dateOfPurchaseValue,
+        entry.complaintNo,
+        entry.partCode,
+        entry.defect,
+        entry.visitingTechName,
+        entry.mfgMonthYear,
+        repairDateValue,
+        entry.testing,
+        entry.failure,
+        entry.status,
+        entry.pcbSrNo,
+        entry.rfObservation,
+        entry.analysis,
+        entry.validationResult,
+        entry.componentChange,
+        entry.enggName,
+        dispatchDateValue,
+        id
+      ]
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating consolidated data entry:', error);
+    return false;
+  }
+}
+
 // Delete a specific consolidated data entry
 export async function deleteConsolidatedDataEntry(id: string): Promise<boolean> {
   try {

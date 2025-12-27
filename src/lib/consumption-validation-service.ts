@@ -1,5 +1,5 @@
 import pool from './pg-db';
-import { getBomDescription, checkIfLocationExists, checkComponentForPartCode, convertToMysqlDate } from './pg-db';
+import { getBomDescription, checkIfLocationExists, checkComponentForPartCode, convertToPostgresDate } from './pg-db';
 
 // Defect keywords to remove from component analysis
 const DEFECT_KEYWORDS = ['FAULTY', 'DAMAGE', 'BURN', 'DEFECTIVE', 'BAD', 'ERROR'];
@@ -190,9 +190,9 @@ export async function saveConsumptionEntry(entry: {
 }): Promise<boolean> {
   try {
     // Handle empty dates by converting them to NULL and format to MySQL date format
-    const dispatchDateValue = convertToMysqlDate(entry.dispatchDate);
-    const repairDateValue = convertToMysqlDate(entry.repairDate);
-    const consumptionEntryDateValue = convertToMysqlDate(entry.consumptionEntryDate);
+    const dispatchDateValue = convertToPostgresDate(entry.dispatchDate);
+    const repairDateValue = convertToPostgresDate(entry.repairDate);
+    const consumptionEntryDateValue = convertToPostgresDate(entry.consumptionEntryDate);
     
     await pool.query(`
       INSERT INTO consumption_entries 

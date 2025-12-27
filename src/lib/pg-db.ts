@@ -395,10 +395,10 @@ export async function addSampleBomData() {
 export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
   try {
     // Handle empty dates by converting them to NULL
-    const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? entry.dcDate : null;
-    const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? entry.dateOfPurchase : null;
-    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? entry.repairDate : null;
-    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? entry.dispatchDate : null;
+    const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? convertToPostgresDate(entry.dcDate) : null;
+    const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? convertToPostgresDate(entry.dateOfPurchase) : null;
+    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? convertToPostgresDate(entry.repairDate) : null;
+    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
     
     await pool.query(`
       INSERT INTO consolidated_data 
@@ -456,10 +456,10 @@ export async function getAllConsolidatedDataEntries(): Promise<any[]> {
 export async function updateConsolidatedDataEntry(id: string, entry: any): Promise<boolean> {
   try {
     // Handle empty dates by converting them to NULL
-    const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? entry.dcDate : null;
-    const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? entry.dateOfPurchase : null;
-    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? entry.repairDate : null;
-    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? entry.dispatchDate : null;
+    const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? convertToPostgresDate(entry.dcDate) : null;
+    const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? convertToPostgresDate(entry.dateOfPurchase) : null;
+    const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? convertToPostgresDate(entry.repairDate) : null;
+    const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
     
     await pool.query(
       `UPDATE consolidated_data SET
@@ -521,8 +521,8 @@ export async function deleteConsolidatedDataEntry(id: string): Promise<boolean> 
   }
 }
 
-// Helper function to convert date to MySQL format (YYYY-MM-DD)
-export function convertToMysqlDate(dateStr: string | null): string | null {
+// Helper function to convert date to PostgreSQL compatible format (YYYY-MM-DD)
+export function convertToPostgresDate(dateStr: string | null): string | null {
   if (!dateStr || dateStr.trim() === '') {
     return null;
   }
@@ -532,7 +532,7 @@ export function convertToMysqlDate(dateStr: string | null): string | null {
     return dateStr;
   }
   
-  // Try to parse DD/MM/YYYY or MM/DD/YYYY format
+  // Try to parse DD/MM/YYYY or MM/DD/YYYY or DD-MM-YYYY format
   const parts = dateStr.split(/[\/-]/);
   if (parts.length === 3) {
     const [first, second, year] = parts;
@@ -544,14 +544,14 @@ export function convertToMysqlDate(dateStr: string | null): string | null {
     const firstNum = parseInt(first, 10);
     const secondNum = parseInt(second, 10);
     
-    // If first number is more than 12, assume it's DD/MM/YYYY
+    // If first number is more than 12, assume it's DD/MM/YYYY or DD-MM-YYYY
     if (firstNum > 12) {
-      // DD/MM/YYYY format
+      // DD/MM/YYYY or DD-MM-YYYY format
       const day = first.padStart(2, '0');
       const month = second.padStart(2, '0');
       return `${fullYear}-${month}-${day}`;
     } else {
-      // Assume MM/DD/YYYY format
+      // Assume MM/DD/YYYY or MM-DD-YYYY format
       const month = first.padStart(2, '0');
       const day = second.padStart(2, '0');
       return `${fullYear}-${month}-${day}`;

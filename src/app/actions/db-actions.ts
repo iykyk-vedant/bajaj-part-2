@@ -22,24 +22,30 @@ export async function getDcNumbersAction() {
 // Server action to add a DC number
 export async function addDcNumberAction(dcNo: string, partCode: string, currentDcNumbers: string[], currentDcPartCodes: Record<string, string[]>) {
   try {
-    // Import the function here to avoid client-side import
-    const { addDcNumberWithPartCode } = await import('@/lib/dc-data-sync');
+    // Check if DC number already exists
+    const existingDcData = await getAllDcNumbers();
+    const dcExists = existingDcData.some(item => item.dcNumber === dcNo);
     
-    const { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } = addDcNumberWithPartCode(
-      dcNo,
-      partCode,
-      currentDcNumbers,
-      currentDcPartCodes
-    );
-    
-    // Get the part codes for this DC number
-    const partCodes = updatedDcPartCodes[dcNo] || [];
+    // Prepare part codes - if DC exists, get existing part codes and add the new one
+    let partCodes: string[] = [];
+    if (dcExists) {
+      const existingPartCodes = existingDcData.find(item => item.dcNumber === dcNo)?.partCodes || [];
+      // Add new part code if it doesn't already exist
+      if (partCode && !existingPartCodes.includes(partCode)) {
+        partCodes = [...existingPartCodes, partCode];
+      } else {
+        partCodes = existingPartCodes;
+      }
+    } else {
+      // For new DC number, add the part code
+      partCodes = partCode ? [partCode] : [];
+    }
     
     // Save to database
     const result = await addDcNumber(dcNo, partCodes);
     
     if (result) {
-      return { success: true, dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes };
+      return { success: true, message: dcExists ? 'Part code added to existing DC number successfully' : 'DC number created successfully' };
     } else {
       return { success: false, error: 'Failed to save DC number to database' };
     }

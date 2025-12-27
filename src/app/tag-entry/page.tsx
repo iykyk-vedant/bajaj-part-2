@@ -42,28 +42,23 @@ export default function TagEntryPage() {
 
   // Function to add a new DC number with Part Code
   const addDcNumber = async (dcNo: string, partCode: string) => {
-    const { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } = addDcNumberWithPartCode(
-      dcNo,
-      partCode,
-      dcNumbers,
-      dcPartCodes
-    );
-    
     // Save to database
     try {
-      const result = await addDcNumberAction(dcNo, partCode, updatedDcNumbers, updatedDcPartCodes);
+      const result = await addDcNumberAction(dcNo, partCode, dcNumbers, dcPartCodes);
       
       if (result.success) {
-        setDcNumbers(result.dcNumbers || []);
-        setDcPartCodes(result.dcPartCodes || {});
+        // Reload DC numbers and part codes from database to reflect the changes
+        const loadedDcNumbers = await loadDcNumbersFromDb();
+        const loadedDcPartCodes = await loadDcPartCodesFromDb();
+        
+        setDcNumbers(loadedDcNumbers);
+        setDcPartCodes(loadedDcPartCodes);
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
       console.error('Error saving DC number to database:', error);
-      // Fallback to updating state without database save
-      setDcNumbers(updatedDcNumbers);
-      setDcPartCodes(updatedDcPartCodes);
+      alert(`Error saving DC number: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -204,7 +199,6 @@ export default function TagEntryPage() {
                 <TagEntryForm 
                   dcNumbers={dcNumbers}
                   dcPartCodes={dcPartCodes}
-                  onAddDcNumber={addDcNumber}
                 />
               </div>
             </div>

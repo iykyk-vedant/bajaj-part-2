@@ -318,6 +318,13 @@ export async function updateSheetName(sheetId: string, name: string): Promise<vo
 
 export async function deleteSheet(sheetId: string): Promise<void> {
   try {
+    // First delete all associated data from sheet_data table
+    await pool.query(
+      'DELETE FROM sheet_data WHERE sheet_id = $1',
+      [sheetId]
+    );
+    
+    // Then delete the sheet itself
     await pool.query(
       'DELETE FROM sheets WHERE id = $1',
       [sheetId]

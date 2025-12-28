@@ -66,6 +66,32 @@ export default function TagEntryPage() {
     }
   };
 
+  // Listen for refresh events from child components
+  useEffect(() => {
+    const handleRefreshDcNumbers = () => {
+      const loadDcData = async () => {
+        const loadedDcNumbers = await loadDcNumbersFromDb();
+        const loadedDcPartCodes = await loadDcPartCodesFromDb();
+        
+        setDcNumbers(loadedDcNumbers);
+        setDcPartCodes(loadedDcPartCodes);
+      };
+      
+      loadDcData();
+    };
+    
+    const eventListener = (e: CustomEvent) => {
+      setDcNumbers(e.detail.dcNumbers);
+      setDcPartCodes(e.detail.dcPartCodes);
+    };
+    
+    window.addEventListener('refreshDcNumbers', eventListener as EventListener);
+    
+    return () => {
+      window.removeEventListener('refreshDcNumbers', eventListener as EventListener);
+    };
+  }, []);
+
   // Check for hash fragment to switch to consumption tab
   useEffect(() => {
     if (typeof window !== 'undefined') {

@@ -23,12 +23,12 @@ interface TagEntryFormProps {
   initialData?: any;
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
-  onAddDcNumber?: (dcNo: string, partCode: string) => Promise<void>;
+
 }
 
 const STORAGE_KEY = 'tag-entries';
 
-export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, onAddDcNumber }: TagEntryFormProps) {
+export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: TagEntryFormProps) {
   const { isDcLocked } = useLockStore();
   const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -161,7 +161,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     if (formData.dcNo && !formData.pcbSrNo) {
       try {
 
-        const pcb = generatePcbNumber(formData.dcNo);
+        const pcb = generatePcbNumber(formData.dcNo, formData.srNo);
 
         setFormData(prev => ({
           ...prev,
@@ -377,11 +377,87 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     // Save to database
     const saveToDatabase = async () => {
       try {
-        const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
-        const result = await saveConsolidatedData(entryToSave);
-
-        if (!result.success) {
-          console.error('Failed to save entry to database:', result.error);
+        const { saveConsolidatedData, getConsolidatedDataEntries, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
+        
+        // Check if an entry with the same srNo, dcNo, and partCode already exists
+        const result = await getConsolidatedDataEntries();
+        
+        if (result.success) {
+          const allEntries = result.data || [];
+          // Find an entry with matching srNo, dcNo, and partCode
+          const existingEntry = allEntries.find((entry: any) => 
+            entry.sr_no === entryToSave.srNo && entry.dc_no === entryToSave.dcNo && entry.part_code === entryToSave.partCode
+          );
+          
+          if (existingEntry) {
+            // Update the existing entry
+            const updateResult = await updateConsolidatedDataEntryAction(existingEntry.id, {
+              ...entryToSave,
+              // Map natureOfDefect to defect for consolidated table
+              defect: entryToSave.natureOfDefect,
+              // Initialize consumption-specific fields as empty
+              repairDate: '',
+              testing: '',
+              failure: '',
+              status: '',
+              rfObservation: '',
+              analysis: '',
+              validationResult: '',
+              componentChange: '',
+              enggName: '',
+              dispatchDate: '',
+            });
+            
+            if (!updateResult.success) {
+              console.error('Failed to update entry in database:', updateResult.error);
+            }
+          } else {
+            // No existing entry found, save as new
+            const consolidatedData = {
+              ...entryToSave,
+              // Map natureOfDefect to defect for consolidated table
+              defect: entryToSave.natureOfDefect,
+              // Initialize consumption-specific fields as empty
+              repairDate: '',
+              testing: '',
+              failure: '',
+              status: '',
+              rfObservation: '',
+              analysis: '',
+              validationResult: '',
+              componentChange: '',
+              enggName: '',
+              dispatchDate: '',
+            };
+            const saveResult = await saveConsolidatedData(consolidatedData);
+            
+            if (!saveResult.success) {
+              console.error('Failed to save entry to database:', saveResult.error);
+            }
+          }
+        } else {
+          // If we can't fetch existing entries, save as new
+          const consolidatedData = {
+            ...entryToSave,
+            // Map natureOfDefect to defect for consolidated table
+            defect: entryToSave.natureOfDefect,
+            // Initialize consumption-specific fields as empty
+            repairDate: '',
+            testing: '',
+            failure: '',
+            status: '',
+            rfObservation: '',
+            analysis: '',
+            validationResult: '',
+            componentChange: '',
+            enggName: '',
+            dispatchDate: '',
+          };
+          const saveResult = await saveConsolidatedData(consolidatedData);
+          
+          if (!saveResult.success) {
+            console.error('Failed to save entry to database:', saveResult.error);
+          }
         }
       } catch (e) {
         console.error('Error saving entry to database:', e);
@@ -474,13 +550,38 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   const handleCreateDC = async () => {
     if (newDcNo.trim()) {
       try {
-        await onAddDcNumber?.(newDcNo.trim(), newPartCode.trim());
-        setNewDcNo('');
-        setNewPartCode('');
-        setIsDcModalOpen(false);
-        // Show success message
-        alert(`DC Number "${newDcNo.trim()}" with Part Code "${newPartCode.trim()}" has been created successfully!`);
+        // Call the server action to add DC number to database
+        const { addDcNumberAction } = await import('@/app/actions/db-actions');
+        const result = await addDcNumberAction(newDcNo.trim(), newPartCode.trim(), dcNumbers, dcPartCodes);
+        
+        if (result.success) {
+          setNewDcNo('');
+          setNewPartCode('');
+          setIsDcModalOpen(false);
+          
+          // Show success message
+          alert(`DC Number "${newDcNo.trim()}" with Part Code "${newPartCode.trim()}" has been created successfully!`);
+          
+          // Optionally, update the form to use the new DC number
+          setFormData(prev => ({
+            ...prev,
+            dcNo: newDcNo.trim()
+          }));
+          
+          // Reload DC numbers and part codes from the database to reflect the changes
+          const { loadDcNumbersFromDb, loadDcPartCodesFromDb } = await import('@/lib/dc-data-sync');
+          const updatedDcNumbers = await loadDcNumbersFromDb();
+          const updatedDcPartCodes = await loadDcPartCodesFromDb();
+          
+          // Update parent component's state by calling a callback if provided
+          window.dispatchEvent(new CustomEvent('refreshDcNumbers', { 
+            detail: { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } 
+          }));
+        } else {
+          alert(`Error creating DC Number: ${result.error}`);
+        }
       } catch (error) {
+        console.error('Error creating DC Number:', error);
         alert('Error creating DC Number. Please try again.');
       }
     } else {
@@ -647,37 +748,36 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           <div className="flex justify-between items-center mb-1">
             <label className="text-sm font-medium text-gray-700">DC No:</label>
             <div className="flex items-center gap-2">
-              {onAddDcNumber && (
-                <Dialog open={isDcModalOpen} onOpenChange={setIsDcModalOpen}>
-                  <DialogTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-gray-700 hover:text-gray-900"
-                    >
-                      +
-                    </button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Create New DC</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={isDcLocked ? useLockStore.getState().lockedDcNo : newDcNo}
-                            onChange={(e) => setNewDcNo(e.target.value)}
-                            disabled={isDcLocked}
-                            className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
-                            placeholder="Enter DC No."
-                          />
-                          <LockButton dcNo={newDcNo} partCode={newPartCode} />
-                        </div>
+              <Dialog open={isDcModalOpen} onOpenChange={setIsDcModalOpen}>
+                <DialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    +
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Create New DC</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={isDcLocked ? useLockStore.getState().lockedDcNo : newDcNo}
+                          onChange={(e) => setNewDcNo(e.target.value)}
+                          disabled={isDcLocked}
+                          className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                          placeholder="Enter DC No."
+                        />
+                        <LockButton dcNo={newDcNo} partCode={newPartCode} />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
                         <input
                           type="text"
                           value={isDcLocked ? useLockStore.getState().lockedPartCode : newPartCode}
@@ -686,19 +786,18 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
                           className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
                           placeholder="Enter Part Code"
                         />
-                      </div>
                     </div>
-                    <DialogFooter>
-                      <button
-                        onClick={handleCreateDC}
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
-                      >
-                        Create DC
-                      </button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )}
+                  </div>
+                  <DialogFooter>
+                    <button
+                      onClick={handleCreateDC}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                    >
+                      Create DC
+                    </button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <LockButton dcNo={formData.dcNo} partCode={formData.partCode} />
             </div>
           </div>

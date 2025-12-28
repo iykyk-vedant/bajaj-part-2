@@ -36,6 +36,8 @@ const extractDataPrompt = ai.definePrompt({
   - Date of Purchase
   - Complaint No.
   - Nature of Defect
+  - Defect
+  - Visiting Technician Name
   - Technician Name
   - Others (for any text that does not fit in the above fields)
 
@@ -61,6 +63,8 @@ const extractDataFlow = ai.defineFlow(
     } catch (error) {
       // Re-throw the error with additional context
       if (error instanceof Error) {
+        console.error('Error in extractDataPrompt:', error);
+        
         // Check if it's a service unavailable error
         if (error.message.includes('503') || error.message.includes('Service Unavailable') || error.message.includes('overloaded')) {
           throw new Error('The AI service is currently overloaded. Please try again in a few minutes.');
@@ -77,14 +81,48 @@ const extractDataFlow = ai.defineFlow(
             productSrNo: '',
             dateOfPurchase: '',
             complaintNo: '',
+            natureOfDefect: '',
             defect: '',
             visitingTechName: '',
+            technicianName: '',
             others: '',
           };
         }
-        throw error;
+        
+        // For other errors, log them and return empty data as fallback
+        console.error('Unexpected error during data extraction:', error.message);
+        return {
+          branch: '',
+          bccdName: '',
+          productDescription: '',
+          sparePartCode: '',
+          productSrNo: '',
+          dateOfPurchase: '',
+          complaintNo: '',
+          natureOfDefect: '',
+          defect: '',
+          visitingTechName: '',
+          technicianName: '',
+          others: '',
+        };
       }
-      throw new Error('An unknown error occurred during data extraction.');
+      
+      // If error is not an instance of Error, return empty data as fallback
+      console.error('Unknown error type during data extraction:', error);
+      return {
+        branch: '',
+        bccdName: '',
+        productDescription: '',
+        sparePartCode: '',
+        productSrNo: '',
+        dateOfPurchase: '',
+        complaintNo: '',
+        natureOfDefect: '',
+        defect: '',
+        visitingTechName: '',
+        technicianName: '',
+        others: '',
+      };
     }
   }
 );

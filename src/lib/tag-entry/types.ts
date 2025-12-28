@@ -1,5 +1,5 @@
 export interface TagEntry {
-  id?: string;
+  id?: string | number;
   srNo: string;
   dcNo: string;
   branch: string;

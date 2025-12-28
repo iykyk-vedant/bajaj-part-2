@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       { header: 'Date of Purchase', key: 'dateOfPurchase', width: 20 },
       { header: 'Complaint No', key: 'complaintNo', width: 20 },
       { header: 'Part Code', key: 'partCode', width: 15 },
-      { header: 'Defect', key: 'defect', width: 20 },
+      { header: 'Nature of Defect', key: 'natureOfDefect', width: 20 },
       { header: 'Visiting Tech Name', key: 'visitingTechName', width: 25 },
       { header: 'Mfg Month/Year', key: 'mfgMonthYear', width: 20 },
       { header: 'Repair Date', key: 'repairDate', width: 15 },
@@ -45,19 +45,19 @@ export async function POST(request: Request) {
     // Add all consolidated data to the worksheet
     allConsolidatedData.forEach((entry: any) => {
       worksheet.addRow({
-        srNo: entry.sr_no || '',
-        dcNo: entry.dc_no || '',
-        dcDate: entry.dc_date || '',
-        branch: entry.branch || '',
-        bccdName: entry.bccd_name || '',
-        productDescription: entry.product_description || '',
-        productSrNo: entry.product_sr_no || '',
-        dateOfPurchase: entry.date_of_purchase || '',
-        complaintNo: entry.complaint_no || '',
-        partCode: entry.part_code || '',
-        defect: entry.defect || '',
-        visitingTechName: entry.visiting_tech_name || '',
-        mfgMonthYear: entry.mfg_month_year || '',
+        srNo: tagEntry.srNo,
+        dcNo: tagEntry.dcNo,
+        dcDate: tagEntry.dateOfPurchase, // Assuming DC Date is the same as Date of Purchase
+        branch: tagEntry.branch,
+        bccdName: tagEntry.bccdName,
+        productDescription: tagEntry.productDescription,
+        productSrNo: tagEntry.productSrNo,
+        dateOfPurchase: tagEntry.dateOfPurchase,
+        complaintNo: tagEntry.complaintNo,
+        partCode: tagEntry.partCode,
+        natureOfDefect: tagEntry.natureOfDefect,
+        visitingTechName: tagEntry.visitingTechName,
+        mfgMonthYear: tagEntry.mfgMonthYear,
         // Consumption-specific fields
         repairDate: entry.repair_date || '',
         testing: entry.testing || '',
@@ -71,6 +71,39 @@ export async function POST(request: Request) {
         enggName: entry.engg_name || '',
         dispatchDate: entry.dispatch_date || '',
       });
+    });
+
+    // Add any consumption entries that don't have corresponding tag entries
+    consumptionEntries.forEach((entry: any) => {
+      if (entry.srNo && !tagEntryMap.has(entry.srNo)) {
+        worksheet.addRow({
+          srNo: entry.srNo || '',
+          dcNo: '',
+          dcDate: '',
+          branch: '',
+          bccdName: '',
+          productDescription: '',
+          productSrNo: '',
+          dateOfPurchase: '',
+          complaintNo: '',
+          partCode: '',
+          natureOfDefect: '',
+          visitingTechName: '',
+          mfgMonthYear: '',
+          // Consumption-specific fields
+          repairDate: entry.repairDate,
+          testing: entry.testing,
+          failure: entry.failure,
+          status: entry.status,
+          pcbSrNo: entry.pcbSrNo,
+          rfObservation: entry.rfObservation,
+          analysis: entry.analysis,
+          validationResult: entry.validationResult,
+          componentChange: entry.componentChange,
+          enggName: entry.enggName,
+          dispatchDate: entry.dispatchDate,
+        });
+      }
     });
 
     // Generate Excel file

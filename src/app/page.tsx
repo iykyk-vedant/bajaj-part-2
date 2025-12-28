@@ -9,6 +9,7 @@ import { ImageUploader } from '@/components/image-uploader';
 import { TagEntryForm } from '@/components/tag-entry/TagEntryForm';
 import { SettingsTab } from '@/components/tag-entry/SettingsTab';
 import { FindTab } from '@/components/tag-entry/FindTab';
+import { DispatchTab } from '@/components/tag-entry/DispatchTab';
 import { ConsumptionTab } from '@/components/tag-entry/ConsumptionTab';
 import { ValidateDataSection } from '@/components/validate-data-section';
 
@@ -19,6 +20,7 @@ import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
 import { addDcNumberWithPartCode } from '@/lib/dc-data-sync';
 import { getDcNumbersAction, addDcNumberAction } from '@/app/actions/db-actions';
 import { TagEntryPreview } from '@/components/tag-entry/TagEntryPreview';
+import { EngineerName } from '@/components/ui/engineer-name';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,6 +101,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<
     "tag-entry" | "dispatch" | "consumption"
   >("tag-entry");
+
+  // Engineer name state that persists across tabs
+  const [engineerName, setEngineerName] = useState<string>('');
 
   // Sub-tab state for Tag Entry
   const [tagEntrySubTab, setTagEntrySubTab] = useState<"form" | "settings">("form");
@@ -657,34 +662,56 @@ export default function Home() {
 
       <main className="flex-1 px-4 h-[calc(100vh-120px)] flex flex-col">
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 mb-4">
-          <button
-            className={`py-2 px-4 font-medium text-sm ${activeTab === "tag-entry"
-              ? "border-b-2 border-blue-500 text-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-            onClick={() => setActiveTab("tag-entry")}
-          >
-            Tag Entry
-          </button>
-          <button
-            className={`py-2 px-4 font-medium text-sm ${activeTab === "consumption"
-              ? "border-b-2 border-blue-500 text-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-            onClick={() => setActiveTab("consumption")}
-          >
-            Consumption
-          </button>
-          <button
-            className={`py-2 px-4 font-medium text-sm ${activeTab === "dispatch"
-              ? "border-b-2 border-blue-500 text-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-            onClick={() => setActiveTab("dispatch")}
-          >
-            Dispatch
-          </button>
+        <div className="flex border-b border-gray-200 mb-2">
+          <div className="flex flex-1">
+            <button
+              className={`py-2 px-4 font-medium text-sm ${activeTab === "tag-entry"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+              onClick={() => setActiveTab("tag-entry")}
+            >
+              Tag Entry
+            </button>
+            <button
+              className={`py-2 px-4 font-medium text-sm ${activeTab === "consumption"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+              onClick={() => setActiveTab("consumption")}
+            >
+              Consumption
+            </button>
+            <button
+              className={`py-2 px-4 font-medium text-sm ${activeTab === "dispatch"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+              onClick={() => setActiveTab("dispatch")}
+            >
+              Dispatch
+            </button>
+          </div>
+          {activeTab === "consumption" && (
+            <div className="flex items-center">
+              <div className="text-sm font-medium text-gray-700 mr-2">Engg Name:</div>
+              <EngineerName
+                value={engineerName}
+                onChange={setEngineerName}
+                className="w-48"
+              />
+            </div>
+          )}
+          {activeTab === "dispatch" && (
+            <div className="flex items-center">
+              <div className="text-sm font-medium text-gray-700 mr-2">Engg Name:</div>
+              <EngineerName
+                value={engineerName}
+                onChange={setEngineerName}
+                className="w-48"
+              />
+            </div>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -711,8 +738,8 @@ export default function Home() {
         )}
 
         {activeTab === "dispatch" && (
-          <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
-            <FindTab
+          <div className="w-full bg-white rounded-lg shadow-md p-6 flex-1">
+            <DispatchTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
               onExportExcel={handleTagEntryExportExcel}
@@ -725,6 +752,8 @@ export default function Home() {
             <ConsumptionTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
+              engineerName={engineerName}
+              onEngineerNameChange={setEngineerName}
             />
           </div>
         )}

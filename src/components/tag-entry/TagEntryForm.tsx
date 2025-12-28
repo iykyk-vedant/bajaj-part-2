@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,22 +23,23 @@ interface TagEntryFormProps {
   initialData?: any;
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
+  onAddDcNumber?: (dcNo: string, partCode: string) => Promise<void>;
 }
 
 const STORAGE_KEY = 'tag-entries';
 
-export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: TagEntryFormProps) {
+export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, onAddDcNumber }: TagEntryFormProps) {
   const { isDcLocked } = useLockStore();
   const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showSavedList, setShowSavedList] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // State for DC creation modal
   const [isDcModalOpen, setIsDcModalOpen] = useState(false);
   const [newDcNo, setNewDcNo] = useState('');
   const [newPartCode, setNewPartCode] = useState('');
-  
+
   const STORAGE_KEY = 'tag-entries';
 
   const [formData, setFormData] = useState<TagEntry>({
@@ -63,7 +65,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
       try {
         const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
         const result = await getConsolidatedDataEntries();
-        
+
         if (result.success) {
           const entries = result.data || [];
           // Convert consolidated data to TagEntry format
@@ -78,14 +80,14 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
             dateOfPurchase: entry.date_of_purchase || '',
             complaintNo: entry.complaint_no || '',
             partCode: entry.part_code || '',
-            natureOfDefect: entry.defect || '',
+            natureOfDefect: entry.nature_of_defect || '',
             visitingTechName: entry.visiting_tech_name || '',
             mfgMonthYear: entry.mfg_month_year || '',
             pcbSrNo: entry.pcb_sr_no || '',
           }));
-          
+
           setSavedEntries(tagEntries);
-          
+
           // Update serial number if there are existing entries
           // For initial load, we'll set it to 1, then it will be updated when DC is selected
           setFormData(prev => ({
@@ -97,7 +99,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
         console.error('Error loading entries from database:', e);
       }
     };
-    
+
     loadSavedEntries();
   }, []);
 
@@ -111,11 +113,27 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
         const [year, month] = mfgMonthYear.split('-');
         mfgMonthYear = `${month}/${year}`;
       }
-      
+
       setFormData(prev => {
+        // Calculate next sequential serial number for the selected DC
+        const dcNo = initialData.dcNo || prev.dcNo;
+        let newSrNo = prev.srNo; // Default to current srNo
+
+        if (dcNo) {
+          // Find entries with the same DC number
+          const dcEntries = savedEntries.filter(entry => entry.dcNo === dcNo);
+
+          // Calculate next sequential number (1, 2, 3, ...)
+          const nextSrNo = dcEntries.length > 0
+            ? Math.max(...dcEntries.map(e => parseInt(e.srNo) || 0)) + 1
+            : 1;
+
+          newSrNo = String(nextSrNo).padStart(3, '0');
+        }
+
         const newFormData = {
           id: initialData.id || prev.id,
-          srNo: initialData.srNo || prev.srNo,
+          srNo: newSrNo, // Automatically increment serial number
           dcNo: initialData.dcNo || prev.dcNo,
           branch: initialData.branch || prev.branch,
           bccdName: initialData.bccdName || prev.bccdName,
@@ -134,12 +152,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
         return newFormData;
       });
     }
-  }, [initialData]);
+  }, [initialData, savedEntries]);
 
   // Auto-generate PCB serial number when DC number changes
   // Only generate if no PCB number is already set
   useEffect(() => {
-    
+
     if (formData.dcNo && !formData.pcbSrNo) {
       try {
 
@@ -174,12 +192,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     if (formData.dcNo) {
       // Find entries with the same DC number
       const dcEntries = savedEntries.filter(entry => entry.dcNo === formData.dcNo);
-      
+
       // Calculate next sequential number (1, 2, 3, ...)
-      const nextSrNo = dcEntries.length > 0 
+      const nextSrNo = dcEntries.length > 0
         ? Math.max(...dcEntries.map(e => parseInt(e.srNo) || 0)) + 1
         : 1;
-      
+
       setFormData(prev => ({
         ...prev,
         srNo: String(nextSrNo).padStart(3, '0')
@@ -196,16 +214,16 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
-    
+
     // Handle mfgMonthYear field specially to validate and format MM/YYYY
     if (name === 'mfgMonthYear') {
       // Allow only digits and forward slash
       if (!/^[0-9\/]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-      
+
       let formattedValue = value;
-      
+
       // Auto-format as user types
       if (value.length === 2 && !value.includes('/')) {
         formattedValue = value + '/';
@@ -216,19 +234,19 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
         // Limit to MM/YYYY format (7 characters max)
         formattedValue = value.substring(0, 7);
       }
-      
+
       setFormData(prev => ({
         ...prev,
         [name]: formattedValue
       }));
-    } 
+    }
     // Handle dateOfPurchase field to validate and format date
     else if (name === 'dateOfPurchase') {
       // Allow only digits, forward slashes, and hyphens
-      if (!/^[0-9\/\-]*$/.test(value) && value !== '') {
+      if (!/^[0-9\/-]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-      
+
       setFormData(prev => ({
         ...prev,
         [name]: value
@@ -238,7 +256,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
         ...prev,
         [name]: value
       }));
-      
+
       // Update locked values if lock is active and we're changing DC No or Part Code
       // But prevent changes to locked fields
       if (isDcLocked && (name === 'dcNo' || name === 'partCode')) {
@@ -255,15 +273,37 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     }
   };
 
+  const handleSrNoIncrement = () => {
+    const currentSrNo = parseInt(formData.srNo || '0');
+    if (!isNaN(currentSrNo)) {
+      const newSrNo = currentSrNo + 1;
+      setFormData(prev => ({
+        ...prev,
+        srNo: String(newSrNo).padStart(3, '0')
+      }));
+    }
+  };
+
+  const handleSrNoDecrement = () => {
+    const currentSrNo = parseInt(formData.srNo || '0');
+    if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
+      const newSrNo = currentSrNo - 1;
+      setFormData(prev => ({
+        ...prev,
+        srNo: String(newSrNo).padStart(3, '0')
+      }));
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate required fields
     if (!formData.dcNo || !formData.productSrNo || !formData.complaintNo) {
       alert('Please fill in all required fields: DC No., Product Sr No., and Complaint No.');
       return;
     }
-    
+
     // Validate Mfg Month/Year format if provided
     if (formData.mfgMonthYear) {
       const parts = formData.mfgMonthYear.split('/');
@@ -271,27 +311,27 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
         alert('Mfg Month/Year must be in MM/YYYY format');
         return;
       }
-      
+
       const [month, year] = parts;
       const monthNum = parseInt(month, 10);
       const yearNum = parseInt(year, 10);
-      
+
       if (isNaN(monthNum) || isNaN(yearNum) || month.length !== 2 || year.length !== 4) {
         alert('Mfg Month/Year must be in MM/YYYY format (e.g., 05/2025)');
         return;
       }
-      
+
       if (monthNum < 1 || monthNum > 12) {
         alert('Month must be between 01 and 12');
         return;
       }
-      
+
       if (yearNum < 1900 || yearNum > 2100) {
         alert('Year must be between 1900 and 2100');
         return;
       }
     }
-    
+
     // Validate Date of Purchase format if provided
     if (formData.dateOfPurchase) {
       // Allow formats like DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
@@ -301,7 +341,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
         return;
       }
     }
-    
+
     const entryToSave: TagEntry = {
       id: formData.id || Date.now().toString(),
       srNo: formData.srNo || '001',
@@ -322,7 +362,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     let updatedEntries: TagEntry[];
     if (formData.id) {
       // Update existing entry
-      updatedEntries = savedEntries.map(entry => 
+      updatedEntries = savedEntries.map(entry =>
         entry.id === formData.id ? entryToSave : entry
       );
       alert('Entry updated successfully!');
@@ -333,76 +373,21 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     }
 
     setSavedEntries(updatedEntries);
-    
+
     // Save to database
     const saveToDatabase = async () => {
       try {
-        const { saveConsolidatedData, updateConsolidatedData } = await import('@/app/actions/consumption-actions');
-        // Map tag entry data to consolidated format
-        const consolidatedData = {
-          ...entryToSave,
-          // Map natureOfDefect to defect for consolidated table
-          defect: entryToSave.natureOfDefect,
-          // Initialize consumption-specific fields as empty
-          repairDate: '',
-          testing: '',
-          failure: '',
-          status: '',
-          rfObservation: '',
-          analysis: '',
-          validationResult: '',
-          componentChange: '',
-          enggName: '',
-          dispatchDate: '',
-        };
-        
-        if (formData.id) {
-          // If we have an ID, this is an update operation
-          // We need to find the consolidated data entry by some unique identifier
-          // Since consolidated_data doesn't have a direct id match with form data, 
-          // we'll need to find by srNo, dcNo, and partCode
-          const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
-          const result = await getConsolidatedDataEntries();
-          
-          if (result.success) {
-            const allEntries = result.data || [];
-            // Find an entry with matching srNo, dcNo, and partCode
-            const existingEntry = allEntries.find((entry: any) => 
-              entry.sr_no === entryToSave.srNo && entry.dc_no === entryToSave.dcNo && entry.part_code === entryToSave.partCode
-            );
-            
-            if (existingEntry) {
-              // Update the existing entry
-              const updateResult = await updateConsolidatedData(existingEntry.id, consolidatedData);
-              if (!updateResult.success) {
-                console.error('Failed to update entry in database:', updateResult.error);
-              }
-            } else {
-              // No existing entry found, save as new
-              const saveResult = await saveConsolidatedData(consolidatedData);
-              if (!saveResult.success) {
-                console.error('Failed to save entry to database:', saveResult.error);
-              }
-            }
-          } else {
-            // If we can't fetch existing entries, save as new
-            const saveResult = await saveConsolidatedData(consolidatedData);
-            if (!saveResult.success) {
-              console.error('Failed to save entry to database:', saveResult.error);
-            }
-          }
-        } else {
-          // New entry, save to database
-          const saveResult = await saveConsolidatedData(consolidatedData);
-          if (!saveResult.success) {
-            console.error('Failed to save entry to database:', saveResult.error);
-          }
+        const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
+        const result = await saveConsolidatedData(entryToSave);
+
+        if (!result.success) {
+          console.error('Failed to save entry to database:', result.error);
         }
       } catch (e) {
         console.error('Error saving entry to database:', e);
       }
     };
-    
+
     saveToDatabase();
 
     // Reset form after save
@@ -410,7 +395,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     // Show saved list after save
     setShowSavedList(true);
     setShowSearchResults(false);
-    
+
     // Emit event to notify other components that an entry was saved
     tagEntryEventEmitter.emit(TAG_ENTRY_EVENTS.ENTRY_SAVED, entryToSave);
   };
@@ -420,7 +405,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
       alert('No saved entries found. Please save an entry first.');
       return;
     }
-    
+
     // Show all entries for selection
     setShowSavedList(true);
     setShowSearchResults(false);
@@ -438,40 +423,28 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
 
     const updatedEntries = savedEntries.filter(entry => entry.id !== formData.id);
     setSavedEntries(updatedEntries);
-    
+
     // Remove from database
     const deleteFromDatabase = async () => {
       if (formData.id) {
         try {
-          // For deletion, we need to find the consolidated data entry by matching fields
-          const { getConsolidatedDataEntries, deleteConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
-          const result = await getConsolidatedDataEntries();
-          
-          if (result.success) {
-            const allEntries = result.data || [];
-            // Find an entry with matching srNo, dcNo, and partCode
-            const entryToDelete = allEntries.find((entry: any) => 
-              entry.sr_no === formData.srNo && entry.dc_no === formData.dcNo && entry.part_code === formData.partCode
-            );
-            
-            if (entryToDelete) {
-              const deleteResult = await deleteConsolidatedDataEntryAction(entryToDelete.id);
-              if (!deleteResult.success) {
-                console.error('Failed to delete entry from database:', deleteResult.error);
-              }
-            }
+          const { deleteConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
+          const result = await deleteConsolidatedDataEntryAction(String(formData.id));
+
+          if (!result.success) {
+            console.error('Failed to delete entry from database:', result.error);
           }
         } catch (e) {
           console.error('Error deleting entry from database:', e);
         }
       }
     };
-    
+
     deleteFromDatabase();
 
     alert('Entry deleted successfully!');
     handleClear();
-    
+
     // Emit event to notify other components that an entry was deleted
     tagEntryEventEmitter.emit(TAG_ENTRY_EVENTS.ENTRY_DELETED, formData.id);
   };
@@ -481,8 +454,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
       id: '',
       srNo: '001',
       dcNo: '',
-      branch: '',
-      bccdName: '',
+      branch: 'Mumbai',
+      bccdName: 'BCCD-001',
       productDescription: '',
       productSrNo: '',
       dateOfPurchase: '',
@@ -501,31 +474,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
   const handleCreateDC = async () => {
     if (newDcNo.trim()) {
       try {
-        // Call the server action to add DC number to database
-        const { addDcNumberAction } = await import('@/app/actions/db-actions');
-        const result = await addDcNumberAction(newDcNo.trim(), newPartCode.trim(), dcNumbers, dcPartCodes);
-        
-        if (result.success) {
-          setNewDcNo('');
-          setNewPartCode('');
-          setIsDcModalOpen(false);
-          
-          // Show success message
-          alert(`DC Number "${newDcNo.trim()}" with Part Code "${newPartCode.trim()}" has been created successfully!`);
-          
-          // Optionally, update the form to use the new DC number
-          setFormData(prev => ({
-            ...prev,
-            dcNo: newDcNo.trim()
-          }));
-          
-          // Note: DC numbers will be refreshed automatically on the parent page
-          // since we reload them from the database after creation
-        } else {
-          alert(`Error creating DC Number: ${result.error}`);
-        }
+        await onAddDcNumber?.(newDcNo.trim(), newPartCode.trim());
+        setNewDcNo('');
+        setNewPartCode('');
+        setIsDcModalOpen(false);
+        // Show success message
+        alert(`DC Number "${newDcNo.trim()}" with Part Code "${newPartCode.trim()}" has been created successfully!`);
       } catch (error) {
-        console.error('Error creating DC Number:', error);
         alert('Error creating DC Number. Please try again.');
       }
     } else {
@@ -587,7 +542,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
       const [year, month] = mfgMonthYear.split('-');
       mfgMonthYear = `${month}/${year}`;
     }
-    
+
     setFormData({
       id: entry.id || '',
       srNo: entry.srNo,
@@ -621,7 +576,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
   const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
     // Only handle Alt key combinations
     if (!e.altKey) return;
-    
+
     // Prevent browser default behavior for these shortcuts
     switch (e.key.toLowerCase()) {
       case 's':
@@ -661,69 +616,89 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
     <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-sm flex flex-col flex-1 min-h-0">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Sr. No.:</label>
+          <div className="flex justify-between items-center mb-1">
+            <label className="text-sm font-medium text-gray-700">Sr. No.:</label>
+            <div className="flex space-x-1">
+              <button
+                type="button"
+                onClick={() => handleSrNoIncrement()}
+                className="text-gray-700 hover:text-gray-900 px-1"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSrNoDecrement()}
+                className="text-gray-700 hover:text-gray-900 px-1"
+              >
+                -
+              </button>
+            </div>
+          </div>
           <input
             type="text"
             name="srNo"
             value={formData.srNo || ''}
-            readOnly
-            className="w-full p-2 text-sm border border-gray-300 rounded bg-gray-100 h-9"
+            onChange={handleChange}
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
         <div>
           <div className="flex justify-between items-center mb-1">
             <label className="text-sm font-medium text-gray-700">DC No:</label>
             <div className="flex items-center gap-2">
-              <Dialog open={isDcModalOpen} onOpenChange={setIsDcModalOpen}>
-                <DialogTrigger asChild>
-                  <button 
-                    type="button" 
-                    className="text-gray-700 hover:text-gray-900"
-                  >
-                    +
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Create New DC</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
-                      <div className="flex gap-2">
+              {onAddDcNumber && (
+                <Dialog open={isDcModalOpen} onOpenChange={setIsDcModalOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-gray-700 hover:text-gray-900"
+                    >
+                      +
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Create New DC</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={isDcLocked ? useLockStore.getState().lockedDcNo : newDcNo}
+                            onChange={(e) => setNewDcNo(e.target.value)}
+                            disabled={isDcLocked}
+                            className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                            placeholder="Enter DC No."
+                          />
+                          <LockButton dcNo={newDcNo} partCode={newPartCode} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
                         <input
                           type="text"
-                          value={isDcLocked ? useLockStore.getState().lockedDcNo : newDcNo}
-                          onChange={(e) => setNewDcNo(e.target.value)}
+                          value={isDcLocked ? useLockStore.getState().lockedPartCode : newPartCode}
+                          onChange={(e) => setNewPartCode(e.target.value)}
                           disabled={isDcLocked}
-                          className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
-                          placeholder="Enter DC No."
+                          className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                          placeholder="Enter Part Code"
                         />
-                        <LockButton dcNo={newDcNo} partCode={newPartCode} />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
-                      <input
-                        type="text"
-                        value={isDcLocked ? useLockStore.getState().lockedPartCode : newPartCode}
-                        onChange={(e) => setNewPartCode(e.target.value)}
-                        disabled={isDcLocked}
-                        className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
-                        placeholder="Enter Part Code"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <button
-                      onClick={handleCreateDC}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
-                    >
-                      Create DC
-                    </button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                      <button
+                        onClick={handleCreateDC}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                      >
+                        Create DC
+                      </button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
               <LockButton dcNo={formData.dcNo} partCode={formData.partCode} />
             </div>
           </div>
@@ -738,8 +713,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
             {dcNumbers
               .filter(dc => dc != null && dc !== '')
               .map((dc, index) => (
-              <option key={`${dc}-${index}`} value={dc}>{dc}</option>
-            ))}
+                <option key={`${dc}-${index}`} value={dc}>{dc}</option>
+              ))}
           </select>
         </div>
         <div>
@@ -828,8 +803,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
             {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || [])
               .filter(code => code != null && code !== '')
               .map((code, index) => (
-              <option key={`${code}-${index}`} value={code}>{code}</option>
-            ))}
+                <option key={`${code}-${index}`} value={code}>{code}</option>
+              ))}
           </select>
         </div>
       </div>
@@ -855,6 +830,10 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
             className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
+        
+      {/* </div> */}
+
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3"> */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Mfg Month/Year:</label>
           <input
@@ -957,7 +936,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
             )}
           </div>
         </div>
-        
+
         {/* Search Results */}
         {showSearchResults && filteredResults.length > 0 && (
           <div className="mt-4 max-h-44 overflow-y-auto border border-gray-300 rounded text-sm">
@@ -970,8 +949,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
               >
                 <div className="flex justify-between items-center">
                   <div className="truncate">
-                    <span className="font-medium">DC: {entry.dcNo}</span> | 
-                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
+                    <span className="font-medium">DC: {entry.dcNo}</span> |
+                    <span className="ml-2">Complaint: {entry.complaintNo}</span> |
                     <span className="ml-2">Product Sr: {entry.productSrNo}</span>
                   </div>
                   <span className="text-xs text-gray-500">Click to load</span>
@@ -1002,9 +981,9 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
               >
                 <div className="flex justify-between items-center">
                   <div className="truncate">
-                    <span className="font-medium">Sr. No: {entry.srNo}</span> | 
-                    <span className="ml-2">DC: {entry.dcNo}</span> | 
-                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
+                    <span className="font-medium">Sr. No: {entry.srNo}</span> |
+                    <span className="ml-2">DC: {entry.dcNo}</span> |
+                    <span className="ml-2">Complaint: {entry.complaintNo}</span> |
                     <span className="ml-2">Product Sr: {entry.productSrNo}</span>
                   </div>
                   <span className="text-xs text-gray-500">Click to load</span>

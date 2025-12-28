@@ -6,10 +6,13 @@ import { useLockStore } from '@/store/lockStore';
 import { LockButton } from './LockButton';
 import { validateBomComponents, saveConsolidatedData } from '@/app/actions/consumption-actions';
 import { getPcbNumberForDc } from '@/lib/pcb-utils';
+import { EngineerName } from '@/components/ui/engineer-name';
 
 interface ConsumptionTabProps {
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
+  engineerName?: string;
+  onEngineerNameChange?: (name: string) => void;
 }
 
 interface ConsumptionEntry {
@@ -75,7 +78,7 @@ interface TableRow {
   dispatchDate?: string;
 }
 
-export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: ConsumptionTabProps) {
+export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {}, engineerName = '', onEngineerNameChange }: ConsumptionTabProps) {
   const { isDcLocked } = useLockStore();
   const router = useRouter();
 
@@ -95,7 +98,7 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
     analysis: '',
     validationResult: '',
     componentChange: '',
-    enggName: '',
+    enggName: engineerName || '',
     dispatchDate: '',
   });
 
@@ -115,6 +118,14 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
     () => formData.analysis.replaceAll('/', '\n'),
     [formData.analysis]
   );
+
+  // Effect to update enggName when the prop changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      enggName: engineerName || ''
+    }));
+  }, [engineerName]);
 
   // Effect to validate analysis when partCode changes
   useEffect(() => {
@@ -139,17 +150,6 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
           srNo: srNo,
           dcNo: dcNo,
           partCode: partCode,
-          // Include default tag entry values that are not available in consumption
-          branch: '',
-          bccdName: '',
-          productDescription: '',
-          productSrNo: '',
-          dateOfPurchase: '',
-          complaintNo: '',
-          defect: '',
-          visitingTechName: '',
-          mfgMonthYear: '',
-          // Consumption-specific fields
           repairDate: formData.repairDate,
           testing: formData.testing,
           failure: formData.failure,
@@ -159,48 +159,16 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
           analysis: formData.analysis,
           validationResult: formData.validationResult,
           componentChange: formData.componentChange,
-          enggName: formData.enggName,
+          enggName: engineerName || '', // Use engineer name from navigation tab
           dispatchDate: formData.dispatchDate,
         };
 
-        // First try to find an existing consolidated data entry with the same srNo, dcNo, and partCode
-        const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
-        const result = await getConsolidatedDataEntries();
-        
+        // Save to consolidated data table
+        const result = await saveConsolidatedData(consolidatedData);
         if (result.success) {
-          const allEntries = result.data || [];
-          // Find an entry with matching srNo, dcNo, and partCode
-          const existingEntry = allEntries.find((entry: any) => 
-            entry.sr_no === srNo && entry.dc_no === dcNo && entry.part_code === partCode
-          );
-          
-          if (existingEntry) {
-            // Update the existing entry
-            const { updateConsolidatedData } = await import('@/app/actions/consumption-actions');
-            const updateResult = await updateConsolidatedData(existingEntry.id, consolidatedData);
-            if (updateResult.success) {
-              console.log('Consolidated data entry updated successfully');
-            } else {
-              console.error('Error updating consolidated data:', updateResult.error);
-              // If update fails, try to save as new entry
-              const saveResult = await saveConsolidatedData(consolidatedData);
-              if (!saveResult.success) {
-                console.error('Error saving consolidated data as new entry:', saveResult.error);
-              }
-            }
-          } else {
-            // No existing entry found, save as new
-            const saveResult = await saveConsolidatedData(consolidatedData);
-            if (!saveResult.success) {
-              console.error('Error saving consolidated data:', saveResult.error);
-            }
-          }
+
         } else {
-          // If we can't fetch existing entries, save as new
-          const saveResult = await saveConsolidatedData(consolidatedData);
-          if (!saveResult.success) {
-            console.error('Error saving consolidated data:', saveResult.error);
-          }
+          console.error('Error saving consolidated data automatically:', result.error);
         }
       } catch (error) {
         console.error('Error saving consolidated data automatically:', error);
@@ -263,7 +231,7 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         analysis: entry.analysis,
         validationResult: entry.validationResult,
         componentChange: entry.componentChange,
-        enggName: entry.enggName,
+        enggName: entry.enggName, // Keep the original enggName from the entry for display purposes
         dispatchDate: entry.dispatchDate,
       }))
     ];
@@ -329,6 +297,22 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
     }
   };
 
+  const handleSrNoIncrement = () => {
+    const currentSrNo = parseInt(srNo || '0');
+    if (!isNaN(currentSrNo)) {
+      const newSrNo = currentSrNo + 1;
+      setSrNo(String(newSrNo).padStart(3, '0'));
+    }
+  };
+
+  const handleSrNoDecrement = () => {
+    const currentSrNo = parseInt(srNo || '0');
+    if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
+      const newSrNo = currentSrNo - 1;
+      setSrNo(String(newSrNo).padStart(3, '0'));
+    }
+  };
+
   // Function to validate BOM analysis
   const validateBomAnalysis = async (analysisText: string) => {
     if (!analysisText.trim()) {
@@ -388,6 +372,7 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
     // Save data automatically when consuming
     const newEntry: any = {
       ...formData,
+      enggName: engineerName || '', // Use engineer name from navigation tab
       id: Date.now().toString(), // Simple ID generation
       // Include tag entry information for proper Excel export
       srNo: srNo, // Serial No from the search fields
@@ -404,17 +389,6 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         srNo: srNo,
         dcNo: dcNo,
         partCode: partCode,
-        // Include default tag entry values that are not available in consumption
-        branch: '',
-        bccdName: '',
-        productDescription: '',
-        productSrNo: '',
-        dateOfPurchase: '',
-        complaintNo: '',
-        defect: '',
-        visitingTechName: '',
-        mfgMonthYear: '',
-        // Consumption-specific fields
         repairDate: formData.repairDate,
         testing: formData.testing,
         failure: formData.failure,
@@ -424,48 +398,16 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         analysis: formData.analysis,
         validationResult: formData.validationResult,
         componentChange: formData.componentChange,
-        enggName: formData.enggName,
+        enggName: engineerName || '', // Use engineer name from navigation tab
         dispatchDate: formData.dispatchDate,
       };
 
-      // First try to find an existing consolidated data entry with the same srNo, dcNo, and partCode
-      const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
-      const result = await getConsolidatedDataEntries();
-      
+      // Save to consolidated data table
+      const result = await saveConsolidatedData(consolidatedData);
       if (result.success) {
-        const allEntries = result.data || [];
-        // Find an entry with matching srNo, dcNo, and partCode
-        const existingEntry = allEntries.find((entry: any) => 
-          entry.sr_no === srNo && entry.dc_no === dcNo && entry.part_code === partCode
-        );
-        
-        if (existingEntry) {
-          // Update the existing entry
-          const { updateConsolidatedData } = await import('@/app/actions/consumption-actions');
-          const updateResult = await updateConsolidatedData(existingEntry.id, consolidatedData);
-          if (updateResult.success) {
-            console.log('Consolidated data entry updated successfully');
-          } else {
-            console.error('Error updating consolidated data:', updateResult.error);
-            // If update fails, try to save as new entry
-            const saveResult = await saveConsolidatedData(consolidatedData);
-            if (!saveResult.success) {
-              console.error('Error saving consolidated data as new entry:', saveResult.error);
-            }
-          }
-        } else {
-          // No existing entry found, save as new
-          const saveResult = await saveConsolidatedData(consolidatedData);
-          if (!saveResult.success) {
-            console.error('Error saving consolidated data:', saveResult.error);
-          }
-        }
+
       } else {
-        // If we can't fetch existing entries, save as new
-        const saveResult = await saveConsolidatedData(consolidatedData);
-        if (!saveResult.success) {
-          console.error('Error saving consolidated data:', saveResult.error);
-        }
+        console.error('Error saving consolidated data:', result.error);
       }
 
       // Implementation for consuming data
@@ -503,17 +445,6 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         srNo: srNo,
         dcNo: dcNo,
         partCode: partCode,
-        // Include default tag entry values that are not available in consumption
-        branch: '',
-        bccdName: '',
-        productDescription: '',
-        productSrNo: '',
-        dateOfPurchase: '',
-        complaintNo: '',
-        defect: '',
-        visitingTechName: '',
-        mfgMonthYear: '',
-        // Consumption-specific fields
         repairDate: formData.repairDate,
         testing: formData.testing,
         failure: formData.failure,
@@ -523,55 +454,23 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
         analysis: formData.analysis,
         validationResult: formData.validationResult,
         componentChange: formData.componentChange,
-        enggName: formData.enggName,
+        enggName: engineerName || '', // Use engineer name from navigation tab
         dispatchDate: formData.dispatchDate,
       };
 
-      // First try to find an existing consolidated data entry with the same srNo, dcNo, and partCode
-      const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
-      const result = await getConsolidatedDataEntries();
-      
+      // Save to consolidated data table (this will create a new entry since we don't have an update function)
+      const result = await saveConsolidatedData(consolidatedData);
       if (result.success) {
-        const allEntries = result.data || [];
-        // Find an entry with matching srNo, dcNo, and partCode
-        const existingEntry = allEntries.find((entry: any) => 
-          entry.sr_no === srNo && entry.dc_no === dcNo && entry.part_code === partCode
-        );
-        
-        if (existingEntry) {
-          // Update the existing entry
-          const { updateConsolidatedData } = await import('@/app/actions/consumption-actions');
-          const updateResult = await updateConsolidatedData(existingEntry.id, consolidatedData);
-          if (updateResult.success) {
-            console.log('Consolidated data entry updated successfully');
-          } else {
-            console.error('Error updating consolidated data:', updateResult.error);
-            // If update fails, try to save as new entry
-            const saveResult = await saveConsolidatedData(consolidatedData);
-            if (!saveResult.success) {
-              console.error('Error saving consolidated data as new entry:', saveResult.error);
-            }
-          }
-        } else {
-          // No existing entry found, save as new
-          const saveResult = await saveConsolidatedData(consolidatedData);
-          if (!saveResult.success) {
-            console.error('Error saving consolidated data:', saveResult.error);
-          }
-        }
+
       } else {
-        // If we can't fetch existing entries, save as new
-        const saveResult = await saveConsolidatedData(consolidatedData);
-        if (!saveResult.success) {
-          console.error('Error saving consolidated data:', saveResult.error);
-        }
+        console.error('Error updating consolidated data:', result.error);
       }
     } catch (error) {
       console.error('Error updating consolidated data:', error);
     }
 
     alert('Consumption entry updated successfully!');
-  }, [selectedEntryId, formData, srNo, dcNo, partCode]);
+  }, [selectedEntryId, formData, srNo, dcNo, partCode, engineerName]);
 
   const handleDelete = () => {
     if (!selectedEntryId) {
@@ -601,7 +500,7 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
       analysis: '',
       validationResult: '',
       componentChange: '',
-      enggName: '',
+      enggName: engineerName || '',
       dispatchDate: '',
     });
 
@@ -677,7 +576,7 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
       analysis: entry.analysis,
       validationResult: entry.validationResult,
       componentChange: entry.componentChange,
-      enggName: entry.enggName,
+      enggName: engineerName || '',
       dispatchDate: entry.dispatchDate,
     });
     setSelectedEntryId(entry.id || null);
@@ -738,7 +637,7 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
       <div className="flex-1 flex flex-col min-h-0">
         {/* Find Section - Moved to the top */}
         <div className="bg-white rounded-md shadow-sm ">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 ">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
               <div className="flex gap-1">
@@ -775,7 +674,27 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Serial No.</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-sm font-medium text-gray-700">Serial No.</label>
+                <div className="flex space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSrNoIncrement()}
+                    className="text-gray-700 hover:text-gray-900 px-1"
+                    disabled={isPcbFound}
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSrNoDecrement()}
+                    className="text-gray-700 hover:text-gray-900 px-1"
+                    disabled={isPcbFound}
+                  >
+                    -
+                  </button>
+                </div>
+              </div>
               <input
                 type="text"
                 value={srNo}
@@ -785,25 +704,25 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
                 disabled={isPcbFound}
               />
             </div>
-          <div className="mt-2 flex justify-center items-center">
-            <button
-              onClick={handleFind}
-              disabled={isSearching || isPcbFound}
-              className={`px-3 py-1 text-sm rounded ${isSearching || isPcbFound
+            <div className="mt-2 flex justify-center items-center">
+              <button
+                onClick={handleFind}
+                disabled={isSearching || isPcbFound}
+                className={`px-3 py-1 text-sm rounded ${isSearching || isPcbFound
                   ? 'bg-gray-400 cursor-not-allowed text-gray-200'
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-            >
-              {isSearching ? 'Finding...' : 'Find PCB'}
-            </button>
-          </div>
+                  }`}
+              >
+                {isSearching ? 'Finding...' : 'Find PCB'}
+              </button>
+            </div>
           </div>
 
         </div>
 
         {/* Consumption Form */}
         <form onSubmit={handleConsume} className="bg-white rounded-md shadow-sm mb-2 flex-1 flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 p-2">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2 p-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Repair Date:</label>
               <input
@@ -859,40 +778,13 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
                 <option value="SCRAP">SCRAP</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">PCB Sr No:</label>
               <div className="p-1 text-sm border border-gray-300 rounded bg-gray-100 font-mono truncate h-8 flex items-center">
                 {formData.pcbSrNo}
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Engg Name:</label>
-              <select
-                name="enggName"
-                value={formData.enggName}
-                onChange={handleChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
-                disabled={!isPcbFound}
-              >
-                <option value="">Select</option>
-                <option value="Engineer 1">Engineer 1</option>
-                <option value="Engineer 2">Engineer 2</option>
-              </select>
-            </div>          
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dispatch Date:</label>
-              <input
-                type="date"
-                name="dispatchDate"
-                value={formData.dispatchDate}
-                onChange={handleChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
-                disabled={!isPcbFound}
-              />
-            </div>
+
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
             <div>
@@ -942,8 +834,8 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
               type="submit"
               disabled={!isPcbFound}
               className={`px-3 py-1 text-sm rounded ${isPcbFound
-                  ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'bg-gray-400 cursor-not-allowed text-gray-200'
+                ? 'bg-green-500 hover:bg-green-600 text-white'
+                : 'bg-gray-400 cursor-not-allowed text-gray-200'
                 }`}
             >
               Consume
@@ -967,9 +859,9 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Date of Purchase</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Complaint No</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Part Code</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Defect</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Visiting Tech</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Mfg Month/Year</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Engg Name</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -1005,9 +897,9 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dateOfPurchase}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.complaintNo}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.partCode}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.defect}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.visitingTechName}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.mfgMonthYear}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.enggName}</td>
                   </tr>
                 ))}
                 {tableData.length === 0 && (
@@ -1029,8 +921,8 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
               onClick={handleUpdate}
               disabled={!selectedEntryId}
               className={`px-3 py-1 text-sm rounded ${selectedEntryId
-                  ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                  : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 }`}
             >
               Update
@@ -1039,8 +931,8 @@ export function ConsumptionTab({ dcNumbers = [], dcPartCodes = {} }: Consumption
               onClick={handleDelete}
               disabled={!selectedEntryId}
               className={`px-3 py-1 text-sm rounded ${selectedEntryId
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 }`}
             >
               Delete

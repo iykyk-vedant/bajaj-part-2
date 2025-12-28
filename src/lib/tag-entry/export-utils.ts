@@ -10,18 +10,18 @@ import { TagEntry } from './types';
  */
 export async function exportTagEntriesToExcel(): Promise<void> {
   try {
-    // Get all tag entries from localStorage
-    const STORAGE_KEY = 'tag-entries';
-    const stored = localStorage.getItem(STORAGE_KEY);
+    // Get all tag entries from the database
+    const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+    const result = await getConsolidatedDataEntries();
     
-    if (!stored) {
-      throw new Error('No tag entries found. Please save some entries first.');
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to fetch entries from database');
     }
 
-    const entries: TagEntry[] = JSON.parse(stored);
+    const entries = result.data;
 
     if (!entries || entries.length === 0) {
-      throw new Error('No tag entries to export. Please save some entries first.');
+      throw new Error('No entries to export. Please save some entries first.');
     }
 
     // Call API endpoint with POST request

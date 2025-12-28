@@ -20,6 +20,8 @@ export const ExtractDataOutputSchema = z.object({
   complaintNo: z.string().describe('The complaint number.').optional(),
   sparePartCode: z.string().describe('The spare part code.').optional(),
   natureOfDefect: z.string().describe('The nature of the defect.').optional(),
+  defect: z.string().describe('The defect.').optional(),
+  visitingTechName: z.string().describe('The visiting technician name.').optional(),
   technicianName: z.string().describe('The technician name.').optional(),
   others: z.string().describe("Any other text extracted from the form that doesn't fit into the other fields.").optional(),
 });

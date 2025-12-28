@@ -29,6 +29,64 @@ interface TagEntryPreviewProps {
   refreshTrigger?: number;
 }
 
+// Editable cell component
+interface EditableCellProps {
+  value: string;
+  onSave: (newValue: string) => void;
+  className?: string;
+}
+
+function EditableCell({ value, onSave, className }: EditableCellProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditValue(value);
+  };
+
+  const handleSave = () => {
+    if (editValue !== value) {
+      onSave(editValue);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(value);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      handleCancel();
+    }
+  };
+
+  return (
+    <TableCell 
+      className={className}
+      onClick={handleEdit}
+      style={{ cursor: 'pointer' }}
+    >
+      {isEditing ? (
+        <Input
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="h-6 text-sm p-1"
+        />
+      ) : (
+        <span className="block truncate">{value}</span>
+      )}
+    </TableCell>
+  );
+}
+
 export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntryPreviewProps) {
   const [entries, setEntries] = useState<TagEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<TagEntry[]>([]);
@@ -56,7 +114,7 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
           dateOfPurchase: entry.date_of_purchase ? (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : entry.date_of_purchase instanceof Date ? entry.date_of_purchase.toISOString().split('T')[0] : new Date(entry.date_of_purchase).toISOString().split('T')[0]) : '',
           complaintNo: entry.complaint_no || '',
           partCode: entry.part_code || '',
-          natureOfDefect: entry.defect || '',
+          natureOfDefect: entry.nature_of_defect || entry.defect || '',
           visitingTechName: entry.visiting_tech_name || '',
           mfgMonthYear: entry.mfg_month_year ? (typeof entry.mfg_month_year === 'string' ? entry.mfg_month_year : entry.mfg_month_year instanceof Date ? entry.mfg_month_year.toISOString().split('T')[0] : new Date(entry.mfg_month_year).toISOString().split('T')[0]) : '',
           pcbSrNo: entry.pcb_sr_no || '',
@@ -133,6 +191,60 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
     setFilteredEntries(filtered);
   }, [searchTerm, entries]);
 
+  // Handle saving updated entry
+  const handleSaveEntry = async (entryId: number, field: keyof TagEntry, newValue: string) => {
+    try {
+      // Find the entry to update - handle both string and number IDs
+      const entryToUpdate = entries.find(entry => {
+        if (typeof entry.id === 'number') {
+          return entry.id === entryId;
+        } else if (typeof entry.id === 'string') {
+          return Number(entry.id) === entryId;
+        }
+        return false;
+      });
+      if (!entryToUpdate) return;
+
+      // Create updated entry
+      const updatedEntry = {
+        ...entryToUpdate,
+        [field]: newValue
+      };
+
+      // Call the update server action
+      const { updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
+      const result = await updateConsolidatedDataEntryAction(entryId, updatedEntry);
+
+      if (result.success) {
+        // Update the local state - handle both string and number IDs
+        setEntries(prevEntries => 
+          prevEntries.map(entry => {
+            if (typeof entry.id === 'number') {
+              return entry.id === entryId ? { ...entry, [field]: newValue } : entry;
+            } else if (typeof entry.id === 'string') {
+              return Number(entry.id) === entryId ? { ...entry, [field]: newValue } : entry;
+            }
+            return entry;
+          })
+        );
+        setFilteredEntries(prevEntries => 
+          prevEntries.map(entry => {
+            if (typeof entry.id === 'number') {
+              return entry.id === entryId ? { ...entry, [field]: newValue } : entry;
+            } else if (typeof entry.id === 'string') {
+              return Number(entry.id) === entryId ? { ...entry, [field]: newValue } : entry;
+            }
+            return entry;
+          })
+        );
+      } else {
+        console.error('Failed to update entry:', result.error);
+      }
+    } catch (error) {
+      console.error('Error updating entry:', error);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -196,19 +308,59 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
                 {filteredEntries.length > 0 ? (
                   filteredEntries.map((entry) => (
                     <TableRow key={entry.id || entry.srNo}>
-                      <TableCell className="font-medium">{entry.srNo}</TableCell>
-                      <TableCell>{entry.dcNo}</TableCell>
-                      <TableCell>{entry.branch}</TableCell>
-                      <TableCell>{entry.bccdName}</TableCell>
-                      <TableCell>{entry.productDescription}</TableCell>
-                      <TableCell>{entry.productSrNo}</TableCell>
-                      <TableCell>{entry.dateOfPurchase}</TableCell>
-                      <TableCell>{entry.complaintNo}</TableCell>
-                      <TableCell>{entry.partCode}</TableCell>
-                      <TableCell>{entry.natureOfDefect}</TableCell>
-                      <TableCell>{entry.visitingTechName}</TableCell>
-                      <TableCell>{entry.mfgMonthYear}</TableCell>
-                      <TableCell>{entry.pcbSrNo}</TableCell>
+                      <EditableCell 
+                        value={entry.srNo} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'srNo', newValue)} 
+                        className="font-medium"
+                      />
+                      <EditableCell 
+                        value={entry.dcNo} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'dcNo', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.branch} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'branch', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.bccdName} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'bccdName', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.productDescription} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'productDescription', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.productSrNo} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'productSrNo', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.dateOfPurchase} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'dateOfPurchase', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.complaintNo} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'complaintNo', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.partCode} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'partCode', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.natureOfDefect} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'natureOfDefect', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.visitingTechName} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'visitingTechName', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.mfgMonthYear} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'mfgMonthYear', newValue)} 
+                      />
+                      <EditableCell 
+                        value={entry.pcbSrNo} 
+                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'pcbSrNo', newValue)} 
+                      />
                     </TableRow>
                   ))
                 ) : (

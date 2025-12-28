@@ -86,6 +86,21 @@ export async function initializeDatabase() {
       )
     `);
     
+    // Check if the 'defect' column exists in consumption_entries and drop it if it does
+    try {
+      const [columns]: any = await connection.query(
+        'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+        [databaseName, 'consumption_entries', 'defect']
+      );
+      
+      if (columns.length > 0) {
+        await connection.query('ALTER TABLE consumption_entries DROP COLUMN defect');
+        console.log('Successfully removed deprecated defect column from consumption_entries table');
+      }
+    } catch (error) {
+      console.error('Error checking/dropping defect column in consumption_entries:', error);
+    }
+    
     // Create dc_numbers table for storing DC numbers and their part codes
     await connection.query(`
       CREATE TABLE IF NOT EXISTS dc_numbers (
@@ -111,7 +126,7 @@ export async function initializeDatabase() {
         date_of_purchase DATE,
         complaint_no VARCHAR(255),
         part_code VARCHAR(255),
-        defect TEXT,
+        nature_of_defect TEXT,
         visiting_tech_name VARCHAR(255),
         mfg_month_year VARCHAR(255),
         repair_date DATE,
@@ -132,6 +147,21 @@ export async function initializeDatabase() {
         INDEX idx_part_code (part_code)
       )
     `);
+    
+    // Check if the 'defect' column exists and drop it if it does
+    try {
+      const [columns]: any = await connection.query(
+        'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+        [databaseName, 'consolidated_data', 'defect']
+      );
+      
+      if (columns.length > 0) {
+        await connection.query('ALTER TABLE consolidated_data DROP COLUMN defect');
+        console.log('Successfully removed deprecated defect column from consolidated_data table');
+      }
+    } catch (error) {
+      console.error('Error checking/dropping defect column:', error);
+    }
 
     console.log('Database initialized successfully');
   } catch (error) {
@@ -473,7 +503,7 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
     await pool.execute(`
       INSERT INTO consolidated_data 
       (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
-       date_of_purchase, complaint_no, part_code, defect, visiting_tech_name, mfg_month_year,
+       date_of_purchase, complaint_no, part_code, nature_of_defect, visiting_tech_name, mfg_month_year,
        repair_date, testing, failure, status, pcb_sr_no, rf_observation, analysis, 
        validation_result, component_change, engg_name, dispatch_date)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -488,7 +518,7 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
       dateOfPurchaseValue,
       entry.complaintNo || null,
       entry.partCode || null,
-      entry.defect || null,
+      entry.natureOfDefect || null,
       entry.visitingTechName || null,
       entry.mfgMonthYear || null,
       repairDateValue,
@@ -522,6 +552,37 @@ export async function getAllConsolidatedDataEntries(): Promise<any[]> {
   }
 }
 
+// Search for consolidated data entries by DC number, part code, and serial number
+export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: string, productSrNo?: string): Promise<any[]> {
+  try {
+    let query = 'SELECT * FROM consolidated_data WHERE 1=1';
+    const params: any[] = [];
+    
+    if (dcNo) {
+      query += ' AND dc_no = ?';
+      params.push(dcNo);
+    }
+    
+    if (partCode) {
+      query += ' AND part_code = ?';
+      params.push(partCode);
+    }
+    
+    if (productSrNo) {
+      query += ' AND product_sr_no = ?';
+      params.push(productSrNo);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const [rows]: any = await pool.execute(query, params);
+    return rows;
+  } catch (error) {
+    console.error('Error searching consolidated data entries:', error);
+    return [];
+  }
+}
+
 // Delete a specific consolidated data entry
 export async function deleteConsolidatedDataEntry(id: string): Promise<boolean> {
   try {
@@ -532,6 +593,58 @@ export async function deleteConsolidatedDataEntry(id: string): Promise<boolean> 
     return true;
   } catch (error) {
     console.error('Error deleting consolidated data entry:', error);
+    return false;
+  }
+}
+
+// Update a specific consolidated data entry
+export async function updateConsolidatedDataEntry(id: number, entry: any): Promise<boolean> {
+  try {
+    // Handle empty dates by converting them to NULL and format to MySQL date format
+    const dcDateValue = convertToMysqlDate(entry.dcDate || entry.dc_date);
+    const dateOfPurchaseValue = convertToMysqlDate(entry.dateOfPurchase || entry.date_of_purchase);
+    const repairDateValue = convertToMysqlDate(entry.repairDate || entry.repair_date);
+    const dispatchDateValue = convertToMysqlDate(entry.dispatchDate || entry.dispatch_date);
+    
+    const [result]: any = await pool.execute(
+      `UPDATE consolidated_data 
+       SET sr_no = ?, dc_no = ?, dc_date = ?, branch = ?, bccd_name = ?, product_description = ?, product_sr_no = ?, 
+           date_of_purchase = ?, complaint_no = ?, part_code = ?, nature_of_defect = ?, visiting_tech_name = ?, mfg_month_year = ?,
+           repair_date = ?, testing = ?, failure = ?, status = ?, pcb_sr_no = ?, rf_observation = ?, analysis = ?, 
+           validation_result = ?, component_change = ?, engg_name = ?, dispatch_date = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        entry.srNo || entry.sr_no || null,
+        entry.dcNo || entry.dc_no || null,
+        dcDateValue,
+        entry.branch || null,
+        entry.bccdName || entry.bccd_name || null,
+        entry.productDescription || entry.product_description || null,
+        entry.productSrNo || entry.product_sr_no || null,
+        dateOfPurchaseValue,
+        entry.complaintNo || entry.complaint_no || null,
+        entry.partCode || entry.part_code || null,
+        entry.natureOfDefect || entry.nature_of_defect || null,
+        entry.visitingTechName || entry.visiting_tech_name || null,
+        entry.mfgMonthYear || entry.mfg_month_year || null,
+        repairDateValue,
+        entry.testing || null,
+        entry.failure || null,
+        entry.status || null,
+        entry.pcbSrNo || entry.pcb_sr_no || null,
+        entry.rfObservation || entry.rf_observation || null,
+        entry.analysis || null,
+        entry.validationResult || entry.validation_result || null,
+        entry.componentChange || entry.component_change || null,
+        entry.enggName || entry.engg_name || null,
+        dispatchDateValue,
+        id
+      ]
+    );
+    
+    return result.affectedRows > 0;
+  } catch (error) {
+    console.error('Error updating consolidated data entry:', error);
     return false;
   }
 }

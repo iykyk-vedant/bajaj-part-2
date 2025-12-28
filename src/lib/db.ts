@@ -597,6 +597,58 @@ export async function deleteConsolidatedDataEntry(id: string): Promise<boolean> 
   }
 }
 
+// Update a specific consolidated data entry
+export async function updateConsolidatedDataEntry(id: number, entry: any): Promise<boolean> {
+  try {
+    // Handle empty dates by converting them to NULL and format to MySQL date format
+    const dcDateValue = convertToMysqlDate(entry.dcDate || entry.dc_date);
+    const dateOfPurchaseValue = convertToMysqlDate(entry.dateOfPurchase || entry.date_of_purchase);
+    const repairDateValue = convertToMysqlDate(entry.repairDate || entry.repair_date);
+    const dispatchDateValue = convertToMysqlDate(entry.dispatchDate || entry.dispatch_date);
+    
+    const [result]: any = await pool.execute(
+      `UPDATE consolidated_data 
+       SET sr_no = ?, dc_no = ?, dc_date = ?, branch = ?, bccd_name = ?, product_description = ?, product_sr_no = ?, 
+           date_of_purchase = ?, complaint_no = ?, part_code = ?, nature_of_defect = ?, visiting_tech_name = ?, mfg_month_year = ?,
+           repair_date = ?, testing = ?, failure = ?, status = ?, pcb_sr_no = ?, rf_observation = ?, analysis = ?, 
+           validation_result = ?, component_change = ?, engg_name = ?, dispatch_date = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        entry.srNo || entry.sr_no || null,
+        entry.dcNo || entry.dc_no || null,
+        dcDateValue,
+        entry.branch || null,
+        entry.bccdName || entry.bccd_name || null,
+        entry.productDescription || entry.product_description || null,
+        entry.productSrNo || entry.product_sr_no || null,
+        dateOfPurchaseValue,
+        entry.complaintNo || entry.complaint_no || null,
+        entry.partCode || entry.part_code || null,
+        entry.natureOfDefect || entry.nature_of_defect || null,
+        entry.visitingTechName || entry.visiting_tech_name || null,
+        entry.mfgMonthYear || entry.mfg_month_year || null,
+        repairDateValue,
+        entry.testing || null,
+        entry.failure || null,
+        entry.status || null,
+        entry.pcbSrNo || entry.pcb_sr_no || null,
+        entry.rfObservation || entry.rf_observation || null,
+        entry.analysis || null,
+        entry.validationResult || entry.validation_result || null,
+        entry.componentChange || entry.component_change || null,
+        entry.enggName || entry.engg_name || null,
+        dispatchDateValue,
+        id
+      ]
+    );
+    
+    return result.affectedRows > 0;
+  } catch (error) {
+    console.error('Error updating consolidated data entry:', error);
+    return false;
+  }
+}
+
 // Clear all consolidated data entries
 export async function clearConsolidatedData(): Promise<void> {
   try {

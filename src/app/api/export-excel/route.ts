@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       row.getCell(8).value = entry.dateOfPurchase || ''; // Date_of_Purchase
       row.getCell(9).value = entry.complaintNo || ''; // Complaint_No
       row.getCell(10).value = entry.partCode || ''; // PartCode
-      row.getCell(11).value = entry.natureOfDefect || ''; // Defect
+      row.getCell(11).value = entry.natureOfDefect || ''; // Defect (using natureOfDefect as replacement for defect)
       row.getCell(12).value = entry.visitingTechName || ''; // Visiting_Tech_Name
       row.getCell(13).value = entry.mfgMonthYear || ''; // Mfg_Month_Year
       row.getCell(14).value = ''; // Repair_Date (not in tag entry, leave blank)
@@ -94,7 +94,6 @@ export async function POST(request: NextRequest) {
       row.getCell(21).value = ''; // Component_Consumption (not in tag entry, leave blank)
       row.getCell(22).value = ''; // Status (not in tag entry, leave blank)
       row.getCell(23).value = ''; // Send_Date (not in tag entry, leave blank)
-      row.getCell(24).value = ''; // Engg_Name (not in tag entry, leave blank)
       row.getCell(25).value = 'Yes'; // Tag_Entry (mark as Yes since we're exporting tag entries)
       row.getCell(26).value = dateTimeStr; // Tag_Entry_Date (current date)
       row.getCell(27).value = ''; // Consumption_Entry (not applicable for tag entries)

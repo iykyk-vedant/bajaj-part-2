@@ -32,15 +32,17 @@ export async function extractDataFromImage(
         // Return empty data as fallback when quota is exceeded
         return { data: {
           branch: '',
-          bccdName: '',
-          productDescription: '',
-          sparePartCode: '',
-          productSrNo: '',
-          dateOfPurchase: '',
-          complaintNo: '',
-          defect: '',
-          visitingTechName: '',
-          others: '',
+            bccdName: '',
+            productDescription: '',
+            sparePartCode: '',
+            productSrNo: '',
+            dateOfPurchase: '',
+            complaintNo: '',
+            natureOfDefect: '',
+            defect: '',
+            visitingTechName: '',
+            technicianName: '',
+            others: '',
         }, error: null };
       } else {
         errorMessage = e.message;

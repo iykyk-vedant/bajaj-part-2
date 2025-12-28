@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       { header: 'Date of Purchase', key: 'dateOfPurchase', width: 20 },
       { header: 'Complaint No', key: 'complaintNo', width: 20 },
       { header: 'Part Code', key: 'partCode', width: 15 },
-      { header: 'Defect', key: 'defect', width: 20 },
+      { header: 'Nature of Defect', key: 'natureOfDefect', width: 20 },
       { header: 'Visiting Tech Name', key: 'visitingTechName', width: 25 },
       { header: 'Mfg Month/Year', key: 'mfgMonthYear', width: 20 },
       { header: 'Repair Date', key: 'repairDate', width: 15 },
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         dateOfPurchase: tagEntry.dateOfPurchase,
         complaintNo: tagEntry.complaintNo,
         partCode: tagEntry.partCode,
-        defect: tagEntry.natureOfDefect,
+        natureOfDefect: tagEntry.natureOfDefect,
         visitingTechName: tagEntry.visitingTechName,
         mfgMonthYear: tagEntry.mfgMonthYear,
         // Consumption-specific fields
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
           dateOfPurchase: '',
           complaintNo: '',
           partCode: '',
-          defect: '',
+          natureOfDefect: '',
           visitingTechName: '',
           mfgMonthYear: '',
           // Consumption-specific fields

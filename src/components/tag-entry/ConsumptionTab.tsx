@@ -6,10 +6,13 @@ import { useLockStore } from '@/store/lockStore';
 import { LockButton } from './LockButton';
 import { validateBomComponents, saveConsolidatedData } from '@/app/actions/consumption-actions';
 import { getPcbNumberForDc } from '@/lib/pcb-utils';
+import { EngineerName } from '@/components/ui/engineer-name';
 
 interface ConsumptionTabProps {
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
+  engineerName?: string;
+  onEngineerNameChange?: (name: string) => void;
 }
 
 interface ConsumptionEntry {
@@ -75,7 +78,7 @@ interface TableRow {
   dispatchDate?: string;
 }
 
-export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {} }: ConsumptionTabProps) {
+export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {}, engineerName = '', onEngineerNameChange }: ConsumptionTabProps) {
   const { isDcLocked } = useLockStore();
   const router = useRouter();
 
@@ -95,7 +98,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     analysis: '',
     validationResult: '',
     componentChange: '',
-    enggName: '',
+    enggName: engineerName || '',
     dispatchDate: '',
   });
 
@@ -115,6 +118,14 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     () => formData.analysis.replaceAll('/', '\n'),
     [formData.analysis]
   );
+
+  // Effect to update enggName when the prop changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      enggName: engineerName || ''
+    }));
+  }, [engineerName]);
 
   // Effect to validate analysis when partCode changes
   useEffect(() => {
@@ -148,7 +159,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           analysis: formData.analysis,
           validationResult: formData.validationResult,
           componentChange: formData.componentChange,
-          enggName: formData.enggName,
+          enggName: engineerName || '', // Use engineer name from navigation tab
           dispatchDate: formData.dispatchDate,
         };
 
@@ -220,7 +231,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         analysis: entry.analysis,
         validationResult: entry.validationResult,
         componentChange: entry.componentChange,
-        enggName: entry.enggName,
+        enggName: entry.enggName, // Keep the original enggName from the entry for display purposes
         dispatchDate: entry.dispatchDate,
       }))
     ];
@@ -361,6 +372,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     // Save data automatically when consuming
     const newEntry: any = {
       ...formData,
+      enggName: engineerName || '', // Use engineer name from navigation tab
       id: Date.now().toString(), // Simple ID generation
       // Include tag entry information for proper Excel export
       srNo: srNo, // Serial No from the search fields
@@ -386,7 +398,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         analysis: formData.analysis,
         validationResult: formData.validationResult,
         componentChange: formData.componentChange,
-        enggName: formData.enggName,
+        enggName: engineerName || '', // Use engineer name from navigation tab
         dispatchDate: formData.dispatchDate,
       };
 
@@ -442,7 +454,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         analysis: formData.analysis,
         validationResult: formData.validationResult,
         componentChange: formData.componentChange,
-        enggName: formData.enggName,
+        enggName: engineerName || '', // Use engineer name from navigation tab
         dispatchDate: formData.dispatchDate,
       };
 
@@ -458,7 +470,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
 
     alert('Consumption entry updated successfully!');
-  }, [selectedEntryId, formData, srNo, dcNo, partCode]);
+  }, [selectedEntryId, formData, srNo, dcNo, partCode, engineerName]);
 
   const handleDelete = () => {
     if (!selectedEntryId) {
@@ -488,7 +500,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       analysis: '',
       validationResult: '',
       componentChange: '',
-      enggName: '',
+      enggName: engineerName || '',
       dispatchDate: '',
     });
 
@@ -564,7 +576,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       analysis: entry.analysis,
       validationResult: entry.validationResult,
       componentChange: entry.componentChange,
-      enggName: entry.enggName,
+      enggName: engineerName || '',
       dispatchDate: entry.dispatchDate,
     });
     setSelectedEntryId(entry.id || null);
@@ -665,16 +677,16 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               <div className="flex justify-between items-center mb-1">
                 <label className="text-sm font-medium text-gray-700">Serial No.</label>
                 <div className="flex space-x-1">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => handleSrNoIncrement()}
                     className="text-gray-700 hover:text-gray-900 px-1"
                     disabled={isPcbFound}
                   >
                     +
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => handleSrNoDecrement()}
                     className="text-gray-700 hover:text-gray-900 px-1"
                     disabled={isPcbFound}
@@ -710,7 +722,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
         {/* Consumption Form */}
         <form onSubmit={handleConsume} className="bg-white rounded-md shadow-sm mb-2 flex-1 flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 p-2">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2 p-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Repair Date:</label>
               <input
@@ -766,28 +778,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 <option value="SCRAP">SCRAP</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2 p-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">PCB Sr No:</label>
               <div className="p-1 text-sm border border-gray-300 rounded bg-gray-100 font-mono truncate h-8 flex items-center">
                 {formData.pcbSrNo}
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Engg Name:</label>
-              <select
-                name="enggName"
-                value={formData.enggName}
-                onChange={handleChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
-                disabled={!isPcbFound}
-              >
-                <option value="">Select</option>
-                <option value="Engineer 1">Engineer 1</option>
-                <option value="Engineer 2">Engineer 2</option>
-              </select>
             </div>
 
           </div>
@@ -864,9 +859,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Date of Purchase</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Complaint No</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Part Code</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Defect</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Visiting Tech</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Mfg Month/Year</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Engg Name</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -902,9 +897,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dateOfPurchase}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.complaintNo}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.partCode}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.defect}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.visitingTechName}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.mfgMonthYear}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.enggName}</td>
                   </tr>
                 ))}
                 {tableData.length === 0 && (

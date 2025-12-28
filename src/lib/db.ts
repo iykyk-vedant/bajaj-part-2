@@ -86,6 +86,21 @@ export async function initializeDatabase() {
       )
     `);
     
+    // Check if the 'defect' column exists in consumption_entries and drop it if it does
+    try {
+      const [columns]: any = await connection.query(
+        'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+        [databaseName, 'consumption_entries', 'defect']
+      );
+      
+      if (columns.length > 0) {
+        await connection.query('ALTER TABLE consumption_entries DROP COLUMN defect');
+        console.log('Successfully removed deprecated defect column from consumption_entries table');
+      }
+    } catch (error) {
+      console.error('Error checking/dropping defect column in consumption_entries:', error);
+    }
+    
     // Create dc_numbers table for storing DC numbers and their part codes
     await connection.query(`
       CREATE TABLE IF NOT EXISTS dc_numbers (
@@ -111,7 +126,7 @@ export async function initializeDatabase() {
         date_of_purchase DATE,
         complaint_no VARCHAR(255),
         part_code VARCHAR(255),
-        defect TEXT,
+        nature_of_defect TEXT,
         visiting_tech_name VARCHAR(255),
         mfg_month_year VARCHAR(255),
         repair_date DATE,
@@ -132,6 +147,21 @@ export async function initializeDatabase() {
         INDEX idx_part_code (part_code)
       )
     `);
+    
+    // Check if the 'defect' column exists and drop it if it does
+    try {
+      const [columns]: any = await connection.query(
+        'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+        [databaseName, 'consolidated_data', 'defect']
+      );
+      
+      if (columns.length > 0) {
+        await connection.query('ALTER TABLE consolidated_data DROP COLUMN defect');
+        console.log('Successfully removed deprecated defect column from consolidated_data table');
+      }
+    } catch (error) {
+      console.error('Error checking/dropping defect column:', error);
+    }
 
     console.log('Database initialized successfully');
   } catch (error) {
@@ -473,7 +503,7 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
     await pool.execute(`
       INSERT INTO consolidated_data 
       (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
-       date_of_purchase, complaint_no, part_code, defect, visiting_tech_name, mfg_month_year,
+       date_of_purchase, complaint_no, part_code, nature_of_defect, visiting_tech_name, mfg_month_year,
        repair_date, testing, failure, status, pcb_sr_no, rf_observation, analysis, 
        validation_result, component_change, engg_name, dispatch_date)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -488,7 +518,7 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
       dateOfPurchaseValue,
       entry.complaintNo || null,
       entry.partCode || null,
-      entry.defect || null,
+      entry.natureOfDefect || null,
       entry.visitingTechName || null,
       entry.mfgMonthYear || null,
       repairDateValue,
@@ -518,6 +548,37 @@ export async function getAllConsolidatedDataEntries(): Promise<any[]> {
     return rows;
   } catch (error) {
     console.error('Error fetching consolidated data entries:', error);
+    return [];
+  }
+}
+
+// Search for consolidated data entries by DC number, part code, and serial number
+export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: string, productSrNo?: string): Promise<any[]> {
+  try {
+    let query = 'SELECT * FROM consolidated_data WHERE 1=1';
+    const params: any[] = [];
+    
+    if (dcNo) {
+      query += ' AND dc_no = ?';
+      params.push(dcNo);
+    }
+    
+    if (partCode) {
+      query += ' AND part_code = ?';
+      params.push(partCode);
+    }
+    
+    if (productSrNo) {
+      query += ' AND product_sr_no = ?';
+      params.push(productSrNo);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const [rows]: any = await pool.execute(query, params);
+    return rows;
+  } catch (error) {
+    console.error('Error searching consolidated data entries:', error);
     return [];
   }
 }

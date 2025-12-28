@@ -10,6 +10,7 @@ import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
 import { loadDcNumbersFromDb, loadDcPartCodesFromDb, addDcNumberWithPartCode } from '@/lib/dc-data-sync';
 import { addDcNumberAction } from '@/app/actions/db-actions';
 import { TagEntryPreview } from '@/components/tag-entry/TagEntryPreview';
+import { EngineerName } from '@/components/ui/engineer-name';
 
 export default function TagEntryPage() {
   const [activeTab, setActiveTab] = useState<
@@ -20,6 +21,9 @@ export default function TagEntryPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  
+  // Engineer name state that persists across tabs
+  const [engineerName, setEngineerName] = useState<string>('');
   
   // Initialize DC numbers - use default values initially
   const [dcNumbers, setDcNumbers] = useState<string[]>([]);
@@ -163,36 +167,48 @@ export default function TagEntryPage() {
         
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-2">
-          <button
-            className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "tag-entry"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("tag-entry")}
-          >
-            Tag Entry
-          </button>
-          <button
-            className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "consumption"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("consumption")}
-          >
-            Consumption
-          </button>
-          <button
-            className={`py-2 px-4 font-medium text-sm ${
-              activeTab === "dispatch"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("dispatch")}
-          >
-            Dispatch
-          </button>
+          <div className="flex flex-1">
+            <button
+              className={`py-2 px-4 font-medium text-sm ${
+                activeTab === "tag-entry"
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("tag-entry")}
+            >
+              Tag Entry
+            </button>
+            <button
+              className={`py-2 px-4 font-medium text-sm ${
+                activeTab === "consumption"
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("consumption")}
+            >
+              Consumption
+            </button>
+            <button
+              className={`py-2 px-4 font-medium text-sm ${
+                activeTab === "dispatch"
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("dispatch")}
+            >
+              Dispatch
+            </button>
+          </div>
+          {activeTab === "consumption" && (
+            <div className="flex items-center">
+              <div className="text-sm font-medium text-gray-700 mr-2">Engg Name:</div>
+              <EngineerName
+                value={engineerName}
+                onChange={setEngineerName}
+                className="w-48"
+              />
+            </div>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -223,6 +239,8 @@ export default function TagEntryPage() {
               <ConsumptionTab 
                 dcNumbers={dcNumbers} 
                 dcPartCodes={dcPartCodes} 
+                engineerName={engineerName}
+                onEngineerNameChange={setEngineerName}
               />
             </div>
           )}

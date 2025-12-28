@@ -56,7 +56,7 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
           dateOfPurchase: entry.date_of_purchase ? (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : entry.date_of_purchase instanceof Date ? entry.date_of_purchase.toISOString().split('T')[0] : new Date(entry.date_of_purchase).toISOString().split('T')[0]) : '',
           complaintNo: entry.complaint_no || '',
           partCode: entry.part_code || '',
-          natureOfDefect: entry.defect || '',
+          natureOfDefect: entry.nature_of_defect || entry.defect || '',
           visitingTechName: entry.visiting_tech_name || '',
           mfgMonthYear: entry.mfg_month_year ? (typeof entry.mfg_month_year === 'string' ? entry.mfg_month_year : entry.mfg_month_year instanceof Date ? entry.mfg_month_year.toISOString().split('T')[0] : new Date(entry.mfg_month_year).toISOString().split('T')[0]) : '',
           pcbSrNo: entry.pcb_sr_no || '',

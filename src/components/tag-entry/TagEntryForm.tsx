@@ -33,12 +33,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showSavedList, setShowSavedList] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // State for DC creation modal
   const [isDcModalOpen, setIsDcModalOpen] = useState(false);
   const [newDcNo, setNewDcNo] = useState('');
   const [newPartCode, setNewPartCode] = useState('');
-  
+
   const STORAGE_KEY = 'tag-entries';
 
   const [formData, setFormData] = useState<TagEntry>({
@@ -64,7 +64,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       try {
         const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
         const result = await getConsolidatedDataEntries();
-        
+
         if (result.success) {
           const entries = result.data || [];
           // Convert consolidated data to TagEntry format
@@ -79,14 +79,14 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             dateOfPurchase: entry.date_of_purchase || '',
             complaintNo: entry.complaint_no || '',
             partCode: entry.part_code || '',
-            natureOfDefect: entry.defect || '',
+            natureOfDefect: entry.nature_of_defect || '',
             visitingTechName: entry.visiting_tech_name || '',
             mfgMonthYear: entry.mfg_month_year || '',
             pcbSrNo: entry.pcb_sr_no || '',
           }));
-          
+
           setSavedEntries(tagEntries);
-          
+
           // Update serial number if there are existing entries
           // For initial load, we'll set it to 1, then it will be updated when DC is selected
           setFormData(prev => ({
@@ -98,7 +98,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         console.error('Error loading entries from database:', e);
       }
     };
-    
+
     loadSavedEntries();
   }, []);
 
@@ -112,11 +112,27 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         const [year, month] = mfgMonthYear.split('-');
         mfgMonthYear = `${month}/${year}`;
       }
-      
+
       setFormData(prev => {
+        // Calculate next sequential serial number for the selected DC
+        const dcNo = initialData.dcNo || prev.dcNo;
+        let newSrNo = prev.srNo; // Default to current srNo
+
+        if (dcNo) {
+          // Find entries with the same DC number
+          const dcEntries = savedEntries.filter(entry => entry.dcNo === dcNo);
+
+          // Calculate next sequential number (1, 2, 3, ...)
+          const nextSrNo = dcEntries.length > 0
+            ? Math.max(...dcEntries.map(e => parseInt(e.srNo) || 0)) + 1
+            : 1;
+
+          newSrNo = String(nextSrNo).padStart(3, '0');
+        }
+
         const newFormData = {
           id: initialData.id || prev.id,
-          srNo: initialData.srNo || prev.srNo,
+          srNo: newSrNo, // Automatically increment serial number
           dcNo: initialData.dcNo || prev.dcNo,
           branch: initialData.branch || prev.branch,
           bccdName: initialData.bccdName || prev.bccdName,
@@ -135,12 +151,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         return newFormData;
       });
     }
-  }, [initialData]);
+  }, [initialData, savedEntries]);
 
   // Auto-generate PCB serial number when DC number changes
   // Only generate if no PCB number is already set
   useEffect(() => {
-    
+
     if (formData.dcNo && !formData.pcbSrNo) {
       try {
 
@@ -175,12 +191,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     if (formData.dcNo) {
       // Find entries with the same DC number
       const dcEntries = savedEntries.filter(entry => entry.dcNo === formData.dcNo);
-      
+
       // Calculate next sequential number (1, 2, 3, ...)
-      const nextSrNo = dcEntries.length > 0 
+      const nextSrNo = dcEntries.length > 0
         ? Math.max(...dcEntries.map(e => parseInt(e.srNo) || 0)) + 1
         : 1;
-      
+
       setFormData(prev => ({
         ...prev,
         srNo: String(nextSrNo).padStart(3, '0')
@@ -196,17 +212,17 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-  
-      
+
+
     // Handle mfgMonthYear field specially to validate and format MM/YYYY
     if (name === 'mfgMonthYear') {
       // Allow only digits and forward slash
       if (!/^[0-9\/]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-        
+
       let formattedValue = value;
-        
+
       // Auto-format as user types
       if (value.length === 2 && !value.includes('/')) {
         formattedValue = value + '/';
@@ -217,19 +233,19 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         // Limit to MM/YYYY format (7 characters max)
         formattedValue = value.substring(0, 7);
       }
-        
+
       setFormData(prev => ({
         ...prev,
         [name]: formattedValue
       }));
-    } 
+    }
     // Handle dateOfPurchase field to validate and format date
     else if (name === 'dateOfPurchase') {
       // Allow only digits, forward slashes, and hyphens
       if (!/^[0-9\/-]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-        
+
       setFormData(prev => ({
         ...prev,
         [name]: value
@@ -239,7 +255,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         ...prev,
         [name]: value
       }));
-        
+
       // Update locked values if lock is active and we're changing DC No or Part Code
       // But prevent changes to locked fields
       if (isDcLocked && (name === 'dcNo' || name === 'partCode')) {
@@ -255,7 +271,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       }
     }
   };
-  
+
   const handleSrNoIncrement = () => {
     const currentSrNo = parseInt(formData.srNo || '0');
     if (!isNaN(currentSrNo)) {
@@ -266,7 +282,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       }));
     }
   };
-  
+
   const handleSrNoDecrement = () => {
     const currentSrNo = parseInt(formData.srNo || '0');
     if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
@@ -280,13 +296,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate required fields
     if (!formData.dcNo || !formData.productSrNo || !formData.complaintNo) {
       alert('Please fill in all required fields: DC No., Product Sr No., and Complaint No.');
       return;
     }
-    
+
     // Validate Mfg Month/Year format if provided
     if (formData.mfgMonthYear) {
       const parts = formData.mfgMonthYear.split('/');
@@ -294,27 +310,27 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         alert('Mfg Month/Year must be in MM/YYYY format');
         return;
       }
-      
+
       const [month, year] = parts;
       const monthNum = parseInt(month, 10);
       const yearNum = parseInt(year, 10);
-      
+
       if (isNaN(monthNum) || isNaN(yearNum) || month.length !== 2 || year.length !== 4) {
         alert('Mfg Month/Year must be in MM/YYYY format (e.g., 05/2025)');
         return;
       }
-      
+
       if (monthNum < 1 || monthNum > 12) {
         alert('Month must be between 01 and 12');
         return;
       }
-      
+
       if (yearNum < 1900 || yearNum > 2100) {
         alert('Year must be between 1900 and 2100');
         return;
       }
     }
-    
+
     // Validate Date of Purchase format if provided
     if (formData.dateOfPurchase) {
       // Allow formats like DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
@@ -324,7 +340,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         return;
       }
     }
-    
+
     const entryToSave: TagEntry = {
       id: formData.id || Date.now().toString(),
       srNo: formData.srNo || '001',
@@ -345,7 +361,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     let updatedEntries: TagEntry[];
     if (formData.id) {
       // Update existing entry
-      updatedEntries = savedEntries.map(entry => 
+      updatedEntries = savedEntries.map(entry =>
         entry.id === formData.id ? entryToSave : entry
       );
       alert('Entry updated successfully!');
@@ -356,13 +372,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     }
 
     setSavedEntries(updatedEntries);
-    
+
     // Save to database
     const saveToDatabase = async () => {
       try {
         const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
         const result = await saveConsolidatedData(entryToSave);
-        
+
         if (!result.success) {
           console.error('Failed to save entry to database:', result.error);
         }
@@ -370,7 +386,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         console.error('Error saving entry to database:', e);
       }
     };
-    
+
     saveToDatabase();
 
     // Reset form after save
@@ -378,7 +394,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     // Show saved list after save
     setShowSavedList(true);
     setShowSearchResults(false);
-    
+
     // Emit event to notify other components that an entry was saved
     tagEntryEventEmitter.emit(TAG_ENTRY_EVENTS.ENTRY_SAVED, entryToSave);
   };
@@ -388,7 +404,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       alert('No saved entries found. Please save an entry first.');
       return;
     }
-    
+
     // Show all entries for selection
     setShowSavedList(true);
     setShowSearchResults(false);
@@ -406,14 +422,14 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
     const updatedEntries = savedEntries.filter(entry => entry.id !== formData.id);
     setSavedEntries(updatedEntries);
-    
+
     // Remove from database
     const deleteFromDatabase = async () => {
       if (formData.id) {
         try {
           const { deleteConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
           const result = await deleteConsolidatedDataEntryAction(formData.id);
-          
+
           if (!result.success) {
             console.error('Failed to delete entry from database:', result.error);
           }
@@ -422,12 +438,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         }
       }
     };
-    
+
     deleteFromDatabase();
 
     alert('Entry deleted successfully!');
     handleClear();
-    
+
     // Emit event to notify other components that an entry was deleted
     tagEntryEventEmitter.emit(TAG_ENTRY_EVENTS.ENTRY_DELETED, formData.id);
   };
@@ -525,7 +541,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       const [year, month] = mfgMonthYear.split('-');
       mfgMonthYear = `${month}/${year}`;
     }
-    
+
     setFormData({
       id: entry.id || '',
       srNo: entry.srNo,
@@ -559,7 +575,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
     // Only handle Alt key combinations
     if (!e.altKey) return;
-    
+
     // Prevent browser default behavior for these shortcuts
     switch (e.key.toLowerCase()) {
       case 's':
@@ -602,15 +618,15 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           <div className="flex justify-between items-center mb-1">
             <label className="text-sm font-medium text-gray-700">Sr. No.:</label>
             <div className="flex space-x-1">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => handleSrNoIncrement()}
                 className="text-gray-700 hover:text-gray-900 px-1"
               >
                 +
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => handleSrNoDecrement()}
                 className="text-gray-700 hover:text-gray-900 px-1"
               >
@@ -633,8 +649,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
               {onAddDcNumber && (
                 <Dialog open={isDcModalOpen} onOpenChange={setIsDcModalOpen}>
                   <DialogTrigger asChild>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="text-gray-700 hover:text-gray-900"
                     >
                       +
@@ -696,8 +712,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             {dcNumbers
               .filter(dc => dc != null && dc !== '')
               .map((dc, index) => (
-              <option key={`${dc}-${index}`} value={dc}>{dc}</option>
-            ))}
+                <option key={`${dc}-${index}`} value={dc}>{dc}</option>
+              ))}
           </select>
         </div>
         <div>
@@ -786,8 +802,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || [])
               .filter(code => code != null && code !== '')
               .map((code, index) => (
-              <option key={`${code}-${index}`} value={code}>{code}</option>
-            ))}
+                <option key={`${code}-${index}`} value={code}>{code}</option>
+              ))}
           </select>
         </div>
       </div>
@@ -813,6 +829,10 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             className="w-full p-2 text-sm border border-gray-300 rounded h-9"
           />
         </div>
+        
+      {/* </div> */}
+
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3"> */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Mfg Month/Year:</label>
           <input
@@ -915,7 +935,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             )}
           </div>
         </div>
-        
+
         {/* Search Results */}
         {showSearchResults && filteredResults.length > 0 && (
           <div className="mt-4 max-h-44 overflow-y-auto border border-gray-300 rounded text-sm">
@@ -928,8 +948,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
               >
                 <div className="flex justify-between items-center">
                   <div className="truncate">
-                    <span className="font-medium">DC: {entry.dcNo}</span> | 
-                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
+                    <span className="font-medium">DC: {entry.dcNo}</span> |
+                    <span className="ml-2">Complaint: {entry.complaintNo}</span> |
                     <span className="ml-2">Product Sr: {entry.productSrNo}</span>
                   </div>
                   <span className="text-xs text-gray-500">Click to load</span>
@@ -960,9 +980,9 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
               >
                 <div className="flex justify-between items-center">
                   <div className="truncate">
-                    <span className="font-medium">Sr. No: {entry.srNo}</span> | 
-                    <span className="ml-2">DC: {entry.dcNo}</span> | 
-                    <span className="ml-2">Complaint: {entry.complaintNo}</span> | 
+                    <span className="font-medium">Sr. No: {entry.srNo}</span> |
+                    <span className="ml-2">DC: {entry.dcNo}</span> |
+                    <span className="ml-2">Complaint: {entry.complaintNo}</span> |
                     <span className="ml-2">Product Sr: {entry.productSrNo}</span>
                   </div>
                   <span className="text-xs text-gray-500">Click to load</span>

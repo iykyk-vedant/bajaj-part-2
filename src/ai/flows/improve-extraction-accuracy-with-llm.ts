@@ -28,6 +28,8 @@ const ImproveExtractionAccuracyInputSchema = z.object({
   complaintNo: z.string().optional().describe('The complaint number.'),
   sparePartCode: z.string().optional().describe('The spare part code.'),
   natureOfDefect: z.string().optional().describe('The nature of the defect.'),
+  defect: z.string().optional().describe('The defect.'),
+  visitingTechName: z.string().optional().describe('The visiting technician name.'),
   technicianName: z.string().optional().describe('The technician name.'),
 });
 
@@ -44,6 +46,8 @@ const ImproveExtractionAccuracyOutputSchema = z.object({
   complaintNo: z.string().describe('The corrected complaint number.'),
   sparePartCode: z.string().describe('The corrected spare part code.'),
   natureOfDefect: z.string().describe('The corrected nature of defect.'),
+  defect: z.string().describe('The corrected defect.'),
+  visitingTechName: z.string().describe('The corrected visiting technician name.'),
   technicianName: z.string().describe('The corrected technician name.'),
 });
 
@@ -78,6 +82,8 @@ Corrected Data:
   "complaintNo": "{{complaintNo}}",
   "sparePartCode": "{{sparePartCode}}",
   "natureOfDefect": "{{natureOfDefect}}",
+  "defect": "{{defect}}",
+  "visitingTechName": "{{visitingTechName}}",
   "technicianName": "{{technicianName}}"
 }
 `,

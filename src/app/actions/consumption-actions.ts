@@ -124,6 +124,24 @@ export async function getConsolidatedDataEntries() {
   }
 }
 
+// Server action to search consolidated data entries
+export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: string, productSrNo?: string) {
+  try {
+    const { searchConsolidatedDataEntries: searchFunction } = await import('@/lib/db');
+    const entries = await searchFunction(dcNo, partCode, productSrNo);
+    return {
+      success: true,
+      data: entries
+    };
+  } catch (error) {
+    console.error('Error searching consolidated data entries:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
 // Server action to delete consolidated data entry
 export async function deleteConsolidatedDataEntryAction(id: string) {
   try {

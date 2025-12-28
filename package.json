@@ -11,7 +11,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "init-db": "tsx src/lib/pg-init-db.ts",
-    "import-bom": "tsx src/lib/import-bom.ts"
+    "import-bom": "tsx src/lib/import-bom.ts",
+    "db:init": "tsx src/lib/pg-init-db.ts"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",

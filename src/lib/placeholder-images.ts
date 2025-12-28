@@ -7,4 +7,11 @@ export type ImagePlaceholder = {
   imageHint: string;
 };
 
-export const PlaceHolderImages: ImagePlaceholder[] = data.placeholderImages;
+// Convert string array to ImagePlaceholder objects
+const stringArray: string[] = data.placeholderImages;
+export const PlaceHolderImages: ImagePlaceholder[] = stringArray.map((url, index) => ({
+  id: `placeholder-${index}`,
+  description: `Placeholder image ${index + 1}`,
+  imageUrl: url,
+  imageHint: `Image ${index + 1} from storage`
+}));

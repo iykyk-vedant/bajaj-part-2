@@ -1,22 +1,38 @@
-import { Pool } from 'pg';
+import { Pool, PoolConfig } from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 // Create a PostgreSQL connection pool
-const pool = new Pool({
-  host: process.env.PG_HOST?.replace(/'/g, '') || 'localhost',
-  port: parseInt(process.env.PG_PORT || '5432'),
-  user: process.env.PG_USER?.replace(/'/g, '') || 'postgres',
-  password: process.env.PG_PASSWORD?.replace(/'/g, '') || '',
-  database: process.env.PG_DATABASE?.replace(/'/g, '') || 'nexscan',
-  ssl: {
-    rejectUnauthorized: false
-  },
+const poolConfig: PoolConfig = {
   max: 10, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
-});
+};
+
+// Use DATABASE_URL if provided (e.g., from Render PostgreSQL add-on)
+if (process.env.DATABASE_URL) {
+  Object.assign(poolConfig, {
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+} else {
+  // Use individual connection parameters
+  Object.assign(poolConfig, {
+    host: process.env.PG_HOST?.replace(/'/g, '') || 'localhost',
+    port: parseInt(process.env.PG_PORT || '5432'),
+    user: process.env.PG_USER?.replace(/'/g, '') || 'postgres',
+    password: process.env.PG_PASSWORD?.replace(/'/g, '') || '',
+    database: process.env.PG_DATABASE?.replace(/'/g, '') || 'nexscan',
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+}
+
+const pool = new Pool(poolConfig);
 
 // Initialize the database tables
 export async function initializeDatabase() {

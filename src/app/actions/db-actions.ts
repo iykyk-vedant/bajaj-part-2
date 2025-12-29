@@ -45,7 +45,20 @@ export async function addDcNumberAction(dcNo: string, partCode: string, currentD
     const result = await addDcNumber(dcNo, partCodes);
     
     if (result) {
-      return { success: true, message: dcExists ? 'Part code added to existing DC number successfully' : 'DC number created successfully' };
+      // Fetch updated DC numbers and part codes to return to the client
+      const updatedDcData = await getAllDcNumbers();
+      const updatedDcNumbers = updatedDcData.map(item => item.dcNumber);
+      const updatedDcPartCodes = updatedDcData.reduce((acc, item) => {
+        acc[item.dcNumber] = item.partCodes;
+        return acc;
+      }, {} as Record<string, string[]>);
+      
+      return { 
+        success: true, 
+        message: dcExists ? 'Part code added to existing DC number successfully' : 'DC number created successfully',
+        dcNumbers: updatedDcNumbers,
+        dcPartCodes: updatedDcPartCodes
+      };
     } else {
       return { success: false, error: 'Failed to save DC number to database' };
     }

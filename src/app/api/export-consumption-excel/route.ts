@@ -3,7 +3,10 @@ import ExcelJS from 'exceljs';
 
 export async function POST(request: Request) {
   try {
-    const { consumptionEntries, tagEntries } = await request.json();
+    // For export, we'll use the consolidated_data table which already has combined data
+    // Get all consolidated data entries from the database
+    const { getAllConsolidatedDataEntries } = await import('@/lib/pg-db');
+    const allConsolidatedData = await getAllConsolidatedDataEntries();
 
     // Create a new workbook and worksheet
     const workbook = new ExcelJS.Workbook();
@@ -37,28 +40,12 @@ export async function POST(request: Request) {
       { header: 'Dispatch Date', key: 'dispatchDate', width: 15 },
     ];
 
-    // For export, we'll use the consolidated_data table which already has combined data
-    // Get all consolidated data entries from the database
-    const { getAllConsolidatedDataEntries } = await import('@/lib/pg-db');
-    const allConsolidatedData = await getAllConsolidatedDataEntries();
-
-    // Create a map of tag entries by srNo for quick lookup
-    const tagEntryMap = new Map();
-    if (tagEntries && Array.isArray(tagEntries)) {
-      tagEntries.forEach((tagEntry: any) => {
-        if (tagEntry.srNo) {
-          tagEntryMap.set(tagEntry.srNo, tagEntry);
-        }
-      });
-    }
-    
     // Add all consolidated data to the worksheet
     allConsolidatedData.forEach((entry: any) => {
-      const tagEntry = tagEntryMap.get(entry.sr_no) || {};
       worksheet.addRow({
         srNo: entry.sr_no || '',
         dcNo: entry.dc_no || '',
-        dcDate: entry.dc_date || '', // Use the actual DC date from consolidated data
+        dcDate: entry.dc_date || '',
         branch: entry.branch || '',
         bccdName: entry.bccd_name || '',
         productDescription: entry.product_description || '',
@@ -66,7 +53,7 @@ export async function POST(request: Request) {
         dateOfPurchase: entry.date_of_purchase || '',
         complaintNo: entry.complaint_no || '',
         partCode: entry.part_code || '',
-        natureOfDefect: entry.defect || '',
+        natureOfDefect: entry.nature_of_defect || '',
         visitingTechName: entry.visiting_tech_name || '',
         mfgMonthYear: entry.mfg_month_year || '',
         // Consumption-specific fields

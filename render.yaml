@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: nexscan
+    env: node
+    region: frankfurt  # Choose a region close to your users
+    buildCommand: |
+      npm install
+      npm run build
+    startCommand: npm run db:init && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: GEMINI_API_KEY
+        sync: false  # This will be set in the Render dashboard
+      - key: PG_HOST
+        sync: false  # This will be set in the Render dashboard
+      - key: PG_PORT
+        value: 5432
+      - key: PG_USER
+        sync: false  # This will be set in the Render dashboard
+      - key: PG_PASSWORD
+        sync: false  # This will be set in the Render dashboard
+      - key: PG_DATABASE
+        sync: false  # This will be set in the Render dashboard
+      - key: POSTGRES_URL
+        sync: false  # This will be set in the Render dashboard if using direct connection string

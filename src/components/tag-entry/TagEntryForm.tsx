@@ -23,12 +23,12 @@ interface TagEntryFormProps {
   initialData?: any;
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
-
+  onAddDcNumber?: (dcNo: string, partCode: string) => Promise<void>;
 }
 
 const STORAGE_KEY = 'tag-entries';
 
-export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: TagEntryFormProps) {
+export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, onAddDcNumber }: TagEntryFormProps) {
   const { isDcLocked } = useLockStore();
   const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -567,6 +567,15 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {} }: 
             ...prev,
             dcNo: newDcNo.trim()
           }));
+          
+          // Call the callback if provided
+          if (onAddDcNumber) {
+            try {
+              await onAddDcNumber(newDcNo.trim(), newPartCode.trim());
+            } catch (callbackError) {
+              console.error('Error in onAddDcNumber callback:', callbackError);
+            }
+          }
           
           // Reload DC numbers and part codes from the database to reflect the changes
           const { loadDcNumbersFromDb, loadDcPartCodesFromDb } = await import('@/lib/dc-data-sync');

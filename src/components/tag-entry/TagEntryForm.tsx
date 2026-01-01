@@ -46,6 +46,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     id: '',
     srNo: '001',
     dcNo: '',
+    dcDate: '',
     branch: '',
     bccdName: '',
     productDescription: '',
@@ -56,7 +57,17 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     natureOfDefect: '',
     visitingTechName: '',
     mfgMonthYear: '',
+    repairDate: '',
+    testing: '',
+    failure: '',
+    status: '',
     pcbSrNo: '',
+    rfObservation: '',
+    analysis: '',
+    validationResult: '',
+    componentChange: '',
+    enggName: '',
+    dispatchDate: '',
   });
 
   // Load saved entries from database on component mount
@@ -154,13 +165,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     }
   }, [initialData, savedEntries]);
 
-  // Auto-generate PCB serial number when DC number changes
-  // Only generate if no PCB number is already set
+  // Auto-generate PCB serial number when DC number or SR number changes
+  // Only generate if DC number exists
   useEffect(() => {
 
-    if (formData.dcNo && !formData.pcbSrNo) {
+    if (formData.dcNo && formData.srNo) {
       try {
-
         const pcb = generatePcbNumber(formData.dcNo, formData.srNo);
 
         setFormData(prev => ({
@@ -171,7 +181,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         console.error('Failed to generate PCB number:', err);
       }
     }
-  }, [formData.dcNo, formData.pcbSrNo]);
+  }, [formData.dcNo, formData.srNo]);
 
   // Auto-populate product description when part code is selected
   useEffect(() => {
@@ -189,7 +199,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   // Update serial number when DC number changes
   // Calculate next sequential number for the selected DC
   useEffect(() => {
-    if (formData.dcNo) {
+    if (formData.dcNo && !isDcLocked) { // Only update when not locked
       // Find entries with the same DC number
       const dcEntries = savedEntries.filter(entry => entry.dcNo === formData.dcNo);
 
@@ -202,6 +212,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         ...prev,
         srNo: String(nextSrNo).padStart(3, '0')
       }));
+    } else if (isDcLocked) {
+      // If locked, set DC No to the locked value but preserve SR No
+      setFormData(prev => ({
+        ...prev,
+        dcNo: useLockStore.getState().lockedDcNo
+      }));
     } else {
       // If no DC is selected, reset to 001
       setFormData(prev => ({
@@ -209,21 +225,21 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         srNo: '001'
       }));
     }
-  }, [formData.dcNo, savedEntries]);
+  }, [formData.dcNo, savedEntries, isDcLocked]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-
-
+  
+  
     // Handle mfgMonthYear field specially to validate and format MM/YYYY
     if (name === 'mfgMonthYear') {
       // Allow only digits and forward slash
-      if (!/^[0-9\/]*$/.test(value) && value !== '') {
+      if (!/^[0-9/]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-
+  
       let formattedValue = value;
-
+  
       // Auto-format as user types
       if (value.length === 2 && !value.includes('/')) {
         formattedValue = value + '/';
@@ -234,7 +250,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         // Limit to MM/YYYY format (7 characters max)
         formattedValue = value.substring(0, 7);
       }
-
+  
       setFormData(prev => ({
         ...prev,
         [name]: formattedValue
@@ -243,32 +259,36 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     // Handle dateOfPurchase field to validate and format date
     else if (name === 'dateOfPurchase') {
       // Allow only digits, forward slashes, and hyphens
-      if (!/^[0-9\/-]*$/.test(value) && value !== '') {
+      if (!/^[0-9/-]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-
+  
       setFormData(prev => ({
         ...prev,
         [name]: value
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-
       // Update locked values if lock is active and we're changing DC No or Part Code
       // But prevent changes to locked fields
       if (isDcLocked && (name === 'dcNo' || name === 'partCode')) {
         // Don't update locked fields, keep the locked values
         return;
-      } else if (isDcLocked) {
-        // For other fields, still allow updates when locked
-        setFormData(prev => ({
-          ...prev,
-          [name]: value
-        }));
-        return;
+      }
+        
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+        
+      // If SR No is changed, update PCB Sr No accordingly
+      if (name === 'srNo') {
+        if (formData.dcNo) {
+          const pcb = generatePcbNumber(formData.dcNo, value);
+          setFormData(prev => ({
+            ...prev,
+            pcbSrNo: pcb
+          }));
+        }
       }
     }
   };
@@ -750,8 +770,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             name="srNo"
             value={formData.srNo || ''}
             onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-          />
+            className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
         </div>
         <div>
           <div className="flex justify-between items-center mb-1">
@@ -780,21 +799,19 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
                           onChange={(e) => setNewDcNo(e.target.value)}
                           disabled={isDcLocked}
                           className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
-                          placeholder="Enter DC No."
-                        />
+                          placeholder="Enter DC No." />
                         <LockButton dcNo={newDcNo} partCode={newPartCode} />
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
-                        <input
-                          type="text"
-                          value={isDcLocked ? useLockStore.getState().lockedPartCode : newPartCode}
-                          onChange={(e) => setNewPartCode(e.target.value)}
-                          disabled={isDcLocked}
-                          className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
-                          placeholder="Enter Part Code"
-                        />
+                      <input
+                        type="text"
+                        value={isDcLocked ? useLockStore.getState().lockedPartCode : newPartCode}
+                        onChange={(e) => setNewPartCode(e.target.value)}
+                        disabled={isDcLocked}
+                        className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                        placeholder="Enter Part Code" />
                     </div>
                   </div>
                   <DialogFooter>
@@ -807,172 +824,166 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              <button
+                type="button"
+                className="text-gray-700 hover:text-gray-900"
+                onClick={() => {
+                  if (formData.dcNo) {
+                    navigator.clipboard.writeText(formData.dcNo);
+                    alert('DC Number copied to clipboard!');
+                  }
+                } }
+                title="Copy DC Number"
+              >
+                📋
+              </button>
               <LockButton dcNo={formData.dcNo} partCode={formData.partCode} />
             </div>
           </div>
-          <select
-            name="dcNo"
-            value={isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo || ''}
-            onChange={handleChange}
-            disabled={isDcLocked}
-            className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
-          >
-            <option value="">Select DC No.</option>
-            {dcNumbers
-              .filter(dc => dc != null && dc !== '')
-              .map((dc, index) => (
-                <option key={`${dc}-${index}`} value={dc}>{dc}</option>
-              ))}
-          </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Branch:</label>
-          <input
-            type="text"
-            name="branch"
-            value={formData.branch || ''}
-            onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-          />
-        </div>
+        <select
+          name="dcNo"
+          value={isDcLocked ? useLockStore.getState().lockedDcNo : (formData.dcNo || '')}
+          onChange={handleChange}
+          disabled={isDcLocked}
+          className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
+        >
+          <option value="">Select DC No.</option>
+          {dcNumbers
+            .filter(dc => dc != null && dc !== '')
+            .map((dc, index) => (
+              <option key={`${dc}-${index}`} value={dc}>{dc}</option>
+            ))}
+        </select>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">BCCD Name:</label>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Branch:</label>
+        <input
+          type="text"
+          name="branch"
+          value={formData.branch || ''}
+          onChange={handleChange}
+          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
+      </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">BCCD Name:</label>
+        <input
+          type="text"
+          name="bccdName"
+          value={formData.bccdName || ''}
+          onChange={handleChange}
+          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Product Description:</label>
+        <input
+          type="text"
+          name="productDescription"
+          value={formData.productDescription || ''}
+          onChange={handleChange}
+          className={`w-full p-2 text-sm border border-gray-300 rounded h-9 ${formData.partCode ? 'bg-gray-100' : ''}`}
+          readOnly={!!formData.partCode} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Product Sr No:</label>
+        <div className="flex">
           <input
             type="text"
-            name="bccdName"
-            value={formData.bccdName || ''}
+            name="productSrNo"
+            value={formData.productSrNo || ''}
             onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Product Description:</label>
-          <input
-            type="text"
-            name="productDescription"
-            value={formData.productDescription || ''}
-            onChange={handleChange}
-            className={`w-full p-2 text-sm border border-gray-300 rounded h-9 ${formData.partCode ? 'bg-gray-100' : ''}`}
-            readOnly={!!formData.partCode}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Product Sr No:</label>
-          <div className="flex">
-            <input
-              type="text"
-              name="productSrNo"
-              value={formData.productSrNo || ''}
-              onChange={handleChange}
-              className="flex-1 p-2 text-sm border border-gray-300 rounded-l h-9"
-            />
-            <div className="bg-gray-200 p-2 text-sm border border-l-0 border-gray-300 rounded-r flex items-center">
-              {(formData.productSrNo || '').length}/20
-            </div>
+            className="flex-1 p-2 text-sm border border-gray-300 rounded-l h-9" />
+          <div className="bg-gray-200 p-2 text-sm border border-l-0 border-gray-300 rounded-r flex items-center">
+            {(formData.productSrNo || '').length}/20
           </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date of Purchase:</label>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Purchase:</label>
+        <input
+          type="text"
+          name="dateOfPurchase"
+          value={formData.dateOfPurchase || ''}
+          onChange={handleChange}
+          placeholder="DD/MM/YYYY or MM/DD/YYYY"
+          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Complaint No:</label>
+        <input
+          type="text"
+          name="complaintNo"
+          value={formData.complaintNo || ''}
+          onChange={handleChange}
+          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Part Code:</label>
+        <select
+          name="partCode"
+          value={isDcLocked ? useLockStore.getState().lockedPartCode : (formData.partCode || '')}
+          onChange={handleChange}
+          disabled={isDcLocked}
+          className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
+        >
+          <option value="">Select Part Code</option>
+          {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || [])
+            .filter(code => code != null && code !== '')
+            .map((code, index) => (
+              <option key={`${code}-${index}`} value={code}>{code}</option>
+            ))}
+        </select>
+      </div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Nature of Defect:</label>
+        <input
+          type="text"
+          name="natureOfDefect"
+          value={formData.natureOfDefect || ''}
+          onChange={handleChange}
+          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Visiting Tech Name:</label>
+        <input
+          type="text"
+          name="visitingTechName"
+          value={formData.visitingTechName || ''}
+          onChange={handleChange}
+          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Mfg Month/Year:</label>
+        <input
+          type="text"
+          name="mfgMonthYear"
+          value={formData.mfgMonthYear || ''}
+          onChange={handleChange}
+          placeholder="MM/YYYY"
+          className="w-full p-2 text-sm border border-gray-300 rounded h-9"
+          maxLength={7} />
+      </div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+      <div className="md:col-span-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">PCB Sr. No:</label>
+        <div className="flex">
           <input
             type="text"
-            name="dateOfPurchase"
-            value={formData.dateOfPurchase || ''}
+            name="pcbSrNo"
+            value={formData.pcbSrNo || ''}
             onChange={handleChange}
-            placeholder="DD/MM/YYYY or MM/DD/YYYY"
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Complaint No:</label>
-          <input
-            type="text"
-            name="complaintNo"
-            value={formData.complaintNo || ''}
-            onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Part Code:</label>
-          <select
-            name="partCode"
-            value={isDcLocked ? useLockStore.getState().lockedPartCode : formData.partCode || ''}
-            onChange={handleChange}
-            disabled={isDcLocked}
-            className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
-          >
-            <option value="">Select Part Code</option>
-            {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || [])
-              .filter(code => code != null && code !== '')
-              .map((code, index) => (
-                <option key={`${code}-${index}`} value={code}>{code}</option>
-              ))}
-          </select>
+            className="flex-1 p-2 text-sm border border-gray-300 rounded h-9"
+            readOnly />
         </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nature of Defect:</label>
-          <input
-            type="text"
-            name="natureOfDefect"
-            value={formData.natureOfDefect || ''}
-            onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Visiting Tech Name:</label>
-          <input
-            type="text"
-            name="visitingTechName"
-            value={formData.visitingTechName || ''}
-            onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-          />
-        </div>
-        
-      {/* </div> */}
-
-      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3"> */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Mfg Month/Year:</label>
-          <input
-            type="text"
-            name="mfgMonthYear"
-            value={formData.mfgMonthYear || ''}
-            onChange={handleChange}
-            placeholder="MM/YYYY"
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-            maxLength={7}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">PCB Sr. No:</label>
-          <div className="flex">
-            <input
-              type="text"
-              name="pcbSrNo"
-              value={formData.pcbSrNo || ''}
-              onChange={handleChange}
-              className="flex-1 p-2 text-sm border border-gray-300 rounded h-9"
-              readOnly
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-3 mt-3">
+    </div>
+    <div className="flex justify-end gap-3 mt-3">
         <button
           type="button"
           onClick={handleClear}

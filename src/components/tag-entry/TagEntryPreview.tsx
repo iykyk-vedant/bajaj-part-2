@@ -286,92 +286,149 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
           
           {/* Table */}
           <div className="overflow-auto flex-1 border rounded-md">
-            <Table className="min-w-full">
-              <TableHeader className="sticky top-0 bg-gray-100 z-10">
-                <TableRow>
-                  <TableHead className="w-[80px]">Sr. No.</TableHead>
-                  <TableHead className="w-[120px]">DC No</TableHead>
-                  <TableHead className="w-[100px]">Branch</TableHead>
-                  <TableHead className="w-[120px]">BCCD Name</TableHead>
-                  <TableHead className="w-[200px]">Product Description</TableHead>
-                  <TableHead className="w-[150px]">Product Sr No</TableHead>
-                  <TableHead className="w-[120px]">Date of Purchase</TableHead>
-                  <TableHead className="w-[120px]">Complaint No</TableHead>
-                  <TableHead className="w-[120px]">Part Code</TableHead>
-                  <TableHead className="w-[150px]">Nature of Defect</TableHead>
-                  <TableHead className="w-[150px]">Visiting Tech Name</TableHead>
-                  <TableHead className="w-[100px]">Mfg Month/Year</TableHead>
-                  <TableHead className="w-[150px]">PCB Sr No</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEntries.length > 0 ? (
-                  filteredEntries.map((entry) => (
-                    <TableRow key={entry.id || entry.srNo}>
-                      <EditableCell 
-                        value={entry.srNo} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'srNo', newValue)} 
-                        className="font-medium"
-                      />
-                      <EditableCell 
-                        value={entry.dcNo} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'dcNo', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.branch} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'branch', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.bccdName} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'bccdName', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.productDescription} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'productDescription', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.productSrNo} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'productSrNo', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.dateOfPurchase} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'dateOfPurchase', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.complaintNo} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'complaintNo', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.partCode} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'partCode', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.natureOfDefect} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'natureOfDefect', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.visitingTechName} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'visitingTechName', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.mfgMonthYear} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'mfgMonthYear', newValue)} 
-                      />
-                      <EditableCell 
-                        value={entry.pcbSrNo} 
-                        onSave={(newValue) => handleSaveEntry(Number(entry.id), 'pcbSrNo', newValue)} 
-                      />
-                    </TableRow>
-                  ))
-                ) : (
+            <div className="overflow-x-auto">
+              <Table className="min-w-full">
+                <TableHeader className="sticky top-0 bg-gray-100 z-10">
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center text-gray-500 py-8">
-                      {searchTerm ? 'No entries match your search.' : 'No tag entries found.'}
-                    </TableCell>
+                    <TableHead className="w-[80px]">Sr. No.</TableHead>
+                    <TableHead className="w-[120px]">DC No</TableHead>
+                    <TableHead className="w-[100px]">DC Date</TableHead>
+                    <TableHead className="w-[100px]">Branch</TableHead>
+                    <TableHead className="w-[120px]">BCCD Name</TableHead>
+                    <TableHead className="w-[200px]">Product Description</TableHead>
+                    <TableHead className="w-[150px]">Product Sr No</TableHead>
+                    <TableHead className="w-[120px]">Date of Purchase</TableHead>
+                    <TableHead className="w-[120px]">Complaint No</TableHead>
+                    <TableHead className="w-[120px]">Part Code</TableHead>
+                    <TableHead className="w-[150px]">Nature of Defect</TableHead>
+                    <TableHead className="w-[150px]">Visiting Tech Name</TableHead>
+                    <TableHead className="w-[100px]">Mfg Month/Year</TableHead>
+                    <TableHead className="w-[150px]">PCB Sr No</TableHead>
+                    <TableHead className="w-[120px]">Repair Date</TableHead>
+                    <TableHead className="w-[100px]">Testing</TableHead>
+                    <TableHead className="w-[100px]">Failure</TableHead>
+                    <TableHead className="w-[100px]">Status</TableHead>
+                    <TableHead className="w-[150px]">RF Observation</TableHead>
+                    <TableHead className="w-[150px]">Analysis</TableHead>
+                    <TableHead className="w-[150px]">Validation Result</TableHead>
+                    <TableHead className="w-[150px]">Component Change</TableHead>
+                    <TableHead className="w-[150px]">Engg Name</TableHead>
+                    <TableHead className="w-[120px]">Dispatch Date</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredEntries.length > 0 ? (
+                    filteredEntries.map((entry) => (
+                      <TableRow key={entry.id || entry.srNo}>
+                        <EditableCell 
+                          value={entry.srNo} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'srNo', newValue)} 
+                          className="font-medium"
+                        />
+                        <EditableCell 
+                          value={entry.dcNo} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'dcNo', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.dcDate || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'dcDate', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.branch} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'branch', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.bccdName} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'bccdName', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.productDescription} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'productDescription', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.productSrNo} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'productSrNo', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.dateOfPurchase} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'dateOfPurchase', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.complaintNo} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'complaintNo', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.partCode} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'partCode', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.natureOfDefect} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'natureOfDefect', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.visitingTechName} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'visitingTechName', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.mfgMonthYear} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'mfgMonthYear', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.pcbSrNo} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'pcbSrNo', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.repairDate || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'repairDate', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.testing || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'testing', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.failure || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'failure', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.status || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'status', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.rfObservation || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'rfObservation', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.analysis || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'analysis', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.validationResult || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'validationResult', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.componentChange || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'componentChange', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.enggName || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'enggName', newValue)} 
+                        />
+                        <EditableCell 
+                          value={entry.dispatchDate || ''} 
+                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'dispatchDate', newValue)} 
+                        />
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={23} className="text-center text-gray-500 py-8">
+                        {searchTerm ? 'No entries match your search.' : 'No tag entries found.'}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
         

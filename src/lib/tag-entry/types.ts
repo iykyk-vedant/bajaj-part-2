@@ -2,6 +2,7 @@ export interface TagEntry {
   id?: string | number;
   srNo: string;
   dcNo: string;
+  dcDate?: string;
   branch: string;
   bccdName: string;
   productDescription: string;
@@ -12,7 +13,17 @@ export interface TagEntry {
   natureOfDefect: string;
   visitingTechName: string;
   mfgMonthYear: string;
+  repairDate?: string;
+  testing?: string;
+  failure?: string;
+  status?: string;
   pcbSrNo: string;
+  rfObservation?: string;
+  analysis?: string;
+  validationResult?: string;
+  componentChange?: string;
+  enggName?: string;
+  dispatchDate?: string;
 }
 
 export interface ConsumptionEntry {

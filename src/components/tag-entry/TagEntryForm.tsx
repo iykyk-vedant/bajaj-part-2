@@ -840,14 +840,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
               <LockButton dcNo={formData.dcNo} partCode={formData.partCode} />
             </div>
           </div>
-        </div>
         <select
           name="dcNo"
           value={isDcLocked ? useLockStore.getState().lockedDcNo : (formData.dcNo || '')}
           onChange={handleChange}
           disabled={isDcLocked}
           className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
-        >
+          >
           <option value="">Select DC No.</option>
           {dcNumbers
             .filter(dc => dc != null && dc !== '')
@@ -855,7 +854,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
               <option key={`${dc}-${index}`} value={dc}>{dc}</option>
             ))}
         </select>
-      </div>
+            </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Branch:</label>
         <input
@@ -865,6 +864,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           onChange={handleChange}
           className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
       </div>
+          </div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">BCCD Name:</label>

@@ -14,15 +14,17 @@ services:
         value: 3000
       - key: GEMINI_API_KEY
         sync: false  # This will be set in the Render dashboard
+      - key: DATABASE_URL
+        sync: false  # This will be set in the Render dashboard (for Render PostgreSQL add-on)
       - key: PG_HOST
-        sync: false  # This will be set in the Render dashboard
+        sync: false  # Fallback: This will be set in the Render dashboard
       - key: PG_PORT
         value: 5432
       - key: PG_USER
-        sync: false  # This will be set in the Render dashboard
+        sync: false  # Fallback: This will be set in the Render dashboard
       - key: PG_PASSWORD
-        sync: false  # This will be set in the Render dashboard
+        sync: false  # Fallback: This will be set in the Render dashboard
       - key: PG_DATABASE
-        sync: false  # This will be set in the Render dashboard
+        sync: false  # Fallback: This will be set in the Render dashboard
       - key: POSTGRES_URL
-        sync: false  # This will be set in the Render dashboard if using direct connection string
+        sync: false  # Fallback: This will be set in the Render dashboard if using direct connection string

@@ -166,7 +166,7 @@ This directory contains all the React components used to build the user interfac
 
 - **`image-uploader.tsx`**: A component that allows the user to either upload an image file or use their device's camera.
   - It displays a preview of the image or the live camera feed.
-  - It handles camera permissions and provides keyboard shortcuts (Enter to capture, Escape to quit).
+  - It handles camera permissions and provides keyboard shortcuts (Enter to capture, Escape to toggle camera mode).
   - When an image is captured or uploaded, it converts it to a data URI and passes it to the parent component (`page.tsx`) via the `onImageReady` prop.
 - **`data-form.tsx`**: A form to display, validate, and edit the data extracted by the AI.
   - It uses `react-hook-form` for form state management and `zod` for validation.

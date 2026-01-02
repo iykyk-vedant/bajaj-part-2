@@ -106,14 +106,19 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!isCameraOn) return;
-
-      if (event.key === 'Enter') {
+      // Handle Enter key only when camera is on
+      if (event.key === 'Enter' && isCameraOn) {
         event.preventDefault();
         takePicture();
-      } else if (event.key === 'Escape') {
+      } 
+      // Toggle camera mode when Escape key is pressed
+      else if (event.key === 'Escape') {
         event.preventDefault();
-        stopCamera();
+        if (isCameraOn) {
+          stopCamera();
+        } else {
+          startCamera();
+        }
       }
     };
 
@@ -204,7 +209,7 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
                   </Button>
                   <Button onClick={startCamera} variant="outline" disabled={isLoading} className="h-10 py-2 text-sm">
                       <Camera className="mr-2 h-4 w-4" />
-                      Use Camera
+                      Use Camera (ESC)
                   </Button>
               </>
           )}

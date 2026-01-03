@@ -150,25 +150,78 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           srNo: srNo,
           dcNo: dcNo,
           partCode: partCode,
-          repairDate: formData.repairDate,
-          testing: formData.testing,
-          failure: formData.failure,
-          status: formData.status,
-          pcbSrNo: formData.pcbSrNo,
-          rfObservation: formData.rfObservation,
-          analysis: formData.analysis,
-          validationResult: formData.validationResult,
-          componentChange: formData.componentChange,
-          enggName: engineerName || '', // Use engineer name from navigation tab
-          dispatchDate: formData.dispatchDate,
+          repairDate: formData.repairDate || null,
+          testing: formData.testing || null,
+          failure: formData.failure || null,
+          status: formData.status || null,
+          pcbSrNo: formData.pcbSrNo || null,
+          rfObservation: formData.rfObservation || null,
+          analysis: formData.analysis || null,
+          validationResult: formData.validationResult || null,
+          componentChange: formData.componentChange || null,
+          enggName: engineerName || null, // Use engineer name from navigation tab
+          dispatchDate: formData.dispatchDate || null,
         };
 
-        // Save to consolidated data table
-        const result = await saveConsolidatedData(consolidatedData);
+        // Check if an entry with the same srNo already exists
+        const { getConsolidatedDataEntries, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
+        
+        const result = await getConsolidatedDataEntries();
+        
         if (result.success) {
-
+          const allEntries = result.data || [];
+          // Find an entry with matching srNo
+          const existingEntry = allEntries.find((entry: any) => 
+            entry.sr_no === consolidatedData.srNo
+          );
+          
+          if (existingEntry) {
+            // Update the existing entry - preserve original tag entry data, update with new consumption data
+            const updateResult = await updateConsolidatedDataEntryAction(String(existingEntry.id), {
+              // Keep original tag entry data
+              sr_no: existingEntry.sr_no,
+              dc_no: existingEntry.dc_no,
+              dc_date: existingEntry.dc_date || '',
+              branch: existingEntry.branch,
+              bccd_name: existingEntry.bccd_name,
+              product_description: existingEntry.product_description,
+              product_sr_no: existingEntry.product_sr_no,
+              date_of_purchase: existingEntry.date_of_purchase || '',
+              complaint_no: existingEntry.complaint_no,
+              part_code: existingEntry.part_code,
+              nature_of_defect: existingEntry.nature_of_defect,
+              visiting_tech_name: existingEntry.visiting_tech_name,
+              mfg_month_year: existingEntry.mfg_month_year,
+              pcb_sr_no: existingEntry.pcb_sr_no,
+              // Update with new consumption data
+              repair_date: consolidatedData.repairDate || null,
+              testing: consolidatedData.testing || null,
+              failure: consolidatedData.failure || null,
+              status: consolidatedData.status || null,
+              rf_observation: consolidatedData.rfObservation || null,
+              analysis: consolidatedData.analysis || null,
+              validation_result: consolidatedData.validationResult || null,
+              component_change: consolidatedData.componentChange || null,
+              engg_name: consolidatedData.enggName || null,
+              dispatch_date: consolidatedData.dispatchDate || null,
+            });
+            
+            if (!updateResult.success) {
+              console.error('Failed to update entry in database:', updateResult.error);
+            }
+          } else {
+            // No existing entry found, save as new
+            const saveResult = await saveConsolidatedData(consolidatedData);
+            if (!saveResult.success) {
+              console.error('Failed to save entry to database:', saveResult.error);
+            }
+          }
         } else {
-          console.error('Error saving consolidated data automatically:', result.error);
+          // If we can't fetch existing entries, save as new
+          const saveResult = await saveConsolidatedData(consolidatedData);
+          if (!saveResult.success) {
+            console.error('Failed to save entry to database:', saveResult.error);
+          }
         }
       } catch (error) {
         console.error('Error saving consolidated data automatically:', error);
@@ -389,25 +442,78 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         srNo: srNo,
         dcNo: dcNo,
         partCode: partCode,
-        repairDate: formData.repairDate,
-        testing: formData.testing,
-        failure: formData.failure,
-        status: formData.status,
-        pcbSrNo: formData.pcbSrNo,
-        rfObservation: formData.rfObservation,
-        analysis: formData.analysis,
-        validationResult: formData.validationResult,
-        componentChange: formData.componentChange,
-        enggName: engineerName || '', // Use engineer name from navigation tab
-        dispatchDate: formData.dispatchDate,
+        repairDate: formData.repairDate || null,
+        testing: formData.testing || null,
+        failure: formData.failure || null,
+        status: formData.status || null,
+        pcbSrNo: formData.pcbSrNo || null,
+        rfObservation: formData.rfObservation || null,
+        analysis: formData.analysis || null,
+        validationResult: formData.validationResult || null,
+        componentChange: formData.componentChange || null,
+        enggName: engineerName || null, // Use engineer name from navigation tab
+        dispatchDate: formData.dispatchDate || null,
       };
 
-      // Save to consolidated data table
-      const result = await saveConsolidatedData(consolidatedData);
+      // Check if an entry with the same srNo already exists
+      const { getConsolidatedDataEntries, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
+      
+      const result = await getConsolidatedDataEntries();
+      
       if (result.success) {
-
+        const allEntries = result.data || [];
+        // Find an entry with matching srNo
+        const existingEntry = allEntries.find((entry: any) => 
+          entry.sr_no === consolidatedData.srNo
+        );
+        
+        if (existingEntry) {
+          // Update the existing entry - preserve original tag entry data, update with new consumption data
+          const updateResult = await updateConsolidatedDataEntryAction(String(existingEntry.id), {
+            // Keep original tag entry data
+            sr_no: existingEntry.sr_no,
+            dc_no: existingEntry.dc_no,
+            dc_date: existingEntry.dc_date || '',
+            branch: existingEntry.branch,
+            bccd_name: existingEntry.bccd_name,
+            product_description: existingEntry.product_description,
+            product_sr_no: existingEntry.product_sr_no,
+            date_of_purchase: existingEntry.date_of_purchase || '',
+            complaint_no: existingEntry.complaint_no,
+            part_code: existingEntry.part_code,
+            nature_of_defect: existingEntry.nature_of_defect,
+            visiting_tech_name: existingEntry.visiting_tech_name,
+            mfg_month_year: existingEntry.mfg_month_year,
+            pcb_sr_no: existingEntry.pcb_sr_no,
+            // Update with new consumption data
+            repair_date: consolidatedData.repairDate || null,
+            testing: consolidatedData.testing || null,
+            failure: consolidatedData.failure || null,
+            status: consolidatedData.status || null,
+            rf_observation: consolidatedData.rfObservation || null,
+            analysis: consolidatedData.analysis || null,
+            validation_result: consolidatedData.validationResult || null,
+            component_change: consolidatedData.componentChange || null,
+            engg_name: consolidatedData.enggName || null,
+            dispatch_date: consolidatedData.dispatchDate || null,
+          });
+          
+          if (!updateResult.success) {
+            console.error('Failed to update entry in database:', updateResult.error);
+          }
+        } else {
+          // No existing entry found, save as new
+          const saveResult = await saveConsolidatedData(consolidatedData);
+          if (!saveResult.success) {
+            console.error('Failed to save entry to database:', saveResult.error);
+          }
+        }
       } else {
-        console.error('Error saving consolidated data:', result.error);
+        // If we can't fetch existing entries, save as new
+        const saveResult = await saveConsolidatedData(consolidatedData);
+        if (!saveResult.success) {
+          console.error('Failed to save entry to database:', saveResult.error);
+        }
       }
 
       // Implementation for consuming data
@@ -445,25 +551,78 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         srNo: srNo,
         dcNo: dcNo,
         partCode: partCode,
-        repairDate: formData.repairDate,
-        testing: formData.testing,
-        failure: formData.failure,
-        status: formData.status,
-        pcbSrNo: formData.pcbSrNo,
-        rfObservation: formData.rfObservation,
-        analysis: formData.analysis,
-        validationResult: formData.validationResult,
-        componentChange: formData.componentChange,
-        enggName: engineerName || '', // Use engineer name from navigation tab
-        dispatchDate: formData.dispatchDate,
+        repairDate: formData.repairDate || null,
+        testing: formData.testing || null,
+        failure: formData.failure || null,
+        status: formData.status || null,
+        pcbSrNo: formData.pcbSrNo || null,
+        rfObservation: formData.rfObservation || null,
+        analysis: formData.analysis || null,
+        validationResult: formData.validationResult || null,
+        componentChange: formData.componentChange || null,
+        enggName: engineerName || null, // Use engineer name from navigation tab
+        dispatchDate: formData.dispatchDate || null,
       };
 
-      // Save to consolidated data table (this will create a new entry since we don't have an update function)
-      const result = await saveConsolidatedData(consolidatedData);
+      // Check if an entry with the same srNo already exists
+      const { getConsolidatedDataEntries, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
+      
+      const result = await getConsolidatedDataEntries();
+      
       if (result.success) {
-
+        const allEntries = result.data || [];
+        // Find an entry with matching srNo
+        const existingEntry = allEntries.find((entry: any) => 
+          entry.sr_no === consolidatedData.srNo
+        );
+        
+        if (existingEntry) {
+          // Update the existing entry - preserve original tag entry data, update with new consumption data
+          const updateResult = await updateConsolidatedDataEntryAction(String(existingEntry.id), {
+            // Keep original tag entry data
+            sr_no: existingEntry.sr_no,
+            dc_no: existingEntry.dc_no,
+            dc_date: existingEntry.dc_date || '',
+            branch: existingEntry.branch,
+            bccd_name: existingEntry.bccd_name,
+            product_description: existingEntry.product_description,
+            product_sr_no: existingEntry.product_sr_no,
+            date_of_purchase: existingEntry.date_of_purchase || '',
+            complaint_no: existingEntry.complaint_no,
+            part_code: existingEntry.part_code,
+            nature_of_defect: existingEntry.nature_of_defect,
+            visiting_tech_name: existingEntry.visiting_tech_name,
+            mfg_month_year: existingEntry.mfg_month_year,
+            pcb_sr_no: existingEntry.pcb_sr_no,
+            // Update with new consumption data
+            repair_date: consolidatedData.repairDate || null,
+            testing: consolidatedData.testing || null,
+            failure: consolidatedData.failure || null,
+            status: consolidatedData.status || null,
+            rf_observation: consolidatedData.rfObservation || null,
+            analysis: consolidatedData.analysis || null,
+            validation_result: consolidatedData.validationResult || null,
+            component_change: consolidatedData.componentChange || null,
+            engg_name: consolidatedData.enggName || null,
+            dispatch_date: consolidatedData.dispatchDate || null,
+          });
+          
+          if (!updateResult.success) {
+            console.error('Failed to update entry in database:', updateResult.error);
+          }
+        } else {
+          // No existing entry found, save as new
+          const saveResult = await saveConsolidatedData(consolidatedData);
+          if (!saveResult.success) {
+            console.error('Failed to save entry to database:', saveResult.error);
+          }
+        }
       } else {
-        console.error('Error updating consolidated data:', result.error);
+        // If we can't fetch existing entries, save as new
+        const saveResult = await saveConsolidatedData(consolidatedData);
+        if (!saveResult.success) {
+          console.error('Failed to save entry to database:', saveResult.error);
+        }
       }
     } catch (error) {
       console.error('Error updating consolidated data:', error);

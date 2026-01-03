@@ -127,7 +127,7 @@ export async function getConsolidatedDataEntries() {
 // Server action to search consolidated data entries
 export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: string, productSrNo?: string) {
   try {
-    const { searchConsolidatedDataEntries: searchFunction } = await import('@/lib/db');
+    const { searchConsolidatedDataEntries: searchFunction } = await import('@/lib/pg-db');
     const entries = await searchFunction(dcNo, partCode, productSrNo);
     return {
       success: true,
@@ -143,16 +143,15 @@ export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: st
 }
 
 // Server action to update consolidated data entry
-export async function updateConsolidatedDataEntryAction(id: number, entry: any) {
+export async function updateConsolidatedDataEntryAction(id: string, entry: any) {
   try {
-    const { updateConsolidatedDataEntry } = await import('@/lib/db');
+    const { updateConsolidatedDataEntry } = await import('@/lib/pg-db');
     // Convert field names to match database column names if needed
     const entryForDb = {
-      ...entry,
-      dc_date: entry.dcDate || entry.dc_date,
-      date_of_purchase: entry.dateOfPurchase || entry.date_of_purchase,
-      repair_date: entry.repairDate || entry.repair_date,
-      dispatch_date: entry.dispatchDate || entry.dispatch_date,
+      dc_date: typeof entry.dcDate === 'string' ? entry.dcDate : (typeof entry.dc_date === 'string' ? entry.dc_date : null),
+      date_of_purchase: typeof entry.dateOfPurchase === 'string' ? entry.dateOfPurchase : (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : null),
+      repair_date: typeof entry.repairDate === 'string' ? entry.repairDate : (typeof entry.repair_date === 'string' ? entry.repair_date : null),
+      dispatch_date: typeof entry.dispatchDate === 'string' ? entry.dispatchDate : (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : null),
       sr_no: entry.srNo || entry.sr_no,
       dc_no: entry.dcNo || entry.dc_no,
       bccd_name: entry.bccdName || entry.bccd_name,
@@ -165,11 +164,15 @@ export async function updateConsolidatedDataEntryAction(id: number, entry: any) 
       mfg_month_year: entry.mfgMonthYear || entry.mfg_month_year,
       pcb_sr_no: entry.pcbSrNo || entry.pcb_sr_no,
       rf_observation: entry.rfObservation || entry.rf_observation,
+      analysis: entry.analysis || null,
+      testing: entry.testing || null,
+      failure: entry.failure || null,
+      status: entry.status || null,
       validation_result: entry.validationResult || entry.validation_result,
       component_change: entry.componentChange || entry.component_change,
       engg_name: entry.enggName || entry.engg_name,
     };
-    const result = await updateConsolidatedDataEntry(id, entryForDb);
+    const result = await updateConsolidatedDataEntry(id.toString(), entryForDb);
     return {
       success: true,
       data: result

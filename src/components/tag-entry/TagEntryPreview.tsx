@@ -107,6 +107,7 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
           id: entry.id || entry.sr_no,
           srNo: entry.sr_no || '',
           dcNo: entry.dc_no || '',
+          dcDate: entry.dc_date || '',
           branch: entry.branch || '',
           bccdName: entry.bccd_name || '',
           productDescription: entry.product_description || '',
@@ -117,7 +118,17 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
           natureOfDefect: entry.nature_of_defect || entry.defect || '',
           visitingTechName: entry.visiting_tech_name || '',
           mfgMonthYear: entry.mfg_month_year ? (typeof entry.mfg_month_year === 'string' ? entry.mfg_month_year : entry.mfg_month_year instanceof Date ? entry.mfg_month_year.toISOString().split('T')[0] : new Date(entry.mfg_month_year).toISOString().split('T')[0]) : '',
+          repairDate: entry.repair_date || '',
+          testing: entry.testing || '',
+          failure: entry.failure || '',
+          status: entry.status || '',
           pcbSrNo: entry.pcb_sr_no || '',
+          rfObservation: entry.rf_observation || '',
+          analysis: entry.analysis || '',
+          validationResult: entry.validation_result || '',
+          componentChange: entry.component_change || '',
+          enggName: entry.engg_name || '',
+          dispatchDate: entry.dispatch_date || '',
         }));
         
         setEntries(tagEntries);
@@ -213,7 +224,7 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
 
       // Call the update server action
       const { updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
-      const result = await updateConsolidatedDataEntryAction(entryId, updatedEntry);
+      const result = await updateConsolidatedDataEntryAction(String(entryId), updatedEntry);
 
       if (result.success) {
         // Update the local state - handle both string and number IDs

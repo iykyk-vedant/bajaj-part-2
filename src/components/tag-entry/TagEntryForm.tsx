@@ -411,7 +411,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           
           if (existingEntry) {
             // Update the existing entry
-            const updateResult = await updateConsolidatedDataEntryAction(existingEntry.id, {
+            const updateResult = await updateConsolidatedDataEntryAction(String(existingEntry.id), {
               ...entryToSave,
               // Map natureOfDefect to defect for consolidated table
               defect: entryToSave.natureOfDefect,

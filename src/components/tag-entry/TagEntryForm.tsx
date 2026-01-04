@@ -652,12 +652,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       bccdName: entry.bccdName,
       productDescription: entry.productDescription,
       productSrNo: entry.productSrNo,
-      dateOfPurchase: entry.dateOfPurchase ? (typeof entry.dateOfPurchase === 'string' ? entry.dateOfPurchase : (entry.dateOfPurchase instanceof Date ? entry.dateOfPurchase.toISOString().split('T')[0] : new Date(entry.dateOfPurchase).toISOString().split('T')[0])) : '',
+      dateOfPurchase: entry.dateOfPurchase ? (typeof entry.dateOfPurchase === 'string' ? entry.dateOfPurchase : (entry.dateOfPurchase && typeof entry.dateOfPurchase === 'object' && 'toISOString' in entry.dateOfPurchase ? (entry.dateOfPurchase as Date).toISOString().split('T')[0] : new Date(entry.dateOfPurchase).toISOString().split('T')[0])) : '',
       complaintNo: entry.complaintNo,
       partCode: entry.partCode,
       natureOfDefect: entry.natureOfDefect,
       visitingTechName: entry.visitingTechName,
-      mfgMonthYear: entry.mfgMonthYear ? (typeof entry.mfgMonthYear === 'string' ? entry.mfgMonthYear : (entry.mfgMonthYear instanceof Date ? entry.mfgMonthYear.toISOString().split('T')[0] : new Date(entry.mfgMonthYear).toISOString().split('T')[0])) : '',
+      mfgMonthYear: entry.mfgMonthYear ? (typeof entry.mfgMonthYear === 'string' ? entry.mfgMonthYear : (entry.mfgMonthYear && typeof entry.mfgMonthYear === 'object' && 'toISOString' in entry.mfgMonthYear ? (entry.mfgMonthYear as Date).toISOString().split('T')[0] : new Date(entry.mfgMonthYear).toISOString().split('T')[0])) : '',
       pcbSrNo: entry.pcbSrNo,
     });
     setShowSearchResults(false);

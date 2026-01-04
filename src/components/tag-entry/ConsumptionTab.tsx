@@ -255,14 +255,14 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           bccdName: entry.bccd_name || '',
           productDescription: entry.product_description || '',
           productSrNo: entry.product_sr_no || '',
-          dateOfPurchase: entry.date_of_purchase || '',
+          dateOfPurchase: entry.date_of_purchase ? (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : (entry.date_of_purchase instanceof Date ? entry.date_of_purchase.toISOString().split('T')[0] : new Date(entry.date_of_purchase).toISOString().split('T')[0])) : '',
           complaintNo: entry.complaint_no || '',
           partCode: entry.part_code || '',
           defect: entry.defect || '',
           visitingTechName: entry.visiting_tech_name || '',
-          mfgMonthYear: entry.mfg_month_year || '',
+          mfgMonthYear: entry.mfg_month_year ? (typeof entry.mfg_month_year === 'string' ? entry.mfg_month_year : (entry.mfg_month_year instanceof Date ? entry.mfg_month_year.toISOString().split('T')[0] : new Date(entry.mfg_month_year).toISOString().split('T')[0])) : '',
           // Consumption-specific fields
-          repairDate: entry.repair_date || '',
+          repairDate: entry.repair_date ? (typeof entry.repair_date === 'string' ? entry.repair_date : (entry.repair_date instanceof Date ? entry.repair_date.toISOString().split('T')[0] : new Date(entry.repair_date).toISOString().split('T')[0])) : '',
           testing: entry.testing || '',
           failure: entry.failure || '',
           status: entry.status || '',
@@ -272,7 +272,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           validationResult: entry.validation_result || '',
           componentChange: entry.component_change || '',
           enggName: entry.engg_name || '',
-          dispatchDate: entry.dispatch_date || '',
+          dispatchDate: entry.dispatch_date ? (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : (entry.dispatch_date instanceof Date ? entry.dispatch_date.toISOString().split('T')[0] : new Date(entry.dispatch_date).toISOString().split('T')[0])) : '',
         }));
         
         setTableData(tableRows);

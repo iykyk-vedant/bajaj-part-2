@@ -88,12 +88,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             bccdName: entry.bccd_name || '',
             productDescription: entry.product_description || '',
             productSrNo: entry.product_sr_no || '',
-            dateOfPurchase: entry.date_of_purchase || '',
+            dateOfPurchase: entry.date_of_purchase ? (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : (entry.date_of_purchase instanceof Date ? entry.date_of_purchase.toISOString().split('T')[0] : new Date(entry.date_of_purchase).toISOString().split('T')[0])) : '',
             complaintNo: entry.complaint_no || '',
             partCode: entry.part_code || '',
             natureOfDefect: entry.nature_of_defect || '',
             visitingTechName: entry.visiting_tech_name || '',
-            mfgMonthYear: entry.mfg_month_year || '',
+            mfgMonthYear: entry.mfg_month_year ? (typeof entry.mfg_month_year === 'string' ? entry.mfg_month_year : (entry.mfg_month_year instanceof Date ? entry.mfg_month_year.toISOString().split('T')[0] : new Date(entry.mfg_month_year).toISOString().split('T')[0])) : '',
             pcbSrNo: entry.pcb_sr_no || '',
           }));
 
@@ -652,12 +652,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       bccdName: entry.bccdName,
       productDescription: entry.productDescription,
       productSrNo: entry.productSrNo,
-      dateOfPurchase: entry.dateOfPurchase,
+      dateOfPurchase: entry.dateOfPurchase ? (typeof entry.dateOfPurchase === 'string' ? entry.dateOfPurchase : (entry.dateOfPurchase instanceof Date ? entry.dateOfPurchase.toISOString().split('T')[0] : new Date(entry.dateOfPurchase).toISOString().split('T')[0])) : '',
       complaintNo: entry.complaintNo,
       partCode: entry.partCode,
       natureOfDefect: entry.natureOfDefect,
       visitingTechName: entry.visitingTechName,
-      mfgMonthYear: mfgMonthYear,
+      mfgMonthYear: entry.mfgMonthYear ? (typeof entry.mfgMonthYear === 'string' ? entry.mfgMonthYear : (entry.mfgMonthYear instanceof Date ? entry.mfgMonthYear.toISOString().split('T')[0] : new Date(entry.mfgMonthYear).toISOString().split('T')[0])) : '',
       pcbSrNo: entry.pcbSrNo,
     });
     setShowSearchResults(false);

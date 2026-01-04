@@ -187,10 +187,12 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
     };
 
     try {
-      // For dispatch, we'll save the updated entry to the database
-      // Import the save function
-      const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
-      const result = await saveConsolidatedData(updatedEntry);
+      // For dispatch, we'll update the existing entry by product_sr_no to preserve all previous data and add dispatch data
+      // Import the update function by product_sr_no
+      const { updateConsolidatedDataEntryByProductSrNoAction } = await import('@/app/actions/consumption-actions');
+      
+      // Update the entry by product_sr_no to preserve all previous data and add dispatch data
+      const result = await updateConsolidatedDataEntryByProductSrNoAction(updatedEntry.productSrNo, updatedEntry);
 
       if (result.success) {
         toast({

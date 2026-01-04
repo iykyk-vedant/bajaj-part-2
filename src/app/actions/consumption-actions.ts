@@ -124,7 +124,7 @@ export async function getConsolidatedDataEntries() {
   }
 }
 
-// Server action to search consolidated data entries
+// Server action to search consolidated data entries by product serial number
 export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: string, productSrNo?: string) {
   try {
     const { searchConsolidatedDataEntries: searchFunction } = await import('@/lib/pg-db');
@@ -135,6 +135,24 @@ export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: st
     };
   } catch (error) {
     console.error('Error searching consolidated data entries:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
+// Server action to search consolidated data entries by PCB serial number
+export async function searchConsolidatedDataEntriesByPcb(dcNo?: string, partCode?: string, pcbSrNo?: string) {
+  try {
+    const { searchConsolidatedDataEntriesByPcb: searchFunction } = await import('@/lib/pg-db');
+    const entries = await searchFunction(dcNo, partCode, pcbSrNo);
+    return {
+      success: true,
+      data: entries
+    };
+  } catch (error) {
+    console.error('Error searching consolidated data entries by PCB:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred'
@@ -179,6 +197,42 @@ export async function updateConsolidatedDataEntryAction(id: string, entry: any) 
     };
   } catch (error) {
     console.error('Error updating consolidated data entry:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
+// Server action to find consolidated data entry by product_sr_no
+export async function findConsolidatedDataEntryByProductSrNoAction(productSrNo: string) {
+  try {
+    const { findConsolidatedDataEntryByProductSrNo } = await import('@/lib/pg-db');
+    const entry = await findConsolidatedDataEntryByProductSrNo(productSrNo);
+    return {
+      success: true,
+      data: entry
+    };
+  } catch (error) {
+    console.error('Error finding consolidated data entry by product_sr_no:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
+// Server action to update consolidated data entry by product_sr_no
+export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo: string, entry: any) {
+  try {
+    const { updateConsolidatedDataEntryByProductSrNo } = await import('@/lib/pg-db');
+    const result = await updateConsolidatedDataEntryByProductSrNo(productSrNo, entry);
+    return {
+      success: result,
+      data: result
+    };
+  } catch (error) {
+    console.error('Error updating consolidated data entry by product_sr_no:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred'

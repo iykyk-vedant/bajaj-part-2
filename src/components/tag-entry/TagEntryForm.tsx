@@ -399,64 +399,35 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       try {
         const { saveConsolidatedData, getConsolidatedDataEntries, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
         
-        // Check if an entry with the same srNo, dcNo, and partCode already exists
-        const result = await getConsolidatedDataEntries();
+        // Check if an entry with the same productSrNo already exists
+        const { findConsolidatedDataEntryByProductSrNoAction } = await import('@/app/actions/consumption-actions');
+        const findResult = await findConsolidatedDataEntryByProductSrNoAction(entryToSave.productSrNo);
+        const existingEntry = findResult.success ? findResult.data : null;
         
-        if (result.success) {
-          const allEntries = result.data || [];
-          // Find an entry with matching srNo, dcNo, and partCode
-          const existingEntry = allEntries.find((entry: any) => 
-            entry.sr_no === entryToSave.srNo && entry.dc_no === entryToSave.dcNo && entry.part_code === entryToSave.partCode
-          );
+        if (existingEntry) {
+          // Update the existing entry by product_sr_no
+          const updateResult = await updateConsolidatedDataEntryAction(String(existingEntry.id), {
+            ...entryToSave,
+            // Map natureOfDefect to defect for consolidated table
+            defect: entryToSave.natureOfDefect,
+            // Initialize consumption-specific fields as empty
+            repairDate: '',
+            testing: '',
+            failure: '',
+            status: '',
+            rfObservation: '',
+            analysis: '',
+            validationResult: '',
+            componentChange: '',
+            enggName: '',
+            dispatchDate: '',
+          });
           
-          if (existingEntry) {
-            // Update the existing entry
-            const updateResult = await updateConsolidatedDataEntryAction(String(existingEntry.id), {
-              ...entryToSave,
-              // Map natureOfDefect to defect for consolidated table
-              defect: entryToSave.natureOfDefect,
-              // Initialize consumption-specific fields as empty
-              repairDate: '',
-              testing: '',
-              failure: '',
-              status: '',
-              rfObservation: '',
-              analysis: '',
-              validationResult: '',
-              componentChange: '',
-              enggName: '',
-              dispatchDate: '',
-            });
-            
-            if (!updateResult.success) {
-              console.error('Failed to update entry in database:', updateResult.error);
-            }
-          } else {
-            // No existing entry found, save as new
-            const consolidatedData = {
-              ...entryToSave,
-              // Map natureOfDefect to defect for consolidated table
-              defect: entryToSave.natureOfDefect,
-              // Initialize consumption-specific fields as empty
-              repairDate: '',
-              testing: '',
-              failure: '',
-              status: '',
-              rfObservation: '',
-              analysis: '',
-              validationResult: '',
-              componentChange: '',
-              enggName: '',
-              dispatchDate: '',
-            };
-            const saveResult = await saveConsolidatedData(consolidatedData);
-            
-            if (!saveResult.success) {
-              console.error('Failed to save entry to database:', saveResult.error);
-            }
+          if (!updateResult.success) {
+            console.error('Failed to update entry in database:', updateResult.error);
           }
         } else {
-          // If we can't fetch existing entries, save as new
+          // No existing entry found, save as new
           const consolidatedData = {
             ...entryToSave,
             // Map natureOfDefect to defect for consolidated table

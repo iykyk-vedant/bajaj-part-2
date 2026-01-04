@@ -116,7 +116,7 @@ export async function initializeDatabase() {
         branch VARCHAR(255),
         bccd_name VARCHAR(255),
         product_description TEXT,
-        product_sr_no VARCHAR(255),
+        product_sr_no VARCHAR(255) UNIQUE,
         date_of_purchase DATE,
         complaint_no VARCHAR(255),
         part_code VARCHAR(255),
@@ -143,6 +143,192 @@ export async function initializeDatabase() {
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
+  }
+}
+
+// Find consolidated data entry by product_sr_no
+export async function findConsolidatedDataEntryByProductSrNo(productSrNo: string): Promise<any> {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM consolidated_data WHERE product_sr_no = $1 LIMIT 1',
+      [productSrNo]
+    );
+    
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding consolidated data entry by product_sr_no:', error);
+    return null;
+  }
+}
+
+// Update consolidated data entry by product_sr_no
+export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: string, entry: any): Promise<boolean> {
+  try {
+    // Build dynamic query based on provided fields
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+    
+    // Handle tag entry fields (only update if provided)
+    if (entry.srNo !== undefined && entry.srNo !== null) {
+      updates.push(`sr_no = $${paramCount}`);
+      values.push(entry.srNo);
+      paramCount++;
+    }
+    if (entry.dcNo !== undefined && entry.dcNo !== null) {
+      updates.push(`dc_no = $${paramCount}`);
+      values.push(entry.dcNo);
+      paramCount++;
+    }
+    if (entry.dcDate !== undefined && entry.dcDate !== null) {
+      const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? convertToPostgresDate(entry.dcDate) : null;
+      updates.push(`dc_date = $${paramCount}`);
+      values.push(dcDateValue);
+      paramCount++;
+    }
+    if (entry.branch !== undefined && entry.branch !== null) {
+      updates.push(`branch = $${paramCount}`);
+      values.push(entry.branch);
+      paramCount++;
+    }
+    if (entry.bccdName !== undefined && entry.bccdName !== null) {
+      updates.push(`bccd_name = $${paramCount}`);
+      values.push(entry.bccdName);
+      paramCount++;
+    }
+    if (entry.productDescription !== undefined && entry.productDescription !== null) {
+      updates.push(`product_description = $${paramCount}`);
+      values.push(entry.productDescription);
+      paramCount++;
+    }
+    if (entry.productSrNo !== undefined && entry.productSrNo !== null) {
+      updates.push(`product_sr_no = $${paramCount}`);
+      values.push(entry.productSrNo);
+      paramCount++;
+    }
+    if (entry.dateOfPurchase !== undefined && entry.dateOfPurchase !== null) {
+      const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? convertToPostgresDate(entry.dateOfPurchase) : null;
+      updates.push(`date_of_purchase = $${paramCount}`);
+      values.push(dateOfPurchaseValue);
+      paramCount++;
+    }
+    if (entry.complaintNo !== undefined && entry.complaintNo !== null) {
+      updates.push(`complaint_no = $${paramCount}`);
+      values.push(entry.complaintNo);
+      paramCount++;
+    }
+    if (entry.partCode !== undefined && entry.partCode !== null) {
+      updates.push(`part_code = $${paramCount}`);
+      values.push(entry.partCode);
+      paramCount++;
+    }
+    if (entry.defect !== undefined && entry.defect !== null) {
+      updates.push(`defect = $${paramCount}`);
+      values.push(entry.defect);
+      paramCount++;
+    }
+    if (entry.visitingTechName !== undefined && entry.visitingTechName !== null) {
+      updates.push(`visiting_tech_name = $${paramCount}`);
+      values.push(entry.visitingTechName);
+      paramCount++;
+    }
+    if (entry.mfgMonthYear !== undefined && entry.mfgMonthYear !== null) {
+      updates.push(`mfg_month_year = $${paramCount}`);
+      values.push(entry.mfgMonthYear);
+      paramCount++;
+    }
+    if (entry.pcbSrNo !== undefined && entry.pcbSrNo !== null) {
+      updates.push(`pcb_sr_no = $${paramCount}`);
+      values.push(entry.pcbSrNo);
+      paramCount++;
+    }
+    
+    // Handle consumption fields (only update if provided)
+    if (entry.repairDate !== undefined && entry.repairDate !== null) {
+      const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? convertToPostgresDate(entry.repairDate) : null;
+      updates.push(`repair_date = $${paramCount}`);
+      values.push(repairDateValue);
+      paramCount++;
+    }
+    if (entry.testing !== undefined && entry.testing !== null) {
+      updates.push(`testing = $${paramCount}`);
+      values.push(entry.testing);
+      paramCount++;
+    }
+    if (entry.failure !== undefined && entry.failure !== null) {
+      updates.push(`failure = $${paramCount}`);
+      values.push(entry.failure);
+      paramCount++;
+    }
+    if (entry.status !== undefined && entry.status !== null) {
+      updates.push(`status = $${paramCount}`);
+      values.push(entry.status);
+      paramCount++;
+    }
+    if (entry.rfObservation !== undefined && entry.rfObservation !== null) {
+      updates.push(`rf_observation = $${paramCount}`);
+      values.push(entry.rfObservation);
+      paramCount++;
+    }
+    if (entry.analysis !== undefined && entry.analysis !== null) {
+      updates.push(`analysis = $${paramCount}`);
+      values.push(entry.analysis);
+      paramCount++;
+    }
+    if (entry.validationResult !== undefined && entry.validationResult !== null) {
+      updates.push(`validation_result = $${paramCount}`);
+      values.push(entry.validationResult);
+      paramCount++;
+    }
+    if (entry.validation_result !== undefined && entry.validation_result !== null) {
+      updates.push(`validation_result = $${paramCount}`);
+      values.push(entry.validation_result);
+      paramCount++;
+    }
+    if (entry.componentChange !== undefined && entry.componentChange !== null) {
+      updates.push(`component_change = $${paramCount}`);
+      values.push(entry.componentChange);
+      paramCount++;
+    }
+    if (entry.component_change !== undefined && entry.component_change !== null) {
+      updates.push(`component_change = $${paramCount}`);
+      values.push(entry.component_change);
+      paramCount++;
+    }
+    if (entry.enggName !== undefined && entry.enggName !== null) {
+      updates.push(`engg_name = $${paramCount}`);
+      values.push(entry.enggName);
+      paramCount++;
+    }
+    if (entry.engg_name !== undefined && entry.engg_name !== null) {
+      updates.push(`engg_name = $${paramCount}`);
+      values.push(entry.engg_name);
+      paramCount++;
+    }
+    if (entry.dispatchDate !== undefined && entry.dispatchDate !== null) {
+      const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
+      updates.push(`dispatch_date = $${paramCount}`);
+      values.push(dispatchDateValue);
+      paramCount++;
+    }
+    
+    if (updates.length === 0) {
+      console.log('No fields to update');
+      return true; // Nothing to update, but not an error
+    }
+    
+    // Add updated_at and product_sr_no to the end
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(productSrNo);
+    
+    const query = `UPDATE consolidated_data SET ${updates.join(', ')} WHERE product_sr_no = $${paramCount}`;
+    
+    await pool.query(query, values);
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating consolidated data entry by product_sr_no:', error);
+    return false;
   }
 }
 
@@ -711,7 +897,7 @@ export async function clearConsolidatedData(): Promise<void> {
   }
 }
 
-// Search for consolidated data entries by DC number, part code, and serial number
+// Search for consolidated data entries by DC number, part code, and product serial number
 export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: string, productSrNo?: string): Promise<any[]> {
   try {
     let query = 'SELECT * FROM consolidated_data WHERE TRUE';
@@ -742,6 +928,41 @@ export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: st
     return result.rows;
   } catch (error) {
     console.error('Error searching consolidated data entries:', error);
+    return [];
+  }
+}
+
+// Search for consolidated data entries by DC number, part code, and PCB serial number
+export async function searchConsolidatedDataEntriesByPcb(dcNo?: string, partCode?: string, pcbSrNo?: string): Promise<any[]> {
+  try {
+    let query = 'SELECT * FROM consolidated_data WHERE TRUE';
+    const params: any[] = [];
+    let paramCount = 1;
+    
+    if (dcNo) {
+      query += ` AND dc_no = $${paramCount}`;
+      params.push(dcNo);
+      paramCount++;
+    }
+    
+    if (partCode) {
+      query += ` AND part_code = $${paramCount}`;
+      params.push(partCode);
+      paramCount++;
+    }
+    
+    if (pcbSrNo) {
+      query += ` AND pcb_sr_no = $${paramCount}`;
+      params.push(pcbSrNo);
+      paramCount++;
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
+    return result.rows;
+  } catch (error) {
+    console.error('Error searching consolidated data entries by PCB:', error);
     return [];
   }
 }

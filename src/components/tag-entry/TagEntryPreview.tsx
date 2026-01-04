@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter 
@@ -261,6 +262,9 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Tag Entry Preview</DialogTitle>
+          <DialogDescription>
+            Shows a preview of all tag entries with the ability to search and edit fields
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col gap-4 flex-1 overflow-hidden">

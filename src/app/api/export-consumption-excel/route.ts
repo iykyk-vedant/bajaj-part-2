@@ -70,6 +70,16 @@ export async function POST(request: Request) {
         dispatchDate: entry.dispatch_date || '',
       });
     });
+    
+    // Set proper autoFilter range after data is populated
+    if (allConsolidatedData.length > 0) {
+      // Apply autoFilter to the range that contains data: A1 to U(n+1) where n is number of entries
+      // U is the 21st column (there are 21 headers defined)
+      worksheet.autoFilter = `A1:U${allConsolidatedData.length + 1}`;
+    } else {
+      // Clear autoFilter if no data
+      worksheet.autoFilter = undefined;
+    }
 
     // Generate Excel file
     const buffer = await workbook.xlsx.writeBuffer();

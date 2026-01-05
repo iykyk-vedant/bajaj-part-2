@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { searchConsolidatedDataEntries } from '@/app/actions/consumption-actions';
+import { searchConsolidatedDataEntries, searchConsolidatedDataEntriesByPcb } from '@/app/actions/consumption-actions';
 import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,35 +51,21 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
   const { toast } = useToast();
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
-  const [srNo, setSrNo] = useState('');
+  const [pcbSrNo, setPcbSrNo] = useState(''); // Changed from srNo to pcbSrNo
   const [dispatchDate, setDispatchDate] = useState('');
   const [isPcbFound, setIsPcbFound] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<DispatchFormData | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
-  const handleSrNoIncrement = () => {
-    const currentSrNo = parseInt(srNo || '0');
-    if (!isNaN(currentSrNo)) {
-      const newSrNo = currentSrNo + 1;
-      setSrNo(String(newSrNo).padStart(3, '0'));
-    }
-  };
-
-  const handleSrNoDecrement = () => {
-    const currentSrNo = parseInt(srNo || '0');
-    if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
-      const newSrNo = currentSrNo - 1;
-      setSrNo(String(newSrNo).padStart(3, '0'));
-    }
-  };
+  // Removed srNo increment/decrement functions since we're not using srNo for search
 
   const handleFind = async () => {
-    if (!dcNo || !partCode || !srNo) {
+    if (!pcbSrNo) { // Changed condition to check pcbSrNo instead of dcNo, partCode, and srNo
       toast({
         variant: 'destructive',
         title: 'Missing Information',
-        description: 'Please fill in all search fields: DC No, Part Code, and Serial No.'
+        description: 'Please enter PCB Serial No.'
       });
       return;
     }
@@ -87,7 +73,8 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
     setIsSearching(true);
 
     try {
-      const result = await searchConsolidatedDataEntries(dcNo, partCode, srNo);
+      // Use searchConsolidatedDataEntriesByPcb to search by PCB serial number
+      const result = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, pcbSrNo);
       
       if (result.success) {
         const entries = result.data || [];
@@ -96,7 +83,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
           toast({
             variant: 'destructive',
             title: 'No Results',
-            description: 'No PCB found matching the provided criteria.'
+            description: 'No PCB found matching the provided PCB Serial Number.'
           });
           setIsPcbFound(false);
           setSearchResults([]);
@@ -199,22 +186,6 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
           title: 'Dispatch Saved',
           description: 'Dispatch information saved successfully.'
         });
-
-        // Export to Excel after saving
-        if (onExportExcel) {
-          onExportExcel();
-        } else {
-          try {
-            await exportTagEntriesToExcel();
-          } catch (error) {
-            console.error('Error exporting to Excel:', error);
-            toast({
-              variant: 'destructive',
-              title: 'Export Failed',
-              description: 'Could not export to Excel after saving'
-            });
-          }
-        }
       } else {
         toast({
           variant: 'destructive',
@@ -284,16 +255,16 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
 
   // Reset form when search criteria change
   useEffect(() => {
-    if (dcNo || partCode || srNo) {
+    if (pcbSrNo) { // Changed condition to check pcbSrNo instead of dcNo, partCode, and srNo
       setIsPcbFound(false);
       setSelectedEntry(null);
       setSearchResults([]);
     }
-  }, [dcNo, partCode, srNo]);
+  }, [pcbSrNo]); // Changed dependency to pcbSrNo instead of dcNo, partCode, and srNo
 
   return (
-    <div className="bg-white p-4 rounded-md shadow-sm flex flex-col h-full">
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white rounded-md shadow-sm flex flex-col h-full">
+      <div className="flex justify-between items-center ">
         <h2 className="text-lg font-bold text-gray-800">Dispatch PCB</h2>
         <Button 
           variant="outline" 
@@ -312,8 +283,8 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
       </div>
 
       {/* Search Section */}
-      <div className="mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4"> {/* Changed from 4 to 3 columns */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">DC No.</label>
             <div className="flex gap-2">
@@ -356,55 +327,36 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
             </Select>
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">PCB Serial No.</label> {/* Changed label */}
+            <Input
+              type="text"
+              value={pcbSrNo} 
+              onChange={(e) => setPcbSrNo(e.target.value)} 
+              className="w-full"
+              placeholder="Enter PCB Serial No." 
+              disabled={isPcbFound}
+            />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Dispatch Date:</label>
             <Input
               type="date"
               value={dispatchDate}
               onChange={(e) => setDispatchDate(e.target.value)}
               className="w-full"
-            />
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-sm font-medium text-gray-700">Serial No.</label>
-              <div className="flex space-x-1">
-                <button 
-                  type="button" 
-                  onClick={() => handleSrNoIncrement()}
-                  disabled={isPcbFound}
-                  className="text-gray-700 hover:text-gray-900 px-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  +
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleSrNoDecrement()}
-                  disabled={isPcbFound}
-                  className="text-gray-700 hover:text-gray-900 px-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  -
-                </button>
-              </div>
-            </div>
-            <Input
-              type="text"
-              value={srNo}
-              onChange={(e) => setSrNo(e.target.value)}
-              className="w-full"
-              placeholder="Enter Serial No."
               disabled={isPcbFound}
             />
           </div>
-        </div>
         <div className="mt-4 flex justify-center">
           <Button
             onClick={handleFind}
             disabled={isSearching || isPcbFound}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded text-sm"
-          >
+            >
             {isSearching ? 'Searching...' : 'Find PCB'}
           </Button>
         </div>
+            </div>
       </div>
 
       {/* Search Results */}
@@ -419,7 +371,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
                 onClick={() => handleSelectResult(entry)}
               >
                 <div className="flex justify-between">
-                  <span>DC: {entry.dc_no} | Part: {entry.part_code} | Product: {entry.product_sr_no}</span>
+                  <span>DC: {entry.dc_no} | Part: {entry.part_code} | PCB: {entry.pcb_sr_no}</span> {/* Changed display text */}
                   <span className="text-xs text-gray-500">Click to select</span>
                 </div>
               </div>
@@ -430,235 +382,251 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
 
       {/* PCB Information Form - Show only if a PCB is found */}
       {isPcbFound && selectedEntry && (
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col text-sm">
           <div className="bg-blue-50 p-4 rounded-md mb-4">
-            <h3 className="font-bold text-blue-800 mb-3">PCB Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Sr No</Label>
-                <Input
-                  name="srNo"
-                  value={selectedEntry.srNo}
-                  onChange={handleChange}
-                  className="mt-1"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">DC No</Label>
-                <Input
-                  name="dcNo"
-                  value={selectedEntry.dcNo}
-                  onChange={handleChange}
-                  className="mt-1"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Branch</Label>
-                <Input
-                  name="branch"
-                  value={selectedEntry.branch}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">BCCD Name</Label>
-                <Input
-                  name="bccdName"
-                  value={selectedEntry.bccdName}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Product Description</Label>
-                <Input
-                  name="productDescription"
-                  value={selectedEntry.productDescription}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Product Sr No</Label>
-                <Input
-                  name="productSrNo"
-                  value={selectedEntry.productSrNo}
-                  onChange={handleChange}
-                  className="mt-1"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Date of Purchase</Label>
-                <Input
-                  name="dateOfPurchase"
-                  type="date"
-                  value={selectedEntry.dateOfPurchase}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Complaint No</Label>
-                <Input
-                  name="complaintNo"
-                  value={selectedEntry.complaintNo}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Part Code</Label>
-                <Input
-                  name="partCode"
-                  value={selectedEntry.partCode}
-                  onChange={handleChange}
-                  className="mt-1"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Nature of Defect</Label>
-                <Input
-                  name="natureOfDefect"
-                  value={selectedEntry.natureOfDefect}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Visiting Tech Name</Label>
-                <Input
-                  name="visitingTechName"
-                  value={selectedEntry.visitingTechName}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Mfg Month/Year</Label>
-                <Input
-                  name="mfgMonthYear"
-                  value={selectedEntry.mfgMonthYear}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Repair Date</Label>
-                <Input
-                  name="repairDate"
-                  type="date"
-                  value={selectedEntry.repairDate}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Testing</Label>
-                <Input
-                  name="testing"
-                  value={selectedEntry.testing}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Failure</Label>
-                <Input
-                  name="failure"
-                  value={selectedEntry.failure}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Status</Label>
-                <Input
-                  name="status"
-                  value={selectedEntry.status}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">PCB Sr No</Label>
-                <Input
-                  name="pcbSrNo"
-                  value={selectedEntry.pcbSrNo}
-                  onChange={handleChange}
-                  className="mt-1"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">RF Observation</Label>
-                <Input
-                  name="rfObservation"
-                  value={selectedEntry.rfObservation}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Analysis</Label>
-                <textarea
-                  name="analysis"
-                  value={selectedEntry.analysis}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Validation Result</Label>
-                <textarea
-                  name="validationResult"
-                  value={selectedEntry.validationResult}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Component Change</Label>
-                <textarea
-                  name="componentChange"
-                  value={selectedEntry.componentChange}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Engineer Name</Label>
-                <EngineerName
-                  value={selectedEntry.enggName}
-                  onChange={(value) => {
-                    if (selectedEntry) {
-                      setSelectedEntry({
-                        ...selectedEntry,
-                        enggName: value
-                      });
-                    }
-                  }}
-                  className="w-full mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Dispatch Date</Label>
-                <Input
-                  name="dispatchDate"
-                  type="date"
-                  value={selectedEntry.dispatchDate}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
+            {/* <h3 className="font-bold text-blue-800 mb-3">PCB Information</h3> */}
+            {/* Tag Entry Section */}
+            <div className="mb-6 border-b">
+              <h4 className="font-semibold text-gray-700 mb-2">Tag Entry Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Sr No</Label>
+                  <Input
+                    name="srNo"
+                    value={selectedEntry.srNo}
+                    onChange={handleChange}
+                    className="mt-1"
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">DC No</Label>
+                  <Input
+                    name="dcNo"
+                    value={selectedEntry.dcNo}
+                    onChange={handleChange}
+                    className="mt-1"
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Branch</Label>
+                  <Input
+                    name="branch"
+                    value={selectedEntry.branch}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">BCCD Name</Label>
+                  <Input
+                    name="bccdName"
+                    value={selectedEntry.bccdName}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Product Description</Label>
+                  <Input
+                    name="productDescription"
+                    value={selectedEntry.productDescription}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Product Sr No</Label>
+                  <Input
+                    name="productSrNo"
+                    value={selectedEntry.productSrNo}
+                    onChange={handleChange}
+                    className="mt-1"
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Date of Purchase</Label>
+                  <Input
+                    name="dateOfPurchase"
+                    type="date"
+                    value={selectedEntry.dateOfPurchase}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Complaint No</Label>
+                  <Input
+                    name="complaintNo"
+                    value={selectedEntry.complaintNo}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Part Code</Label>
+                  <Input
+                    name="partCode"
+                    value={selectedEntry.partCode}
+                    onChange={handleChange}
+                    className="mt-1"
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Nature of Defect</Label>
+                  <Input
+                    name="natureOfDefect"
+                    value={selectedEntry.natureOfDefect}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Visiting Tech Name</Label>
+                  <Input
+                    name="visitingTechName"
+                    value={selectedEntry.visitingTechName}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Mfg Month/Year</Label>
+                  <Input
+                    name="mfgMonthYear"
+                    value={selectedEntry.mfgMonthYear}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
               </div>
             </div>
+            {/* Consumption Section */}
+            <div className="mb-6 border-b pb-4">
+              <h4 className="font-semibold text-gray-700 mb-2">Consumption Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Repair Date</Label>
+                  <Input
+                    name="repairDate"
+                    type="date"
+                    value={selectedEntry.repairDate}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Testing</Label>
+                  <Input
+                    name="testing"
+                    value={selectedEntry.testing}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Failure</Label>
+                  <Input
+                    name="failure"
+                    value={selectedEntry.failure}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Status</Label>
+                  <Input
+                    name="status"
+                    value={selectedEntry.status}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">PCB Sr No</Label>
+                  <Input
+                    name="pcbSrNo"
+                    value={selectedEntry.pcbSrNo}
+                    onChange={handleChange}
+                    className="mt-1"
+                    readOnly
+                  />
+                </div>
+                {/* <div>
+                  <Label className="text-sm font-medium text-gray-700">RF Observation</Label>
+                  <Input
+                    name="rfObservation"
+                    value={selectedEntry.rfObservation}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div> */}
+                {/* <div>
+                  <Label className="text-sm font-medium text-gray-700">Analysis</Label>
+                  <textarea
+                    name="analysis"
+                    value={selectedEntry.analysis}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
+                    rows={3}
+                  />
+                </div> */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Validation Result</Label>
+                  <textarea
+                    name="validationResult"
+                    value={selectedEntry.validationResult}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Component Change</Label>
+                  <textarea
+                    name="componentChange"
+                    value={selectedEntry.componentChange}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Engineer Name</Label>
+                  <EngineerName
+                    value={selectedEntry.enggName}
+                    onChange={(value) => {
+                      if (selectedEntry) {
+                        setSelectedEntry({
+                          ...selectedEntry,
+                          enggName: value
+                        });
+                      }
+                    }}
+                    className="w-full mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+            {/* Dispatch Section */}
+            {/* <div className="mb-6">
+              <h4 className="font-semibold text-gray-700 mb-2">Dispatch Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Dispatch Date</Label>
+                  <Input
+                    name="dispatchDate"
+                    type="date"
+                    value={selectedEntry.dispatchDate}
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </div> */}
           </div>
 
           {/* Save Button */}
@@ -667,7 +635,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
               onClick={handleSave}
               className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded text-sm"
             >
-              Save & Export to Excel
+              Save
             </Button>
           </div>
         </div>

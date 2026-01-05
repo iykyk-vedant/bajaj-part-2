@@ -41,15 +41,18 @@ export async function POST(request: NextRequest) {
     // Load the template workbook
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(templatePath);
-
+    
     // Get the worksheet (should be named "ExportData" based on template)
     let worksheet = workbook.getWorksheet('ExportData');
     if (!worksheet) {
       // If sheet doesn't exist, use the first sheet
       worksheet = workbook.worksheets[0];
     }
-
-    // Clear existing data rows (keep header row)
+        
+    // Clear autoFilter to prevent conflicts
+    worksheet.autoFilter = undefined;
+        
+    // Clear all data rows (keep header row)
     const headerRow = worksheet.getRow(1);
     worksheet.spliceRows(2, worksheet.rowCount - 1);
 
@@ -75,25 +78,26 @@ export async function POST(request: NextRequest) {
       row.getCell(2).value = entry.dc_no || ''; // DC_No
       row.getCell(3).value = entry.dc_date || dateStr; // DC_Date
       row.getCell(4).value = entry.branch || ''; // Branch
-      row.getCell(5).value = entry.bccdName || ''; // BCCD_Name
-      row.getCell(6).value = entry.productDescription || ''; // Product_Description
-      row.getCell(7).value = entry.productSrNo || ''; // Product_Sr_No
-      row.getCell(8).value = entry.dateOfPurchase || ''; // Date_of_Purchase
-      row.getCell(9).value = entry.complaintNo || ''; // Complaint_No
-      row.getCell(10).value = entry.partCode || ''; // PartCode
-      row.getCell(11).value = entry.natureOfDefect || ''; // Defect (using natureOfDefect as replacement for defect)
-      row.getCell(12).value = entry.visitingTechName || ''; // Visiting_Tech_Name
-      row.getCell(13).value = entry.mfgMonthYear || ''; // Mfg_Month_Year
-      row.getCell(14).value = ''; // Repair_Date (not in tag entry, leave blank)
-      row.getCell(15).value = ''; // Defect_Age (not in tag entry, leave blank)
-      row.getCell(16).value = entry.pcbSrNo || ''; // PCB_Sr_No
-      row.getCell(17).value = ''; // RF_Observation (not in tag entry, leave blank)
-      row.getCell(18).value = ''; // Testing (not in tag entry, leave blank)
-      row.getCell(19).value = ''; // Failuer (not in tag entry, leave blank)
-      row.getCell(20).value = ''; // Analysis (not in tag entry, leave blank)
-      row.getCell(21).value = ''; // Component_Consumption (not in tag entry, leave blank)
-      row.getCell(22).value = ''; // Status (not in tag entry, leave blank)
-      row.getCell(23).value = ''; // Send_Date (not in tag entry, leave blank)
+      row.getCell(5).value = entry.bccd_name || entry.bccdName || ''; // BCCD_Name
+      row.getCell(6).value = entry.product_description || entry.productDescription || ''; // Product_Description
+      row.getCell(7).value = entry.product_sr_no || entry.productSrNo || ''; // Product_Sr_No
+      row.getCell(8).value = entry.date_of_purchase || entry.dateOfPurchase || ''; // Date_of_Purchase
+      row.getCell(9).value = entry.complaint_no || entry.complaintNo || ''; // Complaint_No
+      row.getCell(10).value = entry.part_code || entry.partCode || ''; // PartCode
+      row.getCell(11).value = entry.nature_of_defect || entry.defect || ''; // Defect
+      row.getCell(12).value = entry.visiting_tech_name || entry.visitingTechName || ''; // Visiting_Tech_Name
+      row.getCell(13).value = entry.mfg_month_year || entry.mfgMonthYear || ''; // Mfg_Month_Year
+      row.getCell(14).value = entry.repair_date || entry.repairDate || ''; // Repair_Date
+      row.getCell(15).value = entry.defect_age || entry.defectAge || ''; // Defect_Age
+      row.getCell(16).value = entry.pcb_sr_no || entry.pcbSrNo || ''; // PCB_Sr_No
+      row.getCell(17).value = entry.rf_observation || entry.rfObservation || ''; // RF_Observation
+      row.getCell(18).value = entry.testing || ''; // Testing
+      row.getCell(19).value = entry.failure || ''; // Failure
+      row.getCell(20).value = entry.analysis || ''; // Analysis
+      row.getCell(21).value = entry.component_consumption || entry.componentConsumption || ''; // Component_Consumption
+      row.getCell(22).value = entry.status || ''; // Status
+      row.getCell(23).value = entry.send_date || entry.dispatch_date || entry.sendDate || ''; // Send_Date
+      row.getCell(24).value = entry.engg_name || entry.enggName || ''; // Engg_Name
       row.getCell(25).value = 'Yes'; // Tag_Entry (mark as Yes since we're exporting tag entries)
       row.getCell(26).value = dateTimeStr; // Tag_Entry_Date (current date)
       row.getCell(27).value = 'Yes'; // Consumption_Entry (mark as Yes since we're exporting consolidated entries)
@@ -128,7 +132,7 @@ export async function POST(request: NextRequest) {
         right: { style: 'thin' }
       };
     });
-
+    
     // Auto-size columns to fit content
     worksheet.columns.forEach((column) => {
       if (column && column.eachCell) {
@@ -140,6 +144,15 @@ export async function POST(request: NextRequest) {
         column.width = Math.min(Math.max(maxLength + 2, 10), 50);
       }
     });
+
+    // Set proper autoFilter range after data is populated
+    if (entries.length > 0) {
+      // Apply autoFilter to the range that contains data: A1 to AB(n+1) where n is number of entries
+      worksheet.autoFilter = `A1:AB${entries.length + 1}`;
+    } else {
+      // Clear autoFilter if no data
+      worksheet.autoFilter = undefined;
+    }
 
     // Generate Excel file buffer
     const buffer = await workbook.xlsx.writeBuffer();

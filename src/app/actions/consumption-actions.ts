@@ -226,7 +226,37 @@ export async function findConsolidatedDataEntryByProductSrNoAction(productSrNo: 
 export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo: string, entry: any) {
   try {
     const { updateConsolidatedDataEntryByProductSrNo } = await import('@/lib/pg-db');
-    const result = await updateConsolidatedDataEntryByProductSrNo(productSrNo, entry);
+    // Include all fields in the update to preserve and update all data
+    const allFieldsEntry = {
+      // Tag entry fields
+      sr_no: entry.srNo || entry.sr_no,
+      dc_no: entry.dcNo || entry.dc_no,
+      dc_date: entry.dcDate || entry.dc_date,
+      branch: entry.branch || entry.branch,
+      bccd_name: entry.bccdName || entry.bccd_name,
+      product_description: entry.productDescription || entry.product_description,
+      product_sr_no: entry.productSrNo || entry.product_sr_no,
+      date_of_purchase: entry.dateOfPurchase || entry.date_of_purchase,
+      complaint_no: entry.complaintNo || entry.complaint_no,
+      part_code: entry.partCode || entry.part_code,
+      nature_of_defect: entry.natureOfDefect || entry.nature_of_defect,
+      visiting_tech_name: entry.visitingTechName || entry.visiting_tech_name,
+      mfg_month_year: entry.mfgMonthYear || entry.mfg_month_year,
+      pcb_sr_no: entry.pcbSrNo || entry.pcb_sr_no,
+      // Consumption fields
+      repair_date: entry.repairDate || entry.repair_date,
+      testing: entry.testing || null,
+      failure: entry.failure || null,
+      status: entry.status || null,
+      rf_observation: entry.rfObservation || entry.rf_observation,
+      analysis: entry.analysis || null,
+      validation_result: entry.validationResult || entry.validation_result,
+      component_change: entry.componentChange || entry.component_change,
+      engg_name: entry.enggName || entry.engg_name,
+      // Dispatch field
+      dispatch_date: entry.dispatchDate || entry.dispatch_date,
+    };
+    const result = await updateConsolidatedDataEntryByProductSrNo(productSrNo, allFieldsEntry);
     return {
       success: result,
       data: result

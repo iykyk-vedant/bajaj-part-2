@@ -134,85 +134,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
   }, [partCode]);
 
-  // Effect to automatically save to database when form data changes (with debounce)
-  useEffect(() => {
-    // Only save if we have the required search fields
-    if (!srNo || !dcNo || !partCode) return;
-
-    // Don't save if any required fields are empty
-    if (!formData.repairDate || !formData.testing || !formData.failure || !formData.status) return;
-
-    // Debounce the save operation
-    const timeoutId = setTimeout(async () => {
-      try {
-        // Combine tag entry data with consumption data
-        const consolidatedData = {
-          srNo: srNo,
-          dcNo: dcNo,
-          partCode: partCode,
-          repairDate: formData.repairDate || null,
-          testing: formData.testing || null,
-          failure: formData.failure || null,
-          status: formData.status || null,
-          pcbSrNo: formData.pcbSrNo || null,
-          rfObservation: formData.rfObservation || null,
-          analysis: formData.analysis || null,
-          validationResult: formData.validationResult || null,
-          componentChange: formData.componentChange || null,
-          enggName: engineerName || null, // Use engineer name from navigation tab
-          dispatchDate: formData.dispatchDate || null,
-        };
-
-        // Find existing entry by pcb_sr_no and update it
-        const { findConsolidatedDataEntryByProductSrNoAction, updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb } = await import('@/app/actions/consumption-actions');
-              
-        // First, we need to find the entry with the same pcbSrNo
-        const searchResult = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, formData.pcbSrNo);
-              
-        if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
-          const existingEntry = searchResult.data[0];
-          const productSrNo = existingEntry.product_sr_no;
-                
-          if (productSrNo) {
-            // Update the existing entry by product_sr_no
-            const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(productSrNo, {
-              ...consolidatedData,
-              productSrNo: productSrNo, // Preserve the product_sr_no
-              // Only update consumption fields, preserve tag fields
-            });
-                  
-            if (!updateResult.success) {
-              console.error('Error updating consolidated data by product_sr_no automatically:', updateResult.error);
-            }
-          } else {
-            // If no product_sr_no exists, we need to save a new entry
-            const saveResult = await saveConsolidatedData(consolidatedData);
-            if (!saveResult.success) {
-              console.error('Error saving consolidated data automatically:', saveResult.error);
-            }
-          }
-        } else {
-          // If no existing entry found, save a new entry
-          const saveResult = await saveConsolidatedData(consolidatedData);
-          if (!saveResult.success) {
-            console.error('Error saving consolidated data automatically:', saveResult.error);
-          }
-        }
-        
-        // Refresh all data to show the updated entry
-        try {
-          await loadAllData();
-        } catch (error) {
-          console.error('Error refreshing all data after automatic save:', error);
-        }
-      } catch (error) {
-        console.error('Error saving consolidated data automatically:', error);
-      }
-    }, 2000); // Debounce for 2 seconds
   
-    // Cleanup timeout on effect cleanup
-    return () => clearTimeout(timeoutId);
-  }, [formData, srNo, dcNo, partCode]);
 
   // Function to load data from database
   const loadAllData = async () => {
@@ -441,20 +363,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       return;
     }
 
-    // Save data automatically when consuming
-    const newEntry: any = {
-      ...formData,
-      enggName: engineerName || '', // Use engineer name from navigation tab
-      id: Date.now().toString(), // Simple ID generation
-      // Include tag entry information for proper Excel export
-      srNo: srNo, // Serial No from the search fields
-      dcNo: dcNo, // DC No from the search fields
-      partCode: partCode, // Part Code from the search fields
-    };
-
-    setConsumptionEntries(prev => [...prev, newEntry]);
-
-    // Also save to consolidated data table
+    // Save data when consuming
     try {
       // Combine tag entry data with consumption data
       const consolidatedData = {
@@ -474,8 +383,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         dispatchDate: formData.dispatchDate || null,
       };
 
-      // Find existing entry by pcb_sr_no and update it
-      const { findConsolidatedDataEntryByProductSrNoAction, updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb } = await import('@/app/actions/consumption-actions');
+      // Find existing entry by product_sr_no and update it
+      const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData } = await import('@/app/actions/consumption-actions');
       
       // First, we need to find the entry with the same pcbSrNo
       const searchResult = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, formData.pcbSrNo);
@@ -494,12 +403,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           
           if (!updateResult.success) {
             console.error('Error updating consolidated data by product_sr_no:', updateResult.error);
-          }
-        } else {
-          // If no product_sr_no exists, we need to save a new entry
-          const saveResult = await saveConsolidatedData(consolidatedData);
-          if (!saveResult.success) {
-            console.error('Error saving consolidated data:', saveResult.error);
+            alert('Error updating existing entry. Please try again.');
+            return;
           }
         }
       } else {
@@ -507,6 +412,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         const saveResult = await saveConsolidatedData(consolidatedData);
         if (!saveResult.success) {
           console.error('Error saving consolidated data:', saveResult.error);
+          alert('Error saving new entry. Please try again.');
+          return;
         }
       }
 
@@ -561,8 +468,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         dispatchDate: formData.dispatchDate || null,
       };
 
-      // Find existing entry by pcb_sr_no and update it
-      const { findConsolidatedDataEntryByProductSrNoAction, updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb } = await import('@/app/actions/consumption-actions');
+      // Find existing entry by product_sr_no and update it
+      const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData } = await import('@/app/actions/consumption-actions');
       
       // First, we need to find the entry with the same pcbSrNo
       const searchResult = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, formData.pcbSrNo);
@@ -581,12 +488,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           
           if (!updateResult.success) {
             console.error('Error updating consolidated data by product_sr_no:', updateResult.error);
-          }
-        } else {
-          // If no product_sr_no exists, we need to save a new entry
-          const saveResult = await saveConsolidatedData(consolidatedData);
-          if (!saveResult.success) {
-            console.error('Error saving consolidated data:', saveResult.error);
+            alert('Error updating existing entry. Please try again.');
+            return;
           }
         }
       } else {
@@ -594,6 +497,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         const saveResult = await saveConsolidatedData(consolidatedData);
         if (!saveResult.success) {
           console.error('Error saving consolidated data:', saveResult.error);
+          alert('Error saving new entry. Please try again.');
+          return;
         }
       }
     } catch (error) {
@@ -834,7 +739,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               <div className="flex justify-between items-center mb-1">
                 <label className="text-sm font-medium text-gray-700">PCB Serial No.</label>
                 <div className="flex space-x-1">
-                  <button
+                  {/* <button
                     type="button"
                     onClick={() => handleSrNoIncrement()}
                     className="text-gray-700 hover:text-gray-900 px-1"
@@ -849,7 +754,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                     disabled={isPcbFound}
                   >
                     -
-                  </button>
+                  </button> */}
                 </div>
               </div>
               <input
@@ -1025,9 +930,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Failure</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">PCB Sr No</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">RF Observation</th>
+                  {/* <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">RF Observation</th> */}
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Analysis</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Validation Result</th>
+                  {/* <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Validation Result</th> */}
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Component Change</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Engg Name</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Dispatch Date</th>
@@ -1073,7 +978,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.failure}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.status}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.pcbSrNo}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.rfObservation}</td>
+                    {/* <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.rfObservation}</td> */}
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.analysis}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.validationResult}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.componentChange}</td>
@@ -1096,7 +1001,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         {/* Bottom Action Buttons */}
         <div className="flex justify-between items-center mb-2 p-2">
           <div className="flex space-x-2">
-            <button
+            {/* <button
               onClick={handleUpdate}
               disabled={!selectedEntryId}
               className={`px-3 py-1 text-sm rounded ${selectedEntryId
@@ -1105,7 +1010,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 }`}
             >
               Update
-            </button>
+            </button> */}
             <button
               onClick={handleDelete}
               disabled={!selectedEntryId}

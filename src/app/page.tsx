@@ -102,8 +102,10 @@ export default function Home() {
     "tag-entry" | "dispatch" | "consumption"
   >("tag-entry");
 
-  // Engineer name state that persists across tabs
-  const [engineerName, setEngineerName] = useState<string>('');
+  // Separate engineer name states for each tab
+  const [tagEntryEngineerName, setTagEntryEngineerName] = useState<string>('');
+  const [consumptionEngineerName, setConsumptionEngineerName] = useState<string>('');
+  const [dispatchEngineerName, setDispatchEngineerName] = useState<string>('');
 
   // Sub-tab state for Tag Entry
   const [tagEntrySubTab, setTagEntrySubTab] = useState<"form" | "settings">("form");
@@ -696,8 +698,8 @@ export default function Home() {
             <div className="flex items-center">
               <div className="text-sm font-medium text-gray-700 mr-2">Engg Name:</div>
               <EngineerName
-                value={engineerName}
-                onChange={setEngineerName}
+                value={consumptionEngineerName}
+                onChange={setConsumptionEngineerName}
                 className="w-48"
               />
             </div>
@@ -706,8 +708,8 @@ export default function Home() {
             <div className="flex items-center">
               <div className="text-sm font-medium text-gray-700 mr-2">Engg Name:</div>
               <EngineerName
-                value={engineerName}
-                onChange={setEngineerName}
+                value={dispatchEngineerName}
+                onChange={setDispatchEngineerName}
                 className="w-48"
               />
             </div>
@@ -752,8 +754,8 @@ export default function Home() {
             <ConsumptionTab
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
-              engineerName={engineerName}
-              onEngineerNameChange={setEngineerName}
+              engineerName={consumptionEngineerName}
+              onEngineerNameChange={setConsumptionEngineerName}
             />
           </div>
         )}

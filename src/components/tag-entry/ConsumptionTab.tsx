@@ -30,6 +30,7 @@ interface ConsumptionEntry {
   validationResult: string;
   componentChange: string;
   enggName: string;
+  consumptionEntryBy?: string;
   dispatchDate: string;
 }
 
@@ -380,25 +381,82 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         validationResult: formData.validationResult || null,
         componentChange: formData.componentChange || null,
         enggName: engineerName || null, // Use engineer name from navigation tab
+        consumptionEntryBy: formData.consumptionEntryBy || null, // New field for consumption entry
         dispatchDate: formData.dispatchDate || null,
       };
 
-      // Find existing entry by product_sr_no and update it
-      const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData } = await import('@/app/actions/consumption-actions');
+      // Find existing entry by PCB serial number and update it
+      const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
       
       // First, we need to find the entry with the same pcbSrNo
       const searchResult = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, formData.pcbSrNo);
       
       if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
         const existingEntry = searchResult.data[0];
-        const productSrNo = existingEntry.product_sr_no;
         
-        if (productSrNo) {
-          // Update the existing entry by product_sr_no
-          const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(productSrNo, {
-            ...consolidatedData,
-            productSrNo: productSrNo, // Preserve the product_sr_no
-            // Only update consumption fields, preserve tag fields
+        // Update the existing entry - prioritize updating by ID if available, otherwise by product_sr_no
+        if (existingEntry.id) {
+          const updateResult = await updateConsolidatedDataEntryAction(existingEntry.id, {
+            // Use existing tag entry fields from the database, fallback to form values if needed
+            srNo: existingEntry.sr_no || srNo,
+            dcNo: existingEntry.dc_no || dcNo,
+            branch: existingEntry.branch || '',
+            bccdName: existingEntry.bccd_name || '',
+            productDescription: existingEntry.product_description || '',
+            productSrNo: existingEntry.product_sr_no || srNo,
+            dateOfPurchase: existingEntry.date_of_purchase || '',
+            complaintNo: existingEntry.complaint_no || '',
+            partCode: existingEntry.part_code || '',
+            natureOfDefect: existingEntry.nature_of_defect || '',
+            visitingTechName: existingEntry.visiting_tech_name || '',
+            mfgMonthYear: existingEntry.mfg_month_year || '',
+            // Update consumption fields
+            repairDate: consolidatedData.repairDate,
+            testing: consolidatedData.testing,
+            failure: consolidatedData.failure,
+            status: consolidatedData.status,
+            pcbSrNo: consolidatedData.pcbSrNo,
+            rfObservation: consolidatedData.rfObservation,
+            analysis: consolidatedData.analysis,
+            validationResult: consolidatedData.validationResult,
+            componentChange: consolidatedData.componentChange,
+            enggName: consolidatedData.enggName,
+            dispatchDate: consolidatedData.dispatchDate,
+          });
+          
+          if (!updateResult.success) {
+            console.error('Error updating existing consolidated data entry:', updateResult.error);
+            alert('Error updating existing entry. Please try again.');
+            return;
+          }
+        } else if (existingEntry.product_sr_no) {
+          // Fallback to update by product_sr_no if no ID available
+          const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(existingEntry.product_sr_no, {
+            // Map consolidatedData fields to database column names
+            srNo: existingEntry.sr_no || srNo,
+            dcNo: existingEntry.dc_no || dcNo,
+            branch: existingEntry.branch || '',
+            bccdName: existingEntry.bccd_name || '',
+            productDescription: existingEntry.product_description || '',
+            productSrNo: existingEntry.product_sr_no || srNo,
+            dateOfPurchase: existingEntry.date_of_purchase || '',
+            complaintNo: existingEntry.complaint_no || '',
+            partCode: existingEntry.part_code || '',
+            natureOfDefect: existingEntry.nature_of_defect || '',
+            visitingTechName: existingEntry.visiting_tech_name || '',
+            mfgMonthYear: existingEntry.mfg_month_year || '',
+            // Consumption fields
+            repairDate: consolidatedData.repairDate,
+            testing: consolidatedData.testing,
+            failure: consolidatedData.failure,
+            status: consolidatedData.status,
+            pcbSrNo: consolidatedData.pcbSrNo,
+            rfObservation: consolidatedData.rfObservation,
+            analysis: consolidatedData.analysis,
+            validationResult: consolidatedData.validationResult,
+            componentChange: consolidatedData.componentChange,
+            enggName: consolidatedData.enggName,
+            dispatchDate: consolidatedData.dispatchDate,
           });
           
           if (!updateResult.success) {
@@ -468,22 +526,78 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         dispatchDate: formData.dispatchDate || null,
       };
 
-      // Find existing entry by product_sr_no and update it
-      const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData } = await import('@/app/actions/consumption-actions');
+      // Find existing entry by PCB serial number and update it
+      const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
       
       // First, we need to find the entry with the same pcbSrNo
       const searchResult = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, formData.pcbSrNo);
       
       if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
         const existingEntry = searchResult.data[0];
-        const productSrNo = existingEntry.product_sr_no;
         
-        if (productSrNo) {
-          // Update the existing entry by product_sr_no
-          const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(productSrNo, {
-            ...consolidatedData,
-            productSrNo: productSrNo, // Preserve the product_sr_no
-            // Only update consumption fields, preserve tag fields
+        // Update the existing entry - prioritize updating by ID if available, otherwise by product_sr_no
+        if (existingEntry.id) {
+          const updateResult = await updateConsolidatedDataEntryAction(existingEntry.id, {
+            // Use existing tag entry fields from the database, fallback to form values if needed
+            srNo: existingEntry.sr_no || srNo,
+            dcNo: existingEntry.dc_no || dcNo,
+            branch: existingEntry.branch || '',
+            bccdName: existingEntry.bccd_name || '',
+            productDescription: existingEntry.product_description || '',
+            productSrNo: existingEntry.product_sr_no || srNo,
+            dateOfPurchase: existingEntry.date_of_purchase || '',
+            complaintNo: existingEntry.complaint_no || '',
+            partCode: existingEntry.part_code || '',
+            natureOfDefect: existingEntry.nature_of_defect || '',
+            visitingTechName: existingEntry.visiting_tech_name || '',
+            mfgMonthYear: existingEntry.mfg_month_year || '',
+            // Update consumption fields
+            repairDate: consolidatedData.repairDate,
+            testing: consolidatedData.testing,
+            failure: consolidatedData.failure,
+            status: consolidatedData.status,
+            pcbSrNo: consolidatedData.pcbSrNo,
+            rfObservation: consolidatedData.rfObservation,
+            analysis: consolidatedData.analysis,
+            validationResult: consolidatedData.validationResult,
+            componentChange: consolidatedData.componentChange,
+            enggName: consolidatedData.enggName,
+            dispatchDate: consolidatedData.dispatchDate,
+          });
+          
+          if (!updateResult.success) {
+            console.error('Error updating existing consolidated data entry:', updateResult.error);
+            alert('Error updating existing entry. Please try again.');
+            return;
+          }
+        } else if (existingEntry.product_sr_no) {
+          // Fallback to update by product_sr_no if no ID available
+          const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(existingEntry.product_sr_no, {
+            // Map consolidatedData fields to database column names
+            srNo: srNo,
+            dcNo: dcNo,
+            branch: '',
+            bccdName: '',
+            productDescription: '',
+            productSrNo: srNo,
+            dateOfPurchase: '',
+            complaintNo: '',
+            partCode: '',
+            natureOfDefect: '',
+            visitingTechName: '',
+            mfgMonthYear: '',
+            // Consumption fields
+            repairDate: consolidatedData.repairDate,
+            testing: consolidatedData.testing,
+            failure: consolidatedData.failure,
+            status: consolidatedData.status,
+            pcbSrNo: consolidatedData.pcbSrNo,
+            rfObservation: consolidatedData.rfObservation,
+            analysis: consolidatedData.analysis,
+            validationResult: consolidatedData.validationResult,
+            componentChange: consolidatedData.componentChange,
+            enggName: consolidatedData.enggName,
+            dispatchDate: consolidatedData.dispatchDate,
           });
           
           if (!updateResult.success) {
@@ -845,6 +959,14 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               <EngineerName
                 value={engineerName}
                 onChange={(value) => onEngineerNameChange && onEngineerNameChange(value)}
+                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Consumption Entry By:</label>
+              <EngineerName
+                value={formData.consumptionEntryBy || ''}
+                onChange={(value) => setFormData(prev => ({...prev, consumptionEntryBy: value}))}
                 className="w-full p-1 text-sm border border-gray-300 rounded h-8"
               />
             </div>

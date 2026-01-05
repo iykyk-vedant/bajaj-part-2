@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
     // 12. Visiting_Tech_Name, 13. Mfg_Month_Year, 14. Repair_Date, 15. Defect_Age,
     // 16. PCB_Sr_No, 17. RF_Observation, 18. Testing, 19. Failuer, 20. Analysis,
     // 21. Component_Consumption, 22. Status, 23. Send_Date, 24. Engg_Name,
-    // 25. Tag_Entry, 26. Tag_Entry_Date, 27. Consumption_Entry, 28. Consumption_Entry_Date
+    // 25. Tag_Entry_By, 26. Consumption_Entry_By, 27. Dispatch_Entry_By,
+    // 28. Tag_Entry, 29. Tag_Entry_Date, 30. Consumption_Entry, 31. Consumption_Entry_Date
 
     entries.forEach((entry, index) => {
       const row = worksheet.addRow([]);
@@ -98,10 +99,13 @@ export async function POST(request: NextRequest) {
       row.getCell(22).value = entry.status || ''; // Status
       row.getCell(23).value = entry.send_date || entry.dispatch_date || entry.sendDate || ''; // Send_Date
       row.getCell(24).value = entry.engg_name || entry.enggName || ''; // Engg_Name
-      row.getCell(25).value = 'Yes'; // Tag_Entry (mark as Yes since we're exporting tag entries)
-      row.getCell(26).value = dateTimeStr; // Tag_Entry_Date (current date)
-      row.getCell(27).value = 'Yes'; // Consumption_Entry (mark as Yes since we're exporting consolidated entries)
-      row.getCell(28).value = dateTimeStr; // Consumption_Entry_Date (current date)
+      row.getCell(25).value = entry.tag_entry_by || entry.tagEntryBy || ''; // Tag_Entry_By
+      row.getCell(26).value = entry.consumption_entry_by || entry.consumptionEntryBy || ''; // Consumption_Entry_By
+      row.getCell(27).value = entry.dispatch_entry_by || entry.dispatchEntryBy || ''; // Dispatch_Entry_By
+      row.getCell(28).value = 'Yes'; // Tag_Entry (mark as Yes since we're exporting tag entries)
+      row.getCell(29).value = dateTimeStr; // Tag_Entry_Date (current date)
+      row.getCell(30).value = 'Yes'; // Consumption_Entry (mark as Yes since we're exporting consolidated entries)
+      row.getCell(31).value = dateTimeStr; // Consumption_Entry_Date (current date)
 
       // Apply formatting to match template style
       row.eachCell((cell) => {
@@ -147,8 +151,8 @@ export async function POST(request: NextRequest) {
 
     // Set proper autoFilter range after data is populated
     if (entries.length > 0) {
-      // Apply autoFilter to the range that contains data: A1 to AB(n+1) where n is number of entries
-      worksheet.autoFilter = `A1:AB${entries.length + 1}`;
+      // Apply autoFilter to the range that contains data: A1 to AE(n+1) where n is number of entries
+      worksheet.autoFilter = `A1:AE${entries.length + 1}`;
     } else {
       // Clear autoFilter if no data
       worksheet.autoFilter = undefined;

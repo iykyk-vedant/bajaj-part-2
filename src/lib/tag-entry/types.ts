@@ -23,6 +23,9 @@ export interface TagEntry {
   validationResult?: string;
   componentChange?: string;
   enggName?: string;
+  tagEntryBy?: string;
+  consumptionEntryBy?: string;
+  dispatchEntryBy?: string;
   dispatchDate?: string;
 }
 

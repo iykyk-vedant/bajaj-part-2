@@ -37,6 +37,9 @@ export async function POST(request: Request) {
       { header: 'Validation Result', key: 'validationResult', width: 30 },
       { header: 'Component Change', key: 'componentChange', width: 30 },
       { header: 'Engineer Name', key: 'enggName', width: 20 },
+      { header: 'Tag Entry By', key: 'tagEntryBy', width: 20 },
+      { header: 'Consumption Entry By', key: 'consumptionEntryBy', width: 20 },
+      { header: 'Dispatch Entry By', key: 'dispatchEntryBy', width: 20 },
       { header: 'Dispatch Date', key: 'dispatchDate', width: 15 },
     ];
 
@@ -67,15 +70,18 @@ export async function POST(request: Request) {
         validationResult: entry.validation_result || '',
         componentChange: entry.component_change || '',
         enggName: entry.engg_name || '',
+        tagEntryBy: entry.tag_entry_by || '',
+        consumptionEntryBy: entry.consumption_entry_by || '',
+        dispatchEntryBy: entry.dispatch_entry_by || '',
         dispatchDate: entry.dispatch_date || '',
       });
     });
     
     // Set proper autoFilter range after data is populated
     if (allConsolidatedData.length > 0) {
-      // Apply autoFilter to the range that contains data: A1 to U(n+1) where n is number of entries
-      // U is the 21st column (there are 21 headers defined)
-      worksheet.autoFilter = `A1:U${allConsolidatedData.length + 1}`;
+      // Apply autoFilter to the range that contains data: A1 to X(n+1) where n is number of entries
+      // X is the 25th column (there are 25 headers defined)
+      worksheet.autoFilter = `A1:X${allConsolidatedData.length + 1}`;
     } else {
       // Clear autoFilter if no data
       worksheet.autoFilter = undefined;

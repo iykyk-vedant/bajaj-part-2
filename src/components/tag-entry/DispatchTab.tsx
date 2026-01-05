@@ -43,6 +43,7 @@ interface DispatchFormData {
   validationResult: string;
   componentChange: string;
   enggName: string;
+  dispatchEntryBy?: string;
   dispatchDate?: string;
 }
 
@@ -603,6 +604,21 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
                         setSelectedEntry({
                           ...selectedEntry,
                           enggName: value
+                        });
+                      }
+                    }}
+                    className="w-full mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Dispatch Entry By</Label>
+                  <EngineerName
+                    value={selectedEntry.dispatchEntryBy || ''}
+                    onChange={(value) => {
+                      if (selectedEntry) {
+                        setSelectedEntry({
+                          ...selectedEntry,
+                          dispatchEntryBy: value
                         });
                       }
                     }}

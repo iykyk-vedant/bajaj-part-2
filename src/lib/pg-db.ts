@@ -133,6 +133,9 @@ export async function initializeDatabase() {
         validation_result TEXT,
         component_change TEXT,
         engg_name VARCHAR(255),
+        tag_entry_by VARCHAR(255),
+        consumption_entry_by VARCHAR(255),
+        dispatch_entry_by VARCHAR(255),
         dispatch_date DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -305,6 +308,24 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       values.push(entry.engg_name);
       paramCount++;
     }
+    
+    // Handle new separate engineer name fields
+    if (entry.tagEntryBy !== undefined && entry.tagEntryBy !== null) {
+      updates.push(`tag_entry_by = $${paramCount}`);
+      values.push(entry.tagEntryBy);
+      paramCount++;
+    }
+    if (entry.consumptionEntryBy !== undefined && entry.consumptionEntryBy !== null) {
+      updates.push(`consumption_entry_by = $${paramCount}`);
+      values.push(entry.consumptionEntryBy);
+      paramCount++;
+    }
+    if (entry.dispatchEntryBy !== undefined && entry.dispatchEntryBy !== null) {
+      updates.push(`dispatch_entry_by = $${paramCount}`);
+      values.push(entry.dispatchEntryBy);
+      paramCount++;
+    }
+    
     if (entry.dispatchDate !== undefined && entry.dispatchDate !== null) {
       const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
       updates.push(`dispatch_date = $${paramCount}`);
@@ -614,8 +635,8 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
       (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
        date_of_purchase, complaint_no, part_code, defect, visiting_tech_name, mfg_month_year,
        repair_date, testing, failure, status, pcb_sr_no, rf_observation, analysis, 
-       validation_result, component_change, engg_name, dispatch_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+       validation_result, component_change, engg_name, tag_entry_by, consumption_entry_by, dispatch_entry_by, dispatch_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
     `, [
       entry.srNo,
       entry.dcNo,
@@ -640,6 +661,9 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
       entry.validationResult,
       entry.componentChange,
       entry.enggName,
+      entry.tagEntryBy,
+      entry.consumptionEntryBy,
+      entry.dispatchEntryBy,
       dispatchDateValue
     ]);
     
@@ -805,6 +829,24 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       values.push(entry.engg_name);
       paramCount++;
     }
+    
+    // Handle new separate engineer name fields
+    if (entry.tagEntryBy !== undefined && entry.tagEntryBy !== null) {
+      updates.push(`tag_entry_by = $${paramCount}`);
+      values.push(entry.tagEntryBy);
+      paramCount++;
+    }
+    if (entry.consumptionEntryBy !== undefined && entry.consumptionEntryBy !== null) {
+      updates.push(`consumption_entry_by = $${paramCount}`);
+      values.push(entry.consumptionEntryBy);
+      paramCount++;
+    }
+    if (entry.dispatchEntryBy !== undefined && entry.dispatchEntryBy !== null) {
+      updates.push(`dispatch_entry_by = $${paramCount}`);
+      values.push(entry.dispatchEntryBy);
+      paramCount++;
+    }
+    
     if (entry.dispatchDate !== undefined && entry.dispatchDate !== null) {
       const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
       updates.push(`dispatch_date = $${paramCount}`);

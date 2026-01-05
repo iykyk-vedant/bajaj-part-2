@@ -8,6 +8,7 @@ import { LockButton } from './LockButton';
 import { spareParts } from '@/lib/spare-parts';
 import { generatePcbNumber, getMonthCode } from '@/lib/pcb-utils';
 import { tagEntryEventEmitter, TAG_ENTRY_EVENTS } from '@/lib/event-emitter';
+import { EngineerName } from '@/components/ui/engineer-name';
 
 // Dialog components for DC creation modal
 import {
@@ -67,6 +68,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     validationResult: '',
     componentChange: '',
     enggName: '',
+    tagEntryBy: '',
     dispatchDate: '',
   });
 
@@ -377,6 +379,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       visitingTechName: formData.visitingTechName || '',
       mfgMonthYear: formData.mfgMonthYear || '',
       pcbSrNo: formData.pcbSrNo || '',
+      enggName: formData.enggName || '',
+      tagEntryBy: formData.tagEntryBy || '',
     };
 
     let updatedEntries: TagEntry[];
@@ -410,7 +414,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             ...entryToSave,
             // Map natureOfDefect to defect for consolidated table
             defect: entryToSave.natureOfDefect,
-            // Initialize consumption-specific fields as empty
+            // Initialize consumption-specific fields as empty, but preserve existing engineer name and tag entry by
             repairDate: '',
             testing: '',
             failure: '',
@@ -419,7 +423,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             analysis: '',
             validationResult: '',
             componentChange: '',
-            enggName: '',
+            enggName: formData.enggName || '',
+            tagEntryBy: formData.tagEntryBy || '',
             dispatchDate: '',
           });
           
@@ -432,7 +437,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             ...entryToSave,
             // Map natureOfDefect to defect for consolidated table
             defect: entryToSave.natureOfDefect,
-            // Initialize consumption-specific fields as empty
+            // Initialize consumption-specific fields as empty, but preserve engineer name and tag entry by
             repairDate: '',
             testing: '',
             failure: '',
@@ -441,7 +446,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             analysis: '',
             validationResult: '',
             componentChange: '',
-            enggName: '',
+            enggName: formData.enggName || '',
+            tagEntryBy: formData.tagEntryBy || '',
             dispatchDate: '',
           };
           const saveResult = await saveConsolidatedData(consolidatedData);
@@ -952,6 +958,14 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             className="flex-1 p-2 text-sm border border-gray-300 rounded h-9"
             readOnly />
         </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Tag Entry By:</label>
+        <EngineerName
+          value={formData.tagEntryBy || ''}
+          onChange={(value) => setFormData(prev => ({...prev, tagEntryBy: value}))}
+          className="w-full p-2 text-sm h-9"
+        />
       </div>
     </div>
     <div className="flex justify-end gap-3 mt-3">

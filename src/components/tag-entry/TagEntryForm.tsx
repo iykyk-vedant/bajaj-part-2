@@ -155,7 +155,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           productSrNo: initialData.productSrNo || prev.productSrNo,
           dateOfPurchase: initialData.dateOfPurchase || prev.dateOfPurchase,
           complaintNo: initialData.complaintNo || prev.complaintNo,
-          partCode: initialData.sparePartCode || prev.partCode,
+          // partCode should only come from dropdown, not from image extraction
+          partCode: prev.partCode,
           natureOfDefect: initialData.natureOfDefect || prev.natureOfDefect,
           visitingTechName: initialData.technicianName || prev.visitingTechName,
           mfgMonthYear: mfgMonthYear || prev.mfgMonthYear,

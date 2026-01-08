@@ -173,7 +173,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
     if (formData.dcNo && formData.srNo) {
       try {
-        const pcb = generatePcbNumber(formData.dcNo, formData.srNo);
+        const pcb = generatePcbNumber(formData.partCode, formData.srNo);
 
         setFormData(prev => ({
           ...prev,
@@ -285,7 +285,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       // If SR No is changed, update PCB Sr No accordingly
       if (name === 'srNo') {
         if (formData.dcNo) {
-          const pcb = generatePcbNumber(formData.dcNo, value);
+          const pcb = generatePcbNumber(formData.partCode, value);
           setFormData(prev => ({
             ...prev,
             pcbSrNo: pcb

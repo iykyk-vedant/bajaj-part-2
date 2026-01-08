@@ -84,7 +84,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   const router = useRouter();
 
   // State for Find fields
-  const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [srNo, setSrNo] = useState('');
 
@@ -215,8 +214,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   const handleFind = async () => {
     // Validate that all search fields are filled
-    if (!dcNo || !partCode || !srNo) {
-      alert('Please fill in all search fields: DC No, Part Code, and Serial No.');
+    if (!partCode || !srNo) {
+      alert('Please fill in all search fields: Part Code and Serial No.');
       return;
     }
 
@@ -227,11 +226,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
     try {
       // Generate the same PCB number that would be generated in TagEntryForm
-      const pcbSrNo = getPcbNumberForDc(dcNo, srNo);
+      const pcbSrNo = getPcbNumberForDc(partCode, srNo);
 
       // First, search for existing entries by pcbSrNo
       const { searchConsolidatedDataEntriesByPcb } = await import('@/app/actions/consumption-actions');
-      const searchResult = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, pcbSrNo);
+      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, pcbSrNo);
       
       // Auto-populate form with fetched data
       if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
@@ -261,7 +260,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           status: 'OK', // Default value
         }));
       }
-
+  
       setIsPcbFound(true);
     } catch (error) {
       console.error('Error generating PCB number:', error);
@@ -369,7 +368,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       // Combine tag entry data with consumption data
       const consolidatedData = {
         srNo: srNo,
-        dcNo: dcNo,
+        dcNo: '', // DC No is no longer used in PCB generation
         partCode: partCode,
         repairDate: formData.repairDate || null,
         testing: formData.testing || null,
@@ -389,7 +388,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
       
       // First, we need to find the entry with the same pcbSrNo
-      const searchResult = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, formData.pcbSrNo);
+      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, formData.pcbSrNo);
       
       if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
         const existingEntry = searchResult.data[0];
@@ -399,7 +398,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           const updateResult = await updateConsolidatedDataEntryAction(existingEntry.id, {
             // Use existing tag entry fields from the database, fallback to form values if needed
             srNo: existingEntry.sr_no || srNo,
-            dcNo: existingEntry.dc_no || dcNo,
+            dcNo: existingEntry.dc_no || '',
             branch: existingEntry.branch || '',
             bccdName: existingEntry.bccd_name || '',
             productDescription: existingEntry.product_description || '',
@@ -434,7 +433,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(existingEntry.product_sr_no, {
             // Map consolidatedData fields to database column names
             srNo: existingEntry.sr_no || srNo,
-            dcNo: existingEntry.dc_no || dcNo,
+            dcNo: existingEntry.dc_no || '',
             branch: existingEntry.branch || '',
             bccdName: existingEntry.bccd_name || '',
             productDescription: existingEntry.product_description || '',
@@ -502,7 +501,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
     setConsumptionEntries(prev =>
       prev.map(entry =>
-        entry.id === selectedEntryId ? { ...formData, id: selectedEntryId, srNo: srNo, dcNo: dcNo, partCode: partCode } : entry
+        entry.id === selectedEntryId ? { ...formData, id: selectedEntryId, srNo: srNo, dcNo: '', partCode: partCode } : entry
       )
     );
 
@@ -511,7 +510,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       // Combine tag entry data with consumption data
       const consolidatedData = {
         srNo: srNo,
-        dcNo: dcNo,
+        dcNo: '', // DC No is no longer used in PCB generation
         partCode: partCode,
         repairDate: formData.repairDate || null,
         testing: formData.testing || null,
@@ -530,7 +529,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
       
       // First, we need to find the entry with the same pcbSrNo
-      const searchResult = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, formData.pcbSrNo);
+      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, formData.pcbSrNo);
       
       if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
         const existingEntry = searchResult.data[0];
@@ -540,7 +539,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           const updateResult = await updateConsolidatedDataEntryAction(existingEntry.id, {
             // Use existing tag entry fields from the database, fallback to form values if needed
             srNo: existingEntry.sr_no || srNo,
-            dcNo: existingEntry.dc_no || dcNo,
+            dcNo: existingEntry.dc_no || '',
             branch: existingEntry.branch || '',
             bccdName: existingEntry.bccd_name || '',
             productDescription: existingEntry.product_description || '',
@@ -574,18 +573,18 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           // Fallback to update by product_sr_no if no ID available
           const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(existingEntry.product_sr_no, {
             // Map consolidatedData fields to database column names
-            srNo: srNo,
-            dcNo: dcNo,
-            branch: '',
-            bccdName: '',
-            productDescription: '',
-            productSrNo: srNo,
-            dateOfPurchase: '',
-            complaintNo: '',
-            partCode: '',
-            natureOfDefect: '',
-            visitingTechName: '',
-            mfgMonthYear: '',
+            srNo: existingEntry.sr_no || srNo,
+            dcNo: existingEntry.dc_no || '',
+            branch: existingEntry.branch || '',
+            bccdName: existingEntry.bccd_name || '',
+            productDescription: existingEntry.product_description || '',
+            productSrNo: existingEntry.product_sr_no || srNo,
+            dateOfPurchase: existingEntry.date_of_purchase || '',
+            complaintNo: existingEntry.complaint_no || '',
+            partCode: existingEntry.part_code || '',
+            natureOfDefect: existingEntry.nature_of_defect || '',
+            visitingTechName: existingEntry.visiting_tech_name || '',
+            mfgMonthYear: existingEntry.mfg_month_year || '',
             // Consumption fields
             repairDate: consolidatedData.repairDate,
             testing: consolidatedData.testing,
@@ -627,7 +626,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
 
     alert('Consumption entry updated successfully!');
-  }, [selectedEntryId, formData, srNo, dcNo, partCode, engineerName]);
+  }, [selectedEntryId, formData, srNo, partCode, engineerName]);
 
   const handleDelete = async () => {
     if (!selectedEntryId) {
@@ -682,7 +681,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
     // Reset workflow state
     setIsPcbFound(false);
-    setDcNo('');
     setPartCode('');
     setSrNo('');
   };
@@ -758,7 +756,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     setSelectedEntryId(entry.id || null);
     // Set the search fields if they exist in the entry
     if (entry.srNo) setSrNo(entry.srNo);
-    if (entry.dcNo) setDcNo(entry.dcNo);
     if (entry.partCode) setPartCode(entry.partCode);
   };
 
@@ -813,37 +810,18 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       <div className="flex-1 flex flex-col min-h-0">
         {/* Find Section - Moved to the top */}
         <div className="bg-white rounded-md shadow-sm ">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
-              <div className="flex gap-1">
-                <select
-                  value={isDcLocked ? useLockStore.getState().lockedDcNo : dcNo}
-                  onChange={(e) => setDcNo(e.target.value)}
-                  className={`flex-1 p-1 text-sm border border-gray-300 rounded ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''} h-8`}
-                  disabled={isDcLocked || isPcbFound}
-                >
-                  <option value="">Select DC</option>
-                  {dcNumbers
-                    .filter(dc => dc != null && dc !== '')
-                    .map((dc, index) => (
-                      <option key={`${dc}-${index}`} value={dc}>{dc}</option>
-                    ))}
-                </select>
-                <LockButton dcNo={dcNo} partCode={partCode} />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
               <select
-                value={isDcLocked ? useLockStore.getState().lockedPartCode : partCode}
+                value={partCode}
                 onChange={(e) => setPartCode(e.target.value)}
-                className={`w-full p-1 text-sm border border-gray-300 rounded ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''} h-8`}
-                disabled={isDcLocked || isPcbFound}
+                className={`w-full p-1 text-sm border border-gray-300 rounded ${isPcbFound ? 'bg-gray-100' : ''} h-8`}
+                disabled={isPcbFound}
               >
                 <option value="">Select Part</option>
-                {(dcPartCodes[dcNo] || [])
-                  .filter(code => code != null && code !== '')
+                {dcNumbers.flatMap(dc => dcPartCodes[dc] || [])
+                  .filter((code, index, self) => code && code !== '' && self.indexOf(code) === index) // unique codes
                   .map((code, index) => (
                     <option key={`${code}-${index}`} value={code}>{code}</option>
                   ))}
@@ -851,7 +829,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="text-sm font-medium text-gray-700">PCB Serial No.</label>
+                <label className="text-sm font-medium text-gray-700">Serial No.</label>
                 <div className="flex space-x-1">
                   {/* <button
                     type="button"
@@ -876,7 +854,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 value={srNo}
                 onChange={(e) => setSrNo(e.target.value)}
                 className={`w-full p-1 text-sm border border-gray-300 rounded ${isPcbFound ? 'bg-gray-100' : ''} h-8`}
-                placeholder="Enter PCB Serial No."
+                placeholder="Enter Serial No."
                 disabled={isPcbFound}
               />
             </div>

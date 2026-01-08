@@ -158,7 +158,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           complaintNo: initialData.complaintNo || prev.complaintNo,
           // partCode should only come from dropdown, not from image extraction
           // Preserve user's selection if they've already selected a partCode
-          partCode: userSelectedPartCode ? prev.partCode : '', // Don't override if user has selected a part code
+          // Also preserve locked partCode if DC is locked
+          partCode: (userSelectedPartCode || isDcLocked) ? prev.partCode : '', // Don't override if user has selected a part code or DC is locked
           natureOfDefect: initialData.natureOfDefect || prev.natureOfDefect,
           visitingTechName: initialData.technicianName || prev.visitingTechName,
           mfgMonthYear: mfgMonthYear || prev.mfgMonthYear,
@@ -218,10 +219,11 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         srNo: String(nextSrNo).padStart(3, '0')
       }));
     } else if (isDcLocked) {
-      // If locked, set DC No to the locked value but preserve SR No
+      // If locked, set DC No and partCode to the locked values
       setFormData(prev => ({
         ...prev,
-        dcNo: useLockStore.getState().lockedDcNo
+        dcNo: useLockStore.getState().lockedDcNo,
+        partCode: useLockStore.getState().lockedPartCode
       }));
     } else {
       // If no DC is selected, reset to 001
@@ -231,6 +233,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       }));
     }
   }, [formData.dcNo, savedEntries, isDcLocked]);
+
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

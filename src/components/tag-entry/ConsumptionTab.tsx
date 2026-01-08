@@ -114,8 +114,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   const [isPcbFound, setIsPcbFound] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Transform / to \n for display in Validation Result and Consume tab
-  const transformedAnalysisText = useMemo(
+  // Transform / to \n for display in Analysis field when showing in read-only contexts
+  const displayAnalysisText = useMemo(
     () => formData.analysis.replaceAll('/', '\n'),
     [formData.analysis]
   );
@@ -992,7 +992,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               <label className="block text-sm font-medium text-gray-700 mb-1">Validation Result:</label>
               <textarea
                 name="validationResult"
-                value={transformedAnalysisText} // Use transformed text with \n instead of /
+                value={formData.validationResult} // Show actual BOM validation result
                 readOnly
                 rows={3}
                 className="w-full p-1 text-sm border border-gray-300 rounded bg-gray-100"

@@ -274,10 +274,17 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
-    // Special handling for Analysis field - copy to componentChange but don't auto-fill validation result
+    // Special handling for Analysis field - extract content between 'Analysis:' and 'from Analysis' for Component Change
     if (name === 'analysis') {
+      // Extract text between "Analysis:" and "from Analysis" if pattern exists
+      let extractedValue = value;
+      const analysisMatch = value.match(/Analysis:\s*(.*?)\s*from Analysis/);
+      if (analysisMatch && analysisMatch[1]) {
+        extractedValue = analysisMatch[1].trim();
+      }
+      
       // If analysis value is only spaces, clear both componentChange and validationResult
-      if (!value.trim()) {
+      if (!extractedValue.trim()) {
         setFormData(prev => ({
           ...prev,
           [name]: value,
@@ -287,13 +294,13 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       } else {
         setFormData(prev => ({
           ...prev,
-          [name]: value,
-          componentChange: value // Copy same from Analysis to Component Change
+          [name]: value, // Store original value in the form
+          componentChange: extractedValue // Use extracted value for Component Change
         }));
       }
 
-      // Trigger BOM validation to populate validation result with BOM data
-      validateBomAnalysis(value);
+      // Trigger BOM validation to populate validation result with extracted BOM data
+      validateBomAnalysis(extractedValue);
     } else {
       setFormData(prev => ({
         ...prev,

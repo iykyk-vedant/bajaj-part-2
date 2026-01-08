@@ -274,15 +274,25 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
-    // Special handling for Analysis field - convert / to newlines in validation result
+    // Special handling for Analysis field - copy to componentChange but don't auto-fill validation result
     if (name === 'analysis') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-        validationResult: value.replaceAll('/', '\n')
-      }));
+      // If analysis value is only spaces, clear both componentChange and validationResult
+      if (!value.trim()) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value,
+          componentChange: '',
+          validationResult: ''
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value,
+          componentChange: value // Copy same from Analysis to Component Change
+        }));
+      }
 
-      // Trigger BOM validation
+      // Trigger BOM validation to populate validation result with BOM data
       validateBomAnalysis(value);
     } else {
       setFormData(prev => ({
@@ -310,12 +320,13 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   // Function to validate BOM analysis
   const validateBomAnalysis = async (analysisText: string) => {
+    // If analysis text contains only spaces, clear validation result but keep componentChange as empty
     if (!analysisText.trim()) {
-      // Clear validation fields if analysis is empty
+      // Clear validation field if analysis is empty
       setFormData(prev => ({
         ...prev,
-        validationResult: '',
-        componentChange: ''
+        validationResult: ''
+        // componentChange is already handled in handleChange
       }));
       return;
     }
@@ -324,27 +335,27 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       const result = await validateBomComponents(analysisText, partCode || undefined);
 
       if (result.success && result.data) {
-        // Update validation result and component change fields
+        // Update validation result with BOM data
         setFormData(prev => ({
           ...prev,
-          validationResult: result.data.formattedComponents,
-          componentChange: result.data.componentConsumption
+          validationResult: result.data.formattedComponents
+          // componentChange is handled in handleChange
         }));
       } else {
         // Handle validation error
         console.error('BOM validation error:', result.error);
         setFormData(prev => ({
           ...prev,
-          validationResult: `Error: ${result.error || 'Failed to validate components'}`,
-          componentChange: ''
+          validationResult: `Error: ${result.error || 'Failed to validate components'}`
+          // componentChange is handled in handleChange
         }));
       }
     } catch (error) {
       console.error('Error validating BOM components:', error);
       setFormData(prev => ({
         ...prev,
-        validationResult: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        componentChange: ''
+        validationResult: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        // componentChange is handled in handleChange
       }));
     }
   };

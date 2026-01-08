@@ -226,7 +226,15 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
     try {
       // Generate the same PCB number that would be generated in TagEntryForm
-      const pcbSrNo = getPcbNumberForDc(partCode, srNo);
+      // First, try to get the mfgMonthYear from existing entry if it exists
+      let mfgMonthYear = '';
+      const { searchConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+      const tagEntrySearch = await searchConsolidatedDataEntries('', partCode, srNo); // Search by part code and sr no
+      if (tagEntrySearch.success && tagEntrySearch.data && tagEntrySearch.data.length > 0) {
+        const existingEntry = tagEntrySearch.data[0];
+        mfgMonthYear = existingEntry.mfg_month_year || '';
+      }
+      const pcbSrNo = getPcbNumberForDc(partCode, srNo, mfgMonthYear);
 
       // First, search for existing entries by pcbSrNo
       const { searchConsolidatedDataEntriesByPcb } = await import('@/app/actions/consumption-actions');

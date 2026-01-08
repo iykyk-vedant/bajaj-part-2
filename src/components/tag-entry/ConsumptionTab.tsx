@@ -278,9 +278,21 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     if (name === 'analysis') {
       // Extract text between "Analysis:" and "from Analysis" if pattern exists
       let extractedValue = value;
+      let componentChangeValue = value;
       const analysisMatch = value.match(/Analysis:\s*(.*?)\s*from Analysis/);
       if (analysisMatch && analysisMatch[1]) {
         extractedValue = analysisMatch[1].trim();
+        componentChangeValue = extractedValue;
+      } else {
+        // If no "Analysis: ... from Analysis" pattern, extract just the component identifiers (e.g., R1/R2)
+        // Look for patterns like "R1/R2 FUSE", "R1 R2", etc.
+        const componentPattern = /^([A-Za-z0-9/]+)(?:\s+[A-Z]+)/;
+        const componentMatch = extractedValue.match(componentPattern);
+        if (componentMatch && componentMatch[1]) {
+          componentChangeValue = componentMatch[1];
+        } else {
+          componentChangeValue = extractedValue;
+        }
       }
       
       // If analysis value is only spaces, clear both componentChange and validationResult
@@ -295,7 +307,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         setFormData(prev => ({
           ...prev,
           [name]: value, // Store original value in the form
-          componentChange: extractedValue // Use extracted value for Component Change
+          componentChange: componentChangeValue // Use component identifier for Component Change
         }));
       }
 
@@ -342,10 +354,34 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       const result = await validateBomComponents(analysisText, partCode || undefined);
 
       if (result.success && result.data) {
-        // Update validation result with BOM data
+        // Update validation result with BOM data and clean up the format
+        let formattedResult = result.data.formattedComponents;
+        
+        // Clean up the validation result to remove @ symbols and format properly
+        // Split by newlines and process each line
+        const lines = formattedResult.split('\n');
+        const cleanedLines = lines.map(line => {
+          // If the line contains @, split and reformat
+          if (line.includes('@')) {
+            const parts = line.split('@');
+            const component = parts[0].trim();
+            const details = parts[1].trim();
+            
+            // Skip lines with NA as details
+            if (details.toUpperCase() === 'NA') {
+              return null;
+            }
+            
+            return `${component} - ${details}`;
+          }
+          return line;
+        }).filter(line => line !== null); // Remove null entries (lines with NA)
+        
+        const cleanedResult = cleanedLines.join('\n');
+        
         setFormData(prev => ({
           ...prev,
-          validationResult: result.data.formattedComponents
+          validationResult: cleanedResult
           // componentChange is handled in handleChange
         }));
       } else {

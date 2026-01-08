@@ -35,6 +35,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showSavedList, setShowSavedList] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userSelectedPartCode, setUserSelectedPartCode] = useState(false);
 
   // State for DC creation modal
   const [isDcModalOpen, setIsDcModalOpen] = useState(false);
@@ -156,7 +157,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           dateOfPurchase: initialData.dateOfPurchase || prev.dateOfPurchase,
           complaintNo: initialData.complaintNo || prev.complaintNo,
           // partCode should only come from dropdown, not from image extraction
-          partCode: prev.partCode,
+          // Preserve user's selection if they've already selected a partCode
+          partCode: userSelectedPartCode ? prev.partCode : '', // Don't override if user has selected a part code
           natureOfDefect: initialData.natureOfDefect || prev.natureOfDefect,
           visitingTechName: initialData.technicianName || prev.visitingTechName,
           mfgMonthYear: mfgMonthYear || prev.mfgMonthYear,
@@ -166,7 +168,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         return newFormData;
       });
     }
-  }, [initialData, savedEntries]);
+  }, [initialData, savedEntries, userSelectedPartCode]);
 
 
 
@@ -295,6 +297,10 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       }
       // If partCode or mfgMonthYear is changed, update PCB Sr No accordingly
       else if (name === 'partCode' || name === 'mfgMonthYear') {
+        if (name === 'partCode') {
+          // Mark that the user has manually selected the part code
+          setUserSelectedPartCode(true);
+        }
         if (formData.partCode && formData.srNo) {
           const pcb = generatePcbNumber(formData.partCode, formData.srNo, formData.mfgMonthYear);
           setFormData(prev => ({
@@ -550,6 +556,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       mfgMonthYear: '',
       pcbSrNo: '',
     });
+    // Reset the flag since it's a new entry
+    setUserSelectedPartCode(false);
     setShowSearchResults(false);
     setShowSavedList(false);
     setSearchQuery('');

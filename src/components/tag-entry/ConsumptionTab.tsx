@@ -383,14 +383,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               }
             }
             
-            // Remove anything after the first space after '-'
-            const dashIndex = formattedLine.indexOf('-');
-            if (dashIndex !== -1) {
-              const beforeDash = formattedLine.substring(0, dashIndex).trim();
-              const afterDash = formattedLine.substring(dashIndex + 1).trim();
-              const firstPartAfterDash = afterDash.split(' ')[0];
-              formattedLine = `${beforeDash} - ${firstPartAfterDash}`;
-            }
+
             
             return formattedLine;
           }
@@ -404,14 +397,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             }
           }
           
-          // Remove anything after the first space after '-'
-          const dashIndex = cleanLine.indexOf('-');
-          if (dashIndex !== -1) {
-            const beforeDash = cleanLine.substring(0, dashIndex).trim();
-            const afterDash = cleanLine.substring(dashIndex + 1).trim();
-            const firstPartAfterDash = afterDash.split(' ')[0];
-            cleanLine = `${beforeDash} - ${firstPartAfterDash}`;
-          }
+
           
           return cleanLine;
         }).filter(line => line !== null && line.trim() !== ''); // Remove null entries and empty lines

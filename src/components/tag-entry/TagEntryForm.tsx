@@ -167,23 +167,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     }
   }, [initialData, savedEntries]);
 
-  // Auto-generate PCB serial number when DC number or SR number changes
-  // Only generate if DC number exists
-  useEffect(() => {
 
-    if (formData.dcNo && formData.srNo) {
-      try {
-        const pcb = generatePcbNumber(formData.partCode, formData.srNo, formData.mfgMonthYear);
-
-        setFormData(prev => ({
-          ...prev,
-          pcbSrNo: pcb,
-        }));
-      } catch (err) {
-        console.error('Failed to generate PCB number:', err);
-      }
-    }
-  }, [formData.dcNo, formData.srNo]);
 
   // Auto-populate product description when part code is selected
   useEffect(() => {
@@ -197,6 +181,22 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       }
     }
   }, [formData.partCode]);
+
+  // Auto-generate PCB serial number when part code or mfgMonthYear changes
+  useEffect(() => {
+    if (formData.partCode && formData.srNo) {
+      try {
+        const pcb = generatePcbNumber(formData.partCode, formData.srNo, formData.mfgMonthYear);
+
+        setFormData(prev => ({
+          ...prev,
+          pcbSrNo: pcb,
+        }));
+      } catch (err) {
+        console.error('Failed to generate PCB number:', err);
+      }
+    }
+  }, [formData.partCode, formData.srNo, formData.mfgMonthYear]);
 
   // Update serial number when DC number changes
   // Calculate next sequential number for the selected DC
@@ -284,8 +284,18 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         
       // If SR No is changed, update PCB Sr No accordingly
       if (name === 'srNo') {
-        if (formData.dcNo) {
+        if (formData.partCode) {  // Changed condition from formData.dcNo to formData.partCode
           const pcb = generatePcbNumber(formData.partCode, value, formData.mfgMonthYear);
+          setFormData(prev => ({
+            ...prev,
+            pcbSrNo: pcb
+          }));
+        }
+      }
+      // If partCode or mfgMonthYear is changed, update PCB Sr No accordingly
+      else if (name === 'partCode' || name === 'mfgMonthYear') {
+        if (formData.partCode && formData.srNo) {
+          const pcb = generatePcbNumber(formData.partCode, formData.srNo, formData.mfgMonthYear);
           setFormData(prev => ({
             ...prev,
             pcbSrNo: pcb

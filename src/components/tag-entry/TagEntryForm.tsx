@@ -234,7 +234,36 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     }
   }, [formData.dcNo, savedEntries, isDcLocked]);
 
+  // Sync with lock store when locked values change
+  useEffect(() => {
+    const unsub = useLockStore.subscribe((state) => {
+      if (state.isDcLocked) {
+        setFormData(prev => ({
+          ...prev,
+          dcNo: state.lockedDcNo,
+          partCode: state.lockedPartCode
+        }));
+        // When DC is locked, the part code is controlled by the lock, not user selection
+        setUserSelectedPartCode(false);
+      }
+    });
+    
+    return () => unsub();
+  }, []);
 
+  // Handle changes in DC lock state
+  useEffect(() => {
+    if (isDcLocked) {
+      // When DC gets locked, update form and reset user selection flag
+      const lockState = useLockStore.getState();
+      setFormData(prev => ({
+        ...prev,
+        dcNo: lockState.lockedDcNo,
+        partCode: lockState.lockedPartCode
+      }));
+      setUserSelectedPartCode(false);
+    }
+  }, [isDcLocked]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

@@ -50,16 +50,16 @@ export const generatePcbNumber = (partCode: string, srNo?: string, mfgMonthYear?
   if (srNo) {
     // Use the SR number as the identifier, ensuring uniqueness within Part Code
     const srNum = parseInt(srNo, 10);
-    identifier = isNaN(srNum) ? '001' : String(srNum).padStart(3, '0');
+    identifier = isNaN(srNum) ? '00001' : String(srNum).padStart(5, '0');  // Changed from 3 to 5 digits
   } else {
     // Counter: persist in localStorage, increment per generation
     let counter = 1;
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(PCB_COUNTER_KEY);
-      counter = stored ? Math.min(999, Math.max(1, parseInt(stored, 10) || 1)) : 1;
-      localStorage.setItem(PCB_COUNTER_KEY, String(Math.min(999, counter + 1)));
+      counter = stored ? Math.min(99999, Math.max(1, parseInt(stored, 10) || 1)) : 1;  // Changed from 999 to 99999
+      localStorage.setItem(PCB_COUNTER_KEY, String(Math.min(99999, counter + 1)));  // Changed from 999 to 99999
     }
-    identifier = String(counter).padStart(3, '0');
+    identifier = String(counter).padStart(5, '0');  // Changed from 3 to 5 digits
   }
 
   // Final format: ES + partcode + monthCode + year + identifier
@@ -108,15 +108,15 @@ export const getPcbNumberForDc = (partCode: string, srNo?: string, mfgMonthYear?
   if (srNo) {
     // Use the SR number as the identifier, ensuring uniqueness within Part Code
     const srNum = parseInt(srNo, 10);
-    identifier = isNaN(srNum) ? '001' : String(srNum).padStart(3, '0');
+    identifier = isNaN(srNum) ? '00001' : String(srNum).padStart(5, '0');  // Changed from 3 to 5 digits
   } else {
     // Get current counter without incrementing
     let counter = 1;
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(PCB_COUNTER_KEY);
-      counter = stored ? Math.min(999, Math.max(1, parseInt(stored, 10) || 1)) : 1;
+      counter = stored ? Math.min(99999, Math.max(1, parseInt(stored, 10) || 1)) : 1;  // Changed from 999 to 99999
     }
-    identifier = String(counter).padStart(3, '0');
+    identifier = String(counter).padStart(5, '0');  // Changed from 3 to 5 digits
   }
 
   // Final format: ES + partcode + monthCode + year + identifier

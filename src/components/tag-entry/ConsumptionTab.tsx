@@ -85,6 +85,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   // State for Find fields
   const [partCode, setPartCode] = useState('');
+  const [mfgMonthYear, setMfgMonthYear] = useState('');
   const [srNo, setSrNo] = useState('');
 
   // Form data state
@@ -214,8 +215,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   const handleFind = async () => {
     // Validate that all search fields are filled
-    if (!partCode || !srNo) {
-      alert('Please fill in all search fields: Part Code and Serial No.');
+    if (!partCode || !mfgMonthYear || !srNo) {
+      alert('Please fill in all search fields: Part Code, Mfg Month/Year, and Serial No.');
       return;
     }
 
@@ -226,14 +227,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
     try {
       // Generate the same PCB number that would be generated in TagEntryForm
-      // First, try to get the mfgMonthYear from existing entry if it exists
-      let mfgMonthYear = '';
-      const { searchConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
-      const tagEntrySearch = await searchConsolidatedDataEntries('', partCode, srNo); // Search by part code and sr no
-      if (tagEntrySearch.success && tagEntrySearch.data && tagEntrySearch.data.length > 0) {
-        const existingEntry = tagEntrySearch.data[0];
-        mfgMonthYear = existingEntry.mfg_month_year || '';
-      }
       const pcbSrNo = getPcbNumberForDc(partCode, srNo, mfgMonthYear);
 
       // First, search for existing entries by pcbSrNo
@@ -396,15 +389,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
       
       // First, we need to find the entry with the same pcbSrNo
-      // Get mfgMonthYear to regenerate the same PCB number if needed
-      let mfgMonthYear = '';
-      const { searchConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
-      const tagEntrySearch = await searchConsolidatedDataEntries('', partCode, srNo); // Search by part code and sr no
-      if (tagEntrySearch.success && tagEntrySearch.data && tagEntrySearch.data.length > 0) {
-        const existingEntry = tagEntrySearch.data[0];
-        mfgMonthYear = existingEntry.mfg_month_year || '';
-      }
-      // Regenerate PCB number using the same mfgMonthYear to ensure we're searching for the right one
+      // Use the mfgMonthYear from the state
       const regeneratedPcbSrNo = getPcbNumberForDc(partCode, srNo, mfgMonthYear);
       const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, regeneratedPcbSrNo);
       
@@ -644,7 +629,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
 
     alert('Consumption entry updated successfully!');
-  }, [selectedEntryId, formData, srNo, partCode, engineerName]);
+  }, [selectedEntryId, formData, srNo, partCode, mfgMonthYear, engineerName]);
 
   const handleDelete = async () => {
     if (!selectedEntryId) {
@@ -700,6 +685,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     // Reset workflow state
     setIsPcbFound(false);
     setPartCode('');
+    setMfgMonthYear('');
     setSrNo('');
   };
 
@@ -828,7 +814,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       <div className="flex-1 flex flex-col min-h-0">
         {/* Find Section - Moved to the top */}
         <div className="bg-white rounded-md shadow-sm ">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
               <select
@@ -844,6 +830,17 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                     <option key={`${code}-${index}`} value={code}>{code}</option>
                   ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mfg Month/Year (MM/YYYY)</label>
+              <input
+                type="text"
+                value={mfgMonthYear}
+                onChange={(e) => setMfgMonthYear(e.target.value)}
+                className={`w-full p-1 text-sm border border-gray-300 rounded h-8 ${isPcbFound ? 'bg-gray-100' : ''}`}
+                placeholder="MM/YYYY"
+                disabled={isPcbFound}
+              />
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">

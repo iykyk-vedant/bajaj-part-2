@@ -307,7 +307,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         setFormData(prev => ({
           ...prev,
           [name]: value, // Store original value in the form
-          componentChange: componentChangeValue // Use component identifier for Component Change
+          componentChange: componentChangeValue, // Use component identifier for Component Change
+          validationResult: componentChangeValue // Use the same value for Validation Result
         }));
       }
 
@@ -354,59 +355,10 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       const result = await validateBomComponents(analysisText, partCode || undefined);
 
       if (result.success && result.data) {
-        // Update validation result with BOM data and clean up the format
-        let formattedResult = result.data.formattedComponents;
-        
-        // Clean up the validation result to remove @ symbols and format properly
-        // Split by newlines and process each line
-        const lines = formattedResult.split('\n');
-        const cleanedLines = lines.map(line => {
-          // If the line contains @, split and reformat
-          if (line.includes('@')) {
-            const parts = line.split('@');
-            const component = parts[0].trim();
-            const details = parts[1].trim();
-            
-            // Skip lines with NA as details
-            if (details.toUpperCase() === 'NA') {
-              return null;
-            }
-            
-            // Format as component - details
-            let formattedLine = `${component} - ${details}`;
-            
-            // Remove part code prefix (like 971039) if present
-            if (formattedLine.startsWith(partCode)) {
-              formattedLine = formattedLine.substring(partCode.length).trim();
-              if (formattedLine.startsWith('-')) {
-                formattedLine = formattedLine.substring(1).trim();
-              }
-            }
-            
-
-            
-            return formattedLine;
-          }
-          
-          // For lines that don't contain @, remove part code prefix if present
-          let cleanLine = line;
-          if (cleanLine.startsWith(partCode)) {
-            cleanLine = cleanLine.substring(partCode.length).trim();
-            if (cleanLine.startsWith('-')) {
-              cleanLine = cleanLine.substring(1).trim();
-            }
-          }
-          
-
-          
-          return cleanLine;
-        }).filter(line => line !== null && line.trim() !== ''); // Remove null entries and empty lines
-        
-        const cleanedResult = cleanedLines.join('\n');
-        
+        // Update validation result with the componentChange value instead of BOM data
         setFormData(prev => ({
           ...prev,
-          validationResult: cleanedResult
+          validationResult: prev.componentChange // Use the same value as Component Change
           // componentChange is handled in handleChange
         }));
       } else {

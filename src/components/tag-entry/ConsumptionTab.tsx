@@ -396,7 +396,17 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
       
       // First, we need to find the entry with the same pcbSrNo
-      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, formData.pcbSrNo);
+      // Get mfgMonthYear to regenerate the same PCB number if needed
+      let mfgMonthYear = '';
+      const { searchConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+      const tagEntrySearch = await searchConsolidatedDataEntries('', partCode, srNo); // Search by part code and sr no
+      if (tagEntrySearch.success && tagEntrySearch.data && tagEntrySearch.data.length > 0) {
+        const existingEntry = tagEntrySearch.data[0];
+        mfgMonthYear = existingEntry.mfg_month_year || '';
+      }
+      // Regenerate PCB number using the same mfgMonthYear to ensure we're searching for the right one
+      const regeneratedPcbSrNo = getPcbNumberForDc(partCode, srNo, mfgMonthYear);
+      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, regeneratedPcbSrNo);
       
       if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
         const existingEntry = searchResult.data[0];

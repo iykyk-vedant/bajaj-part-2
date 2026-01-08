@@ -93,8 +93,8 @@ export const getPcbNumberForDc = (partCode: string, srNo?: string, mfgMonthYear?
     } else {
       // Invalid format, fall back to current date
       const now = new Date();
-        monthCode = getMonthCode(now.getMonth());
-        year = String(now.getFullYear()).slice(-2);
+      monthCode = getMonthCode(now.getMonth());
+      year = String(now.getFullYear()).slice(-2);
     }
   } else {
     // Use current date if mfgMonthYear is not provided

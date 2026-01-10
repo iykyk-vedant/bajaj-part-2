@@ -43,9 +43,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import UserProfile from '@/components/UserProfile';
 
 // Import server actions for sheet operations
 import {
@@ -602,6 +603,7 @@ export default function Home() {
             <h1 className="text-xl font-bold font-headline text-primary">NexScan</h1>
           </div>
           <div className="flex items-center gap-2">
+            <UserProfile />
             <Button 
               variant="outline" 
               size="sm" 

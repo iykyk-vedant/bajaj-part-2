@@ -1,5 +1,5 @@
 import type {Metadata} from 'next';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from '@/components/ui/toaster'
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { AuthProvider } from '@/contexts/AuthContext';

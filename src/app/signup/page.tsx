@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +12,14 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, user, loading: authLoading } = useAuth();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +51,15 @@ export default function SignupPage() {
     
     setLoading(false);
   };
+
+  // Show loading if checking auth status
+  if (!authLoading && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Redirecting...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

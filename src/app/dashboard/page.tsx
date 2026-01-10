@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardPage() {
-  const { user, signOut, loading, isAuthenticated } = useAuth();
-  const router = useRouter();
+  const { user, signOut, loading } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
@@ -18,12 +17,6 @@ export default function DashboardPage() {
         <div className="text-lg">Loading...</div>
       </div>
     );
-  }
-
-  if (!isAuthenticated()) {
-    // If not authenticated, redirect to login
-    router.push('/login');
-    return null;
   }
 
   return (

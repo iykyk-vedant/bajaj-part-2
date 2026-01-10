@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, getCurrentUserFromDb } from './auth-service';
+import { verifyToken, getCurrentUserFromDb } from '@/lib/auth/auth-service';
 
 // Define the shape of our authenticated request
 export interface AuthenticatedRequest extends NextRequest {
@@ -61,3 +61,6 @@ export async function withAuth(
 export function jsonRes(data: any, status: number = 200) {
   return NextResponse.json(data, { status });
 }
+
+// Export NextResponse for use in routes
+export { NextResponse };

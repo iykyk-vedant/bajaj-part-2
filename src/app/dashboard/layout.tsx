@@ -13,15 +13,27 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const checkAuth = async () => {
+      // Check if token exists first
+      const token = localStorage.getItem('supabase_access_token');
+      
+      // If no token, user is definitely not authenticated
+      if (!token) {
+        router.push('/login');
+        setIsAuthenticated(false);
+        return;
+      }
+      
       try {
         const res = await fetch('/api/auth/me', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('supabase_access_token') || ''}`,
+            'Authorization': `Bearer ${token}`,
           },
         });
 
         if (res.status === 401) {
           // Not authenticated, redirect to login
+          localStorage.removeItem('supabase_access_token');
+          localStorage.removeItem('supabase_refresh_token');
           router.push('/login');
           router.refresh();
           setIsAuthenticated(false);
@@ -30,6 +42,8 @@ export default function DashboardLayout({
         }
       } catch (err) {
         console.error('Auth check error:', err);
+        localStorage.removeItem('supabase_access_token');
+        localStorage.removeItem('supabase_refresh_token');
         router.push('/login');
         setIsAuthenticated(false);
       }

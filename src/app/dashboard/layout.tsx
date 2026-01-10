@@ -35,7 +35,6 @@ export default function DashboardLayout({
           localStorage.removeItem('supabase_access_token');
           localStorage.removeItem('supabase_refresh_token');
           router.push('/login');
-          router.refresh();
           setIsAuthenticated(false);
         } else {
           setIsAuthenticated(true);

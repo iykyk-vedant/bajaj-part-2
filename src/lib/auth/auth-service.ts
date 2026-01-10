@@ -111,7 +111,7 @@ export async function verifyToken(token: string): Promise<boolean> {
 // Create or update user in Neon DB
 export async function createOrUpdateUserInDb(supabaseUserId: string, email: string, role: string = 'USER'): Promise<boolean> {
   try {
-    // Check if user already exists
+    // Check if user already exists by supabase_user_id
     const checkResult = await pool.query(
       'SELECT id FROM users WHERE supabase_user_id = $1',
       [supabaseUserId]
@@ -124,11 +124,25 @@ export async function createOrUpdateUserInDb(supabaseUserId: string, email: stri
         [email, supabaseUserId]
       );
     } else {
-      // Create new user
-      await pool.query(
-        'INSERT INTO users (supabase_user_id, email, role) VALUES ($1, $2, $3)',
-        [supabaseUserId, email, role]
+      // Check if email already exists with a different supabase_user_id
+      const emailCheckResult = await pool.query(
+        'SELECT id FROM users WHERE email = $1',
+        [email]
       );
+      
+      if (emailCheckResult.rows.length > 0) {
+        // Email exists but with a different supabase_user_id, update the existing record
+        await pool.query(
+          'UPDATE users SET supabase_user_id = $1 WHERE email = $2',
+          [supabaseUserId, email]
+        );
+      } else {
+        // Create new user
+        await pool.query(
+          'INSERT INTO users (supabase_user_id, email, role) VALUES ($1, $2, $3)',
+          [supabaseUserId, email, role]
+        );
+      }
     }
     
     return true;

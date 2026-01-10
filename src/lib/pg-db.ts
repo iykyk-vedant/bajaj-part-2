@@ -141,6 +141,29 @@ export async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Create users table for Supabase user synchronization
+    // Enable the pgcrypto extension for gen_random_uuid() if not already enabled
+    await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        supabase_user_id TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        role TEXT DEFAULT 'USER',
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    
+    // Create indexes for better query performance
+    try {
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_supabase_user_id ON users (supabase_user_id);`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_email ON users (email);`);
+    } catch (indexError) {
+      // Indexes might already exist, which is fine
+      console.log('Indexes creation attempted - may already exist');
+    }
 
     console.log('Database initialized successfully');
   } catch (error) {

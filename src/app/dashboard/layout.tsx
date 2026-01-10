@@ -49,7 +49,7 @@ export default function DashboardLayout({
     };
 
     checkAuth();
-  }, [router]);
+  }, []); // Only run once on mount
 
   if (isAuthenticated === null) {
     // Loading state

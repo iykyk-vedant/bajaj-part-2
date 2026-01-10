@@ -11,15 +11,17 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
   const { signUp, user, loading: authLoading } = useAuth();
 
   // Check if user is already logged in on initial load
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !isRedirecting) {
+      setIsRedirecting(true);
       router.push('/dashboard');
     }
-  }, []); // Only run once on mount
+  }, [authLoading, user, isRedirecting, router]); // Include isRedirecting to prevent multiple redirects
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +45,7 @@ export default function SignupPage() {
     
     if (result.success) {
       // Redirect to dashboard on successful signup
+      setIsRedirecting(true);
       router.push('/dashboard');
     } else {
       setError(result.error);
@@ -60,8 +63,8 @@ export default function SignupPage() {
     );
   }
 
-  // Don't show signup form if already logged in
-  if (user) {
+  // Don't show signup form if already logged in and not redirecting
+  if (user && !isRedirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">You are already logged in. Redirecting...</div>

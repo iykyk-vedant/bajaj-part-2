@@ -131,7 +131,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Redirect to login page
       router.push('/login');
-      router.refresh();
     } catch (error) {
       console.error('Signout error:', error);
     }

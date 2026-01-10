@@ -30,7 +30,6 @@ export default function LoginPage() {
     if (result.success) {
       // Redirect to dashboard on successful login
       router.push('/dashboard');
-      router.refresh();
     } else {
       setError(result.error);
     }

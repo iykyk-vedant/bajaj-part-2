@@ -44,7 +44,6 @@ export default function SignupPage() {
     if (result.success) {
       // Redirect to dashboard on successful signup
       router.push('/dashboard');
-      router.refresh();
     } else {
       setError(result.error);
     }

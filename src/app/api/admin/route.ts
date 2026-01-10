@@ -1,18 +1,47 @@
-import { NextRequest } from 'next/server';
-import { withAuth, jsonRes } from '@/lib/auth/middleware';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyToken, getCurrentUserFromDb } from '@/lib/auth/auth-service';
 
 // GET /api/admin - Admin-only route example
-export const GET = withAuth(async (req) => {
+export async function GET(request: NextRequest) {
   try {
-    // User is already attached to the request by withAuth middleware
-    const user = req.user;
-
-    // This route is protected and only accessible to admins
-    if (user.role !== 'ADMIN') {
-      return jsonRes({ error: 'Forbidden: Admin access required' }, 403);
+    // Extract token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Missing or invalid authorization header' },
+        { status: 401 }
+      );
     }
 
-    return jsonRes({
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Verify the token
+    const isValid = await verifyToken(token);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    // Get user from Neon DB
+    const user = await getCurrentUserFromDb(token);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized: User not found in database' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user has admin role
+    if (user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Forbidden: Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json({
       message: 'Admin data accessed successfully',
       adminData: {
         // Sample admin data
@@ -30,6 +59,6 @@ export const GET = withAuth(async (req) => {
     });
   } catch (error) {
     console.error('Admin API error:', error);
-    return jsonRes({ error: 'Internal server error' }, 500);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}, 'ADMIN'); // Require ADMIN role
+}

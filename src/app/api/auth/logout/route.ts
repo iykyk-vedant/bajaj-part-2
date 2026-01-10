@@ -1,6 +1,5 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { signOut } from '@/lib/auth/auth-service';
-import { jsonRes } from '@/lib/auth/middleware';
 
 // POST /api/auth/logout - User logout
 export async function POST(req: NextRequest) {
@@ -9,15 +8,15 @@ export async function POST(req: NextRequest) {
     const result = await signOut();
 
     if (result.error) {
-      return jsonRes({ error: result.error }, 400);
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     // Return success response
-    return jsonRes({
+    return NextResponse.json({
       message: 'Logout successful'
-    }, 200);
+    }, { status: 200 });
   } catch (error) {
     console.error('Logout API error:', error);
-    return jsonRes({ error: 'Internal server error' }, 500);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

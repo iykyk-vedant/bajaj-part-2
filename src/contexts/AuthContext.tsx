@@ -72,18 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store tokens in localStorage
-      if (data.session?.access_token) {
-        localStorage.setItem('supabase_access_token', data.session.access_token);
-      }
-      if (data.session?.refresh_token) {
-        localStorage.setItem('supabase_refresh_token', data.session.refresh_token);
-      }
-
-      // Update user state
-      setUser(data.user || data.session?.user);
+      // Store tokens in localStorage (tokens are managed by Supabase client)
       
-      return { success: true, user: data.user || data.session?.user };
+      // Update user state
+      setUser(data.user);
+      
+      return { success: true, user: data.user };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -103,18 +97,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'Signup failed');
       }
 
-      // Store tokens in localStorage
-      if (data.session?.access_token) {
-        localStorage.setItem('supabase_access_token', data.session.access_token);
-      }
-      if (data.session?.refresh_token) {
-        localStorage.setItem('supabase_refresh_token', data.session.refresh_token);
-      }
-
-      // Update user state
-      setUser(data.user || data.session?.user);
+      // Store tokens in localStorage (tokens are managed by Supabase client)
       
-      return { success: true, user: data.user || data.session?.user };
+      // Update user state
+      setUser(data.user);
+      
+      return { success: true, user: data.user };
     } catch (error: any) {
       return { success: false, error: error.message };
     }

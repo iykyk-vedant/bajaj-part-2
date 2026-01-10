@@ -30,10 +30,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if user is already logged in when app loads
     const checkSession = async () => {
+      const token = localStorage.getItem('supabase_access_token');
+      
+      // Only make the request if a token exists
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         const res = await fetch('/api/auth/me', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('supabase_access_token') || ''}`,
+            'Authorization': `Bearer ${token}`,
           },
         });
 

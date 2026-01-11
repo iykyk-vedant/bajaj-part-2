@@ -189,6 +189,9 @@ export async function updateConsolidatedDataEntryAction(id: string, entry: any) 
       validation_result: entry.validationResult || entry.validation_result,
       component_change: entry.componentChange || entry.component_change,
       engg_name: entry.enggName || entry.engg_name,
+      tag_entry_by: entry.tagEntryBy || entry.tag_entry_by,
+      consumption_entry_by: entry.consumptionEntryBy || entry.consumption_entry_by,
+      dispatch_entry_by: entry.dispatchEntryBy || entry.dispatch_entry_by,
     };
     const result = await updateConsolidatedDataEntry(id.toString(), entryForDb);
     return {
@@ -243,6 +246,10 @@ export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo
       visiting_tech_name: entry.visitingTechName || entry.visiting_tech_name,
       mfg_month_year: entry.mfgMonthYear || entry.mfg_month_year,
       pcb_sr_no: entry.pcbSrNo || entry.pcb_sr_no,
+      // Entry tracking fields
+      tag_entry_by: entry.tagEntryBy || entry.tag_entry_by,
+      consumption_entry_by: entry.consumptionEntryBy || entry.consumption_entry_by,
+      dispatch_entry_by: entry.dispatchEntryBy || entry.dispatch_entry_by,
       // Consumption fields
       repair_date: entry.repairDate || entry.repair_date,
       testing: entry.testing || null,

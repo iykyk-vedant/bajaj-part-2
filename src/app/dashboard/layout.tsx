@@ -13,16 +13,16 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Add small delay to avoid race conditions with AuthContext initialization
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
       // Check if token exists first
       const token = localStorage.getItem('supabase_access_token');
       
       // If no token, user is definitely not authenticated
       if (!token) {
-        router.push('/login');
         setIsAuthenticated(false);
+        // Small delay before redirect to allow UI to update
+        setTimeout(() => {
+          router.push('/login');
+        }, 100);
         return;
       }
       
@@ -37,8 +37,11 @@ export default function DashboardLayout({
           // Not authenticated, redirect to login
           localStorage.removeItem('supabase_access_token');
           localStorage.removeItem('supabase_refresh_token');
-          router.push('/login');
           setIsAuthenticated(false);
+          // Small delay before redirect to allow UI to update
+          setTimeout(() => {
+            router.push('/login');
+          }, 100);
         } else {
           setIsAuthenticated(true);
         }
@@ -46,8 +49,11 @@ export default function DashboardLayout({
         console.error('Auth check error:', err);
         localStorage.removeItem('supabase_access_token');
         localStorage.removeItem('supabase_refresh_token');
-        router.push('/login');
         setIsAuthenticated(false);
+        // Small delay before redirect to allow UI to update
+        setTimeout(() => {
+          router.push('/login');
+        }, 100);
       }
     };
 

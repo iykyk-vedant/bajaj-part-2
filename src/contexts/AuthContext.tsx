@@ -7,6 +7,7 @@ interface User {
   id: string;
   supabase_user_id: string;
   email: string;
+  name?: string;
   role: string;
   created_at: string;
 }

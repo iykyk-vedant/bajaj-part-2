@@ -22,6 +22,11 @@ export async function signUp(email: string, password: string, name: string): Pro
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          name: name
+        }
+      }
     });
 
     if (error) {
@@ -53,7 +58,8 @@ export async function signIn(email: string, password: string): Promise<AuthRespo
 
     // Create user record in Neon DB if not exists
     if (data.user) {
-      await createOrUpdateUserInDb(data.user.id, email);
+      const name = data.user.user_metadata?.name;
+      await createOrUpdateUserInDb(data.user.id, email, 'USER', name);
     }
 
     return { data };

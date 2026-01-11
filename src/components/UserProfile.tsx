@@ -45,7 +45,7 @@ export default function UserProfile() {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <div className="p-2">
-          <p className="text-sm font-medium">{user.email}</p>
+          <p className="text-sm font-medium">{user.name || user.email}</p>
           <p className="text-xs text-muted-foreground">Role: {user.role}</p>
         </div>
         <DropdownMenuSeparator />

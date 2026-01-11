@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
       user: {
         id: result.data?.user?.id,
         email: result.data?.user?.email,
+        name: result.data?.user?.user_metadata?.name,
       },
       token: session?.access_token,
       refreshToken: session?.refresh_token,

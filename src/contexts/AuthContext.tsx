@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update user state
       setUser(data.user);
       
-      return { success: true, user: data.user };
+      return { success: true, user: data.user, token: data.token, refreshToken: data.refreshToken };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update user state
       setUser(data.user);
       
-      return { success: true, user: data.user };
+      return { success: true, user: data.user, token: data.token, refreshToken: data.refreshToken };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -150,7 +150,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect to login page
       router.push('/login');
     } catch (error) {
+      // Even if API call fails, still clear local tokens and state
+      localStorage.removeItem('supabase_access_token');
+      localStorage.removeItem('supabase_refresh_token');
+      setUser(null);
+      
       console.error('Signout error:', error);
+      
+      // Redirect to login page
+      router.push('/login');
     }
   };
 

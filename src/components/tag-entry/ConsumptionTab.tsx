@@ -1038,10 +1038,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Consumption Entry By:</label>
-              <EngineerName
-                value={formData.consumptionEntryBy || ''}
-                onChange={(value) => setFormData(prev => ({...prev, consumptionEntryBy: value}))}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
+              <input
+                type="text"
+                value={user?.name || user?.email || ''}
+                readOnly
+                className="w-full p-1 text-sm border border-gray-300 rounded h-8 bg-gray-100"
               />
             </div>
 

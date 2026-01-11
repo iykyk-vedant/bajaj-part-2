@@ -1017,10 +1017,11 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Tag Entry By:</label>
-        <EngineerName
-          value={formData.tagEntryBy || ''}
-          onChange={(value) => setFormData(prev => ({...prev, tagEntryBy: value}))}
-          className="w-full p-2 text-sm h-9"
+        <input
+          type="text"
+          value={user?.name || user?.email || ''}
+          readOnly
+          className="w-full p-2 text-sm border border-gray-300 rounded h-9 bg-gray-100"
         />
       </div>
     </div>

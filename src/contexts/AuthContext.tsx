@@ -66,8 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    checkSession();
-  }, []); // Only run once on mount
+    // Only run the session check if we're not already loading
+    if (loading) {
+      checkSession();
+    }
+  }, [loading]); // Run when loading state changes
 
   const signIn = async (email: string, password: string) => {
     try {

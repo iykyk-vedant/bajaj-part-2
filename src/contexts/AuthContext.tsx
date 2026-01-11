@@ -33,6 +33,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Add a small delay to avoid race conditions during initial page load
       await new Promise(resolve => setTimeout(resolve, 100));
       
+      // Check for URL parameters (could be from email confirmation)
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const expiresIn = urlParams.get('expires_in');
+        const tokenType = urlParams.get('token_type');
+        
+        // If we have tokens in the URL (e.g., from email confirmation), store them
+        if (accessToken && refreshToken) {
+          localStorage.setItem('supabase_access_token', accessToken);
+          localStorage.setItem('supabase_refresh_token', refreshToken);
+          
+          // Clear the URL parameters to avoid showing sensitive data
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+      
       const token = localStorage.getItem('supabase_access_token');
       
       // Only make the request if a token exists

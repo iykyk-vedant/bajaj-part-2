@@ -13,6 +13,9 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const checkAuth = async () => {
+      // Add small delay to avoid race conditions with AuthContext initialization
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       // Check if token exists first
       const token = localStorage.getItem('supabase_access_token');
       

@@ -12,29 +12,43 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      // Check if token exists first
-      const token = localStorage.getItem('supabase_access_token');
-      
-      // If no token, user is definitely not authenticated
-      if (!token) {
-        setIsAuthenticated(false);
-        // Small delay before redirect to allow UI to update
-        setTimeout(() => {
-          router.push('/login');
-        }, 100);
-        return;
-      }
-      
-      try {
-        const res = await fetch('/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+    // Add small delay to allow AuthContext to initialize first
+    const timer = setTimeout(() => {
+      const checkAuth = async () => {
+        // Check if token exists first
+        const token = localStorage.getItem('supabase_access_token');
+        
+        // If no token, user is definitely not authenticated
+        if (!token) {
+          setIsAuthenticated(false);
+          // Small delay before redirect to allow UI to update
+          setTimeout(() => {
+            router.push('/login');
+          }, 100);
+          return;
+        }
+        
+        try {
+          const res = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
 
-        if (res.status === 401) {
-          // Not authenticated, redirect to login
+          if (res.status === 401) {
+            // Not authenticated, redirect to login
+            localStorage.removeItem('supabase_access_token');
+            localStorage.removeItem('supabase_refresh_token');
+            setIsAuthenticated(false);
+            // Small delay before redirect to allow UI to update
+            setTimeout(() => {
+              router.push('/login');
+            }, 100);
+          } else {
+            setIsAuthenticated(true);
+          }
+        } catch (err) {
+          console.error('Auth check error:', err);
           localStorage.removeItem('supabase_access_token');
           localStorage.removeItem('supabase_refresh_token');
           setIsAuthenticated(false);
@@ -42,22 +56,13 @@ export default function DashboardLayout({
           setTimeout(() => {
             router.push('/login');
           }, 100);
-        } else {
-          setIsAuthenticated(true);
         }
-      } catch (err) {
-        console.error('Auth check error:', err);
-        localStorage.removeItem('supabase_access_token');
-        localStorage.removeItem('supabase_refresh_token');
-        setIsAuthenticated(false);
-        // Small delay before redirect to allow UI to update
-        setTimeout(() => {
-          router.push('/login');
-        }, 100);
-      }
-    };
+      };
 
-    checkAuth();
+      checkAuth();
+    }, 200); // 200ms delay to let AuthContext initialize
+
+    return () => clearTimeout(timer);
   }, []); // Only run once on mount
 
   if (isAuthenticated === null) {

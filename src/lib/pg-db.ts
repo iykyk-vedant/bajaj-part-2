@@ -151,10 +151,19 @@ export async function initializeDatabase() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         supabase_user_id TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,
+        name TEXT,
         role TEXT DEFAULT 'USER',
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    
+    // Add name column if it doesn't exist (for existing databases)
+    try {
+      await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;`);
+    } catch (alterError) {
+      // Column may already exist, which is fine
+      console.log('Name column addition attempted - may already exist');
+    }
     
     // Create indexes for better query performance
     try {

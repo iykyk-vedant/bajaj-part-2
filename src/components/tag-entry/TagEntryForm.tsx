@@ -9,6 +9,7 @@ import { spareParts } from '@/lib/spare-parts';
 import { generatePcbNumber, getMonthCode } from '@/lib/pcb-utils';
 import { tagEntryEventEmitter, TAG_ENTRY_EVENTS } from '@/lib/event-emitter';
 import { EngineerName } from '@/components/ui/engineer-name';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Dialog components for DC creation modal
 import {
@@ -31,6 +32,7 @@ const STORAGE_KEY = 'tag-entries';
 
 export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, onAddDcNumber }: TagEntryFormProps) {
   const { isDcLocked } = useLockStore();
+  const { user } = useAuth();
   const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showSavedList, setShowSavedList] = useState(false);
@@ -430,7 +432,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       mfgMonthYear: formData.mfgMonthYear || '',
       pcbSrNo: formData.pcbSrNo || '',
       enggName: formData.enggName || '',
-      tagEntryBy: formData.tagEntryBy || '',
+      tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
     };
 
     let updatedEntries: TagEntry[];

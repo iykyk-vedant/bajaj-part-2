@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLockStore } from '@/store/lockStore';
 import { LockButton } from '@/components/tag-entry/LockButton';
 import { EngineerName } from '@/components/ui/engineer-name';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DispatchTabProps {
   dcNumbers: string[];
@@ -50,6 +51,7 @@ interface DispatchFormData {
 export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }: DispatchTabProps) {
   const { isDcLocked } = useLockStore();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [pcbSrNo, setPcbSrNo] = useState(''); // Changed from srNo to pcbSrNo
@@ -118,6 +120,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
             componentChange: entry.component_change || '',
             enggName: entry.engg_name || '',
             dispatchDate: entry.dispatch_date ? (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : (entry.dispatch_date && typeof entry.dispatch_date === 'object' && 'toISOString' in entry.dispatch_date ? (entry.dispatch_date as Date).toISOString().split('T')[0] : new Date(entry.dispatch_date).toISOString().split('T')[0])) : '',
+            dispatchEntryBy: entry.dispatch_entry_by || user?.name || user?.email || '',
           };
           
           setSelectedEntry(formData);
@@ -168,10 +171,11 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
       return;
     }
 
-    // Update dispatch date with the value from the form
+    // Update dispatch date and dispatchEntryBy with the logged-in user's name
     const updatedEntry = {
       ...selectedEntry,
-      dispatchDate: dispatchDate || selectedEntry.dispatchDate || new Date().toISOString().split('T')[0] // Use the form value, or selected entry value, or current date if not provided
+      dispatchDate: dispatchDate || selectedEntry.dispatchDate || new Date().toISOString().split('T')[0], // Use the form value, or selected entry value, or current date if not provided
+      dispatchEntryBy: selectedEntry?.dispatchEntryBy || user?.name || user?.email || '' // Auto-populate with user's name or email
     };
 
     try {
@@ -231,6 +235,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
       componentChange: entry.component_change || '',
       enggName: entry.engg_name || '',
       dispatchDate: entry.dispatch_date ? (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : (entry.dispatch_date && typeof entry.dispatch_date === 'object' && 'toISOString' in entry.dispatch_date ? (entry.dispatch_date as Date).toISOString().split('T')[0] : new Date(entry.dispatch_date).toISOString().split('T')[0])) : '',
+      dispatchEntryBy: entry.dispatch_entry_by || user?.name || user?.email || '',
     };
     
     setSelectedEntry(formData);
@@ -613,7 +618,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Dispatch Entry By</Label>
                   <EngineerName
-                    value={selectedEntry.dispatchEntryBy || ''}
+                    value={selectedEntry.dispatchEntryBy || user?.name || user?.email || ''}
                     onChange={(value) => {
                       if (selectedEntry) {
                         setSelectedEntry({

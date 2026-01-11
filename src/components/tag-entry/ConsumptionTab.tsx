@@ -7,6 +7,7 @@ import { LockButton } from './LockButton';
 import { validateBomComponents, saveConsolidatedData, searchConsolidatedDataEntries } from '@/app/actions/consumption-actions';
 import { getPcbNumberForDc } from '@/lib/pcb-utils';
 import { EngineerName } from '@/components/ui/engineer-name';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ConsumptionTabProps {
   dcNumbers?: string[];
@@ -81,6 +82,7 @@ interface TableRow {
 
 export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {}, engineerName = '', onEngineerNameChange }: ConsumptionTabProps) {
   const { isDcLocked } = useLockStore();
+  const { user } = useAuth();
   const router = useRouter();
 
   // State for Find fields
@@ -460,7 +462,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         validationResult: formData.validationResult || null,
         componentChange: formData.componentChange || null,
         enggName: engineerName || null, // Use engineer name from navigation tab
-        consumptionEntryBy: formData.consumptionEntryBy || null, // New field for consumption entry
+        consumptionEntryBy: formData.consumptionEntryBy || user?.name || user?.email || null, // New field for consumption entry
         dispatchDate: formData.dispatchDate || null,
       };
 

@@ -75,33 +75,10 @@ export type Sheet = {
 export default function Home() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  
+  // All state declarations must be at the top to maintain hook order
   const [isLoading, setIsLoading] = useState(false);
   const [currentExtractedData, setCurrentExtractedData] = useState<ExtractDataOutput | null>(null);
-
-  // Check authentication on initial load
-  useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        // Redirect to login if not authenticated
-        router.push('/login');
-      }
-    }
-  }, [authLoading, user, router]);
-
-  // Show loading while checking auth status
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
-
-  // Don't render anything if not authenticated
-  if (!user) {
-    return null; // The redirect will happen in useEffect
-  }
-
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<string | null>(null);
   const [isSheetOverviewOpen, setIsSheetOverviewOpen] = useState(false);
@@ -140,6 +117,30 @@ export default function Home() {
   const [tagEntrySubTab, setTagEntrySubTab] = useState<"form" | "settings">("form");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  
+  // Check authentication on initial load
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        // Redirect to login if not authenticated
+        router.push('/login');
+      }
+    }
+  }, [authLoading, user, router]);
+
+  // Show loading while checking auth status
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated
+  if (!user) {
+    return null; // The redirect will happen in useEffect
+  }
 
   const { toast } = useToast();
   

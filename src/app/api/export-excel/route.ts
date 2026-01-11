@@ -91,17 +91,16 @@ export async function POST(request: NextRequest) {
       row.getCell(14).value = entry.repair_date || entry.repairDate || ''; // Repair_Date
       row.getCell(15).value = entry.defect_age || entry.defectAge || ''; // Defect_Age
       row.getCell(16).value = entry.pcb_sr_no || entry.pcbSrNo || ''; // PCB_Sr_No
-      row.getCell(17).value = entry.rf_observation || entry.rfObservation || ''; // RF_Observation
-      row.getCell(18).value = entry.testing || ''; // Testing
-      row.getCell(19).value = entry.failure || ''; // Failure
-      row.getCell(20).value = entry.analysis || ''; // Analysis
-      row.getCell(21).value = entry.component_consumption || entry.componentConsumption || ''; // Component_Consumption
-      row.getCell(22).value = entry.status || ''; // Status
-      row.getCell(23).value = entry.send_date || entry.dispatch_date || entry.sendDate || ''; // Send_Date
-      row.getCell(24).value = entry.engg_name || entry.enggName || ''; // Engg_Name
-      row.getCell(25).value = entry.tag_entry_by || entry.tagEntryBy || ''; // Tag_Entry_By
-      row.getCell(26).value = entry.consumption_entry_by || entry.consumptionEntryBy || ''; // Consumption_Entry_By
-      row.getCell(27).value = entry.dispatch_entry_by || entry.dispatchEntryBy || ''; // Dispatch_Entry_By
+      row.getCell(17).value = entry.testing || ''; // Testing
+      row.getCell(18).value = entry.failure || ''; // Failure
+      row.getCell(19).value = entry.analysis || ''; // Analysis
+      row.getCell(20).value = entry.component_consumption || entry.componentConsumption || ''; // Component_Consumption
+      row.getCell(21).value = entry.status || ''; // Status
+      row.getCell(22).value = entry.send_date || entry.dispatch_date || entry.sendDate || ''; // Send_Date
+      row.getCell(23).value = entry.engg_name || entry.enggName || ''; // Engg_Name
+      row.getCell(24).value = entry.tag_entry_by || entry.tagEntryBy || ''; // Tag_Entry_By
+      row.getCell(25).value = entry.consumption_entry_by || entry.consumptionEntryBy || ''; // Consumption_Entry_By
+      row.getCell(26).value = entry.dispatch_entry_by || entry.dispatchEntryBy || ''; // Dispatch_Entry_By
       row.getCell(28).value = 'Yes'; // Tag_Entry (mark as Yes since we're exporting tag entries)
       row.getCell(29).value = dateTimeStr; // Tag_Entry_Date (current date)
       row.getCell(30).value = 'Yes'; // Consumption_Entry (mark as Yes since we're exporting consolidated entries)
@@ -151,8 +150,8 @@ export async function POST(request: NextRequest) {
 
     // Set proper autoFilter range after data is populated
     if (entries.length > 0) {
-      // Apply autoFilter to the range that contains data: A1 to AE(n+1) where n is number of entries
-      worksheet.autoFilter = `A1:AE${entries.length + 1}`;
+      // Apply autoFilter to the range that contains data: A1 to AD(n+1) where n is number of entries
+      worksheet.autoFilter = `A1:AD${entries.length + 1}`;
     } else {
       // Clear autoFilter if no data
       worksheet.autoFilter = undefined;

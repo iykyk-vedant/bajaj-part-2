@@ -17,7 +17,7 @@ export type AuthResponse = {
 };
 
 // Sign up function
-export async function signUp(email: string, password: string): Promise<AuthResponse> {
+export async function signUp(email: string, password: string, name: string): Promise<AuthResponse> {
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -30,7 +30,7 @@ export async function signUp(email: string, password: string): Promise<AuthRespo
 
     // Create user record in Neon DB if not exists
     if (data.user) {
-      await createOrUpdateUserInDb(data.user.id, email);
+      await createOrUpdateUserInDb(data.user.id, email, 'USER', name);
     }
 
     return { data };
@@ -109,7 +109,7 @@ export async function verifyToken(token: string): Promise<boolean> {
 }
 
 // Create or update user in Neon DB
-export async function createOrUpdateUserInDb(supabaseUserId: string, email: string, role: string = 'USER'): Promise<boolean> {
+export async function createOrUpdateUserInDb(supabaseUserId: string, email: string, role: string = 'USER', name?: string): Promise<boolean> {
   try {
     // Check if user already exists by supabase_user_id
     const checkResult = await pool.query(
@@ -118,10 +118,10 @@ export async function createOrUpdateUserInDb(supabaseUserId: string, email: stri
     );
 
     if (checkResult.rows.length > 0) {
-      // User already exists, update email if needed
+      // User already exists, update email and name if needed
       await pool.query(
-        'UPDATE users SET email = $1 WHERE supabase_user_id = $2',
-        [email, supabaseUserId]
+        'UPDATE users SET email = $1, name = $2 WHERE supabase_user_id = $3',
+        [email, name, supabaseUserId]
       );
     } else {
       // Check if email already exists with a different supabase_user_id
@@ -133,14 +133,14 @@ export async function createOrUpdateUserInDb(supabaseUserId: string, email: stri
       if (emailCheckResult.rows.length > 0) {
         // Email exists but with a different supabase_user_id, update the existing record
         await pool.query(
-          'UPDATE users SET supabase_user_id = $1 WHERE email = $2',
-          [supabaseUserId, email]
+          'UPDATE users SET supabase_user_id = $1, name = $2 WHERE email = $3',
+          [supabaseUserId, name, email]
         );
       } else {
         // Create new user
         await pool.query(
-          'INSERT INTO users (supabase_user_id, email, role) VALUES ($1, $2, $3)',
-          [supabaseUserId, email, role]
+          'INSERT INTO users (supabase_user_id, email, role, name) VALUES ($1, $2, $3, $4)',
+          [supabaseUserId, email, role, name]
         );
       }
     }

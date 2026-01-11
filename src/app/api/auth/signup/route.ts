@@ -4,11 +4,11 @@ import { signUp } from '@/lib/auth/auth-service';
 // POST /api/auth/signup - User registration
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, name } = await req.json();
 
     // Basic validation
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    if (!email || !password || !name) {
+      return NextResponse.json({ error: 'Email, password, and name are required' }, { status: 400 });
     }
 
     if (password.length < 6) {
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Attempt to create user
-    const result = await signUp(email, password);
+    const result = await signUp(email, password, name);
 
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 400 });

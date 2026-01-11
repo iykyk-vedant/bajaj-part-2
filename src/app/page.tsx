@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { extractDataFromImage } from '@/app/actions';
 import type { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
 import { ImageUploader } from '@/components/image-uploader';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { TagEntryForm } from '@/components/tag-entry/TagEntryForm';
 import { SettingsTab } from '@/components/tag-entry/SettingsTab';
@@ -71,8 +73,34 @@ export type Sheet = {
 // Remove localStorage key since we're using MySQL
 // const STORAGE_KEY = 'nexscan-sheets';
 export default function Home() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [currentExtractedData, setCurrentExtractedData] = useState<ExtractDataOutput | null>(null);
+
+  // Check authentication on initial load
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        // Redirect to login if not authenticated
+        router.push('/login');
+      }
+    }
+  }, [authLoading, user, router]);
+
+  // Show loading while checking auth status
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated
+  if (!user) {
+    return null; // The redirect will happen in useEffect
+  }
 
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<string | null>(null);

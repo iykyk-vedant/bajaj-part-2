@@ -46,7 +46,10 @@ export default function SignupPage() {
     if (result.success) {
       // Redirect to dashboard on successful signup
       setIsRedirecting(true);
-      router.push('/dashboard');
+      // Add small delay to allow AuthContext state to update properly
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 100);
     } else {
       setError(result.error);
     }

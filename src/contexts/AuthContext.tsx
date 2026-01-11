@@ -30,6 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if user is already logged in when app loads
     const checkSession = async () => {
+      // Add a small delay to avoid race conditions during initial page load
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const token = localStorage.getItem('supabase_access_token');
       
       // Only make the request if a token exists
@@ -64,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkSession();
-  }, []);
+  }, []); // Only run once on mount
 
   const signIn = async (email: string, password: string) => {
     try {

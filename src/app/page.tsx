@@ -75,6 +75,7 @@ export type Sheet = {
 export default function Home() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   
   // All state declarations must be at the top to maintain hook order
   const [isLoading, setIsLoading] = useState(false);
@@ -141,8 +142,6 @@ export default function Home() {
   if (!user) {
     return null; // The redirect will happen in useEffect
   }
-
-  const { toast } = useToast();
   
   // Load DC numbers and mappings from database only after mount
   useEffect(() => {

@@ -86,7 +86,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store tokens in localStorage (tokens are managed by Supabase client)
+      // Store tokens in localStorage
+      if (data.token) {
+        localStorage.setItem('supabase_access_token', data.token);
+      }
+      if (data.refreshToken) {
+        localStorage.setItem('supabase_refresh_token', data.refreshToken);
+      }
       
       // Update user state
       setUser(data.user);
@@ -111,7 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'Signup failed');
       }
 
-      // Store tokens in localStorage (tokens are managed by Supabase client)
+      // Store tokens in localStorage
+      if (data.token) {
+        localStorage.setItem('supabase_access_token', data.token);
+      }
+      if (data.refreshToken) {
+        localStorage.setItem('supabase_refresh_token', data.refreshToken);
+      }
       
       // Update user state
       setUser(data.user);

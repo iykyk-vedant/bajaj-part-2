@@ -22,13 +22,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    // Return success response
+    // Get the session to extract tokens
+    const session = result.data?.session;
+    
+    // Return success response with user data and tokens
     return NextResponse.json({
       message: 'Account created successfully',
       user: {
         id: result.data?.user?.id,
         email: result.data?.user?.email,
-      }
+      },
+      token: session?.access_token,
+      refreshToken: session?.refresh_token,
     }, { status: 201 });
   } catch (error) {
     console.error('Signup API error:', error);

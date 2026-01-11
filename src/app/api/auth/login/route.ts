@@ -18,14 +18,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    // Return success response with user data
+    // Get the session to extract tokens
+    const session = result.data?.session;
+    
+    // Return success response with user data and tokens
     return NextResponse.json({
       message: 'Login successful',
       user: {
         id: result.data?.user?.id,
         email: result.data?.user?.email,
       },
-      // Note: We don't send tokens here as they're managed by Supabase client-side
+      token: session?.access_token,
+      refreshToken: session?.refresh_token,
     }, { status: 200 });
   } catch (error) {
     console.error('Login API error:', error);

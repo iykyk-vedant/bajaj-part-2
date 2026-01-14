@@ -32,9 +32,11 @@ In your Vercel project settings, go to "Settings" > "Environment Variables" and 
 #### Required Environment Variables:
 - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL (e.g., `https://your-project.supabase.co`)
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+- `NEXT_PUBLIC_BACKEND_URL`: The URL of your deployed backend on Render (e.g., `https://your-app-name.onrender.com`)
 
 #### Notes:
 - All variables prefixed with `NEXT_PUBLIC_` are available on the client-side
+- The `NEXT_PUBLIC_BACKEND_URL` should be the full URL of your Render-deployed backend
 - The Supabase credentials should match those used in your backend
 
 ### 5. Build and Deploy
@@ -68,7 +70,7 @@ After deployment, verify the following:
 ### Common Issues:
 
 1. **Authentication fails**: Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` match your backend configuration
-2. **API calls fail**: Verify that your backend allows requests from the Vercel domain
+2. **API calls fail**: Verify that `NEXT_PUBLIC_BACKEND_URL` points to your deployed backend on Render and that your backend allows requests from the Vercel domain
 3. **CORS errors**: Check that your backend allows requests from your Vercel domain
 4. **Database connection**: Confirm that your backend on Render has the correct database connection settings
 
@@ -81,5 +83,5 @@ After deployment, verify the following:
 
 - The application uses Next.js App Router which is fully supported by Vercel
 - Server-side API routes will be handled by Vercel's edge functions
-- The frontend makes relative API calls internally to `/api/*` routes which are served from the same domain
+- The frontend makes API calls to the backend using the `NEXT_PUBLIC_BACKEND_URL` environment variable to connect to the Render-deployed backend
 - The application is configured to work with Supabase for authentication

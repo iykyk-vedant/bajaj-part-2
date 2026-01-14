@@ -9,6 +9,8 @@ import { getPcbNumberForDc } from '@/lib/pcb-utils';
 import { EngineerName } from '@/components/ui/engineer-name';
 import { useAuth } from '@/contexts/AuthContext';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+
 interface ConsumptionTabProps {
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
@@ -791,7 +793,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       };
 
       // Call API endpoint with POST request
-      const response = await fetch('/api/export-consumption-excel', {
+      const response = await fetch(`${BACKEND_URL}/api/export-consumption-excel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

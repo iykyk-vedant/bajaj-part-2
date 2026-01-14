@@ -1,5 +1,7 @@
 import { TagEntry } from './types';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+
 /**
  * Utility function to export tag entries to Excel format
  * 
@@ -25,7 +27,7 @@ export async function exportTagEntriesToExcel(): Promise<void> {
     }
 
     // Call API endpoint with POST request
-    const response = await fetch('/api/export-excel', {
+    const response = await fetch(`${BACKEND_URL}/api/export-excel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

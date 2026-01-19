@@ -14,7 +14,7 @@ const poolConfig: PoolConfig = {
 if (process.env.DATABASE_URL) {
   Object.assign(poolConfig, {
     connectionString: process.env.DATABASE_URL,
-    ssl: {
+    ssl: process.env.DB_SSL_DISABLED === 'true' ? false : {
       rejectUnauthorized: false
     }
   });
@@ -26,7 +26,7 @@ if (process.env.DATABASE_URL) {
     user: process.env.PG_USER?.replace(/'/g, '') || 'postgres',
     password: process.env.PG_PASSWORD?.replace(/'/g, '') || '',
     database: process.env.PG_DATABASE?.replace(/'/g, '') || 'nexscan',
-    ssl: {
+    ssl: process.env.DB_SSL_DISABLED === 'true' ? false : {
       rejectUnauthorized: false
     }
   });

@@ -18,6 +18,15 @@ export async function importBomFromCsv(csvFilePath: string): Promise<{ success: 
       return { success: false, message: `File not found: ${csvFilePath}` };
     }
 
+    // Read the CSV file
+    const csvData = fs.readFileSync(csvFilePath, 'utf8');
+    
+    // Split into lines and remove header
+    const lines = csvData.split('\n').filter(line => line.trim() !== '');
+    if (lines.length <= 1) {
+      return { success: false, message: 'CSV file is empty or contains only header' };
+    }
+
     // Define sanitize function once
     const sanitizeText = (text: string | undefined): string => {
       if (!text) return '';
@@ -32,15 +41,6 @@ export async function importBomFromCsv(csvFilePath: string): Promise<{ success: 
         .replace(/…/g, '...') // Replace ellipsis with three dots
         .replace(/[^\u0000-\u007F]/g, '?'); // Replace any remaining non-ASCII characters with '?'
     };
-
-    // Read the CSV file
-    const csvData = fs.readFileSync(csvFilePath, 'utf8');
-    
-    // Split into lines and remove header
-    const lines = csvData.split('\n').filter(line => line.trim() !== '');
-    if (lines.length <= 1) {
-      return { success: false, message: 'CSV file is empty or contains only header' };
-    }
 
     // Process each line (skip header)
     const bomData: [string, string, string][] = [];

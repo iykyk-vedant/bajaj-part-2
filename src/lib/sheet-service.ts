@@ -11,19 +11,18 @@ export interface Sheet {
 // Get all sheets for a user
 export async function getAllSheets(): Promise<Sheet[]> {
   try {
+    // Sheet data table has been removed, so only return sheet metadata
+    console.log('Sheet data table has been removed. Returning sheets without data.');
     const result = await pool.query(
-      `SELECT s.id, s.name, s.created_at, 
-              COALESCE(json_agg(sd.data) FILTER (WHERE sd.data IS NOT NULL), '[]'::json) as sheet_data
+      `SELECT s.id, s.name, s.created_at
        FROM sheets s
-       LEFT JOIN sheet_data sd ON s.id = sd.sheet_id
-       GROUP BY s.id, s.name, s.created_at
        ORDER BY s.created_at DESC`
     );
 
     return result.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
-      data: row.sheet_data && row.sheet_data[0] !== null ? row.sheet_data : [],
+      data: [], // Return empty data array since sheet_data table is removed
       createdAt: new Date(row.created_at).toISOString()
     }));
   } catch (error) {
@@ -35,13 +34,12 @@ export async function getAllSheets(): Promise<Sheet[]> {
 // Get a specific sheet by ID
 export async function getSheetById(sheetId: string): Promise<Sheet | null> {
   try {
+    // Sheet data table has been removed, so only return sheet metadata
+    console.log('Sheet data table has been removed. Returning sheet without data.');
     const result = await pool.query(
-      `SELECT s.id, s.name, s.created_at, 
-              COALESCE(json_agg(sd.data) FILTER (WHERE sd.data IS NOT NULL), '[]'::json) as sheet_data
+      `SELECT s.id, s.name, s.created_at
        FROM sheets s
-       LEFT JOIN sheet_data sd ON s.id = sd.sheet_id
-       WHERE s.id = $1
-       GROUP BY s.id, s.name, s.created_at`,
+       WHERE s.id = $1`,
       [sheetId]
     );
 
@@ -53,7 +51,7 @@ export async function getSheetById(sheetId: string): Promise<Sheet | null> {
     return {
       id: row.id,
       name: row.name,
-      data: row.sheet_data && row.sheet_data[0] !== null ? row.sheet_data : [],
+      data: [], // Return empty data array since sheet_data table is removed
       createdAt: new Date(row.created_at).toISOString()
     };
   } catch (error) {
@@ -117,14 +115,8 @@ export async function deleteSheet(sheetId: string): Promise<void> {
 // Add data to a sheet
 export async function addDataToSheet(sheetId: string, data: ExtractDataOutput): Promise<void> {
   try {
-    // Convert date to MySQL compatible format
-    const createdAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    
-    await pool.query(
-      `INSERT INTO sheet_data (sheet_id, data, created_at) 
-       VALUES ($1, $2, $3)`,
-      [sheetId, JSON.stringify(data), createdAt]
-    );
+    // Sheet data table has been removed, so skip database operation
+    console.log('Sheet data table has been removed. Skipping database operation.');
   } catch (error) {
     console.error('Error adding data to sheet:', error);
     throw error;
@@ -134,23 +126,8 @@ export async function addDataToSheet(sheetId: string, data: ExtractDataOutput): 
 // Update sheet data
 export async function updateSheetData(sheetId: string, data: ExtractDataOutput[]): Promise<void> {
   try {
-    // Convert date to MySQL compatible format
-    const createdAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    
-    // First, delete all existing data for this sheet
-    await pool.query(
-      `DELETE FROM sheet_data WHERE sheet_id = $1`,
-      [sheetId]
-    );
-
-    // Then insert all new data
-    for (const item of data) {
-      await pool.query(
-        `INSERT INTO sheet_data (sheet_id, data, created_at) 
-         VALUES ($1, $2, $3)`,
-        [sheetId, JSON.stringify(item), createdAt]
-      );
-    }
+    // Sheet data table has been removed, so skip database operation
+    console.log('Sheet data table has been removed. Skipping database operation.');
   } catch (error) {
     console.error('Error updating sheet data:', error);
     throw error;
@@ -160,10 +137,8 @@ export async function updateSheetData(sheetId: string, data: ExtractDataOutput[]
 // Clear all data from a sheet
 export async function clearSheetData(sheetId: string): Promise<void> {
   try {
-    await pool.query(
-      `DELETE FROM sheet_data WHERE sheet_id = $1`,
-      [sheetId]
-    );
+    // Sheet data table has been removed, so skip database operation
+    console.log('Sheet data table has been removed. Skipping database operation.');
   } catch (error) {
     console.error('Error clearing sheet data:', error);
     throw error;

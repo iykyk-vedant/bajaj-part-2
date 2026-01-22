@@ -26,9 +26,7 @@ interface ConsumptionEntry {
   failure: string;
   status: string;
   pcbSrNo: string;
-  rfObservation: string;
   analysis: string;
-  validationResult: string;
   componentChange: string;
   enggName: string;
   consumptionEntryBy?: string;
@@ -72,9 +70,7 @@ interface TableRow {
   failure?: string;
   status?: string;
   pcbSrNo?: string;
-  rfObservation?: string;
   analysis?: string;
-  validationResult?: string;
   componentChange?: string;
   enggName?: string;
   dispatchDate?: string;
@@ -97,9 +93,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     failure: '',
     status: '',
     pcbSrNo: '',
-    rfObservation: '',
     analysis: '',
-    validationResult: '',
     componentChange: '',
     enggName: engineerName || '',
     dispatchDate: '',
@@ -160,9 +154,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           failure: entry.failure || '',
           status: entry.status || '',
           pcbSrNo: entry.pcb_sr_no || '',
-          rfObservation: entry.rf_observation || '',
           analysis: entry.analysis || '',
-          validationResult: entry.validation_result || '',
           componentChange: entry.component_change || '',
           enggName: entry.engg_name || '',
           dispatchDate: entry.dispatch_date || '',
@@ -192,9 +184,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           failure: entry.failure || '',
           status: entry.status || '',
           pcbSrNo: entry.pcb_sr_no || '',
-          rfObservation: entry.rf_observation || '',
           analysis: entry.analysis || '',
-          validationResult: entry.validation_result || '',
           componentChange: entry.component_change || '',
           enggName: entry.engg_name || '',
           dispatchDate: entry.dispatch_date ? (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : (entry.dispatch_date && typeof entry.dispatch_date === 'object' && 'toISOString' in entry.dispatch_date ? (entry.dispatch_date as Date).toISOString().split('T')[0] : new Date(entry.dispatch_date).toISOString().split('T')[0])) : '',
@@ -246,9 +236,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           testing: existingEntry.testing || 'PASS',
           failure: existingEntry.failure || '',
           status: existingEntry.status || 'OK',
-          rfObservation: existingEntry.rf_observation || '',
           analysis: existingEntry.analysis || '',
-          validationResult: existingEntry.validation_result || '',
           componentChange: existingEntry.component_change || '',
           enggName: existingEntry.engg_name || engineerName || '',
           dispatchDate: existingEntry.dispatch_date || '',
@@ -297,13 +285,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         }
       }
       
-      // If analysis value is only spaces, clear both componentChange and validationResult
+      // If analysis value is only spaces, clear componentChange
       if (!extractedValue.trim()) {
         setFormData(prev => ({
           ...prev,
           [name]: value,
-          componentChange: '',
-          validationResult: ''
+          componentChange: ''
         }));
       } else {
         setFormData(prev => ({
@@ -341,12 +328,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   // Function to validate BOM analysis
   const validateBomAnalysis = async (analysisText: string) => {
-    // If analysis text contains only spaces, clear validation result but keep componentChange as empty
+    // If analysis text contains only spaces, clear componentChange
     if (!analysisText.trim()) {
-      // Clear validation field if analysis is empty
+      // Clear componentChange field if analysis is empty
       setFormData(prev => ({
         ...prev,
-        validationResult: ''
+        componentChange: ''
         // componentChange is already handled in handleChange
       }));
       return;
@@ -406,27 +393,18 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         
         const cleanedResult = cleanedLines.join('\n');
         
-        setFormData(prev => ({
-          ...prev,
-          validationResult: cleanedResult
-          // componentChange is handled in handleChange
-        }));
+        // Update form data with the cleaned result if needed
+        // componentChange is handled in handleChange
       } else {
         // Handle validation error
         console.error('BOM validation error:', result.error);
-        setFormData(prev => ({
-          ...prev,
-          validationResult: `Error: ${result.error || 'Failed to validate components'}`
-          // componentChange is handled in handleChange
-        }));
+        // Handle validation error
+        // componentChange is handled in handleChange
       }
     } catch (error) {
       console.error('Error validating BOM components:', error);
-      setFormData(prev => ({
-        ...prev,
-        validationResult: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-        // componentChange is handled in handleChange
-      }));
+      // Handle validation error
+      // componentChange is handled in handleChange
     }
   };
 
@@ -457,9 +435,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         failure: formData.failure || null,
         status: formData.status || null,
         pcbSrNo: formData.pcbSrNo || null,
-        rfObservation: formData.rfObservation || null,
         analysis: formData.analysis || null,
-        validationResult: formData.validationResult || null,
         componentChange: formData.componentChange || null,
         enggName: engineerName || null, // Use engineer name from navigation tab
         consumptionEntryBy: formData.consumptionEntryBy || user?.name || user?.email || null, // New field for consumption entry
@@ -499,9 +475,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             failure: consolidatedData.failure,
             status: consolidatedData.status,
             pcbSrNo: consolidatedData.pcbSrNo,
-            rfObservation: consolidatedData.rfObservation,
             analysis: consolidatedData.analysis,
-            validationResult: consolidatedData.validationResult,
             componentChange: consolidatedData.componentChange,
             enggName: consolidatedData.enggName,
             dispatchDate: consolidatedData.dispatchDate,
@@ -534,9 +508,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             failure: consolidatedData.failure,
             status: consolidatedData.status,
             pcbSrNo: consolidatedData.pcbSrNo,
-            rfObservation: consolidatedData.rfObservation,
             analysis: consolidatedData.analysis,
-            validationResult: consolidatedData.validationResult,
             componentChange: consolidatedData.componentChange,
             enggName: consolidatedData.enggName,
             dispatchDate: consolidatedData.dispatchDate,
@@ -601,9 +573,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         failure: formData.failure || null,
         status: formData.status || null,
         pcbSrNo: formData.pcbSrNo || null,
-        rfObservation: formData.rfObservation || null,
+        
         analysis: formData.analysis || null,
-        validationResult: formData.validationResult || null,
         componentChange: formData.componentChange || null,
         enggName: engineerName || null, // Use engineer name from navigation tab
         dispatchDate: formData.dispatchDate || null,
@@ -640,9 +611,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             failure: consolidatedData.failure,
             status: consolidatedData.status,
             pcbSrNo: consolidatedData.pcbSrNo,
-            rfObservation: consolidatedData.rfObservation,
             analysis: consolidatedData.analysis,
-            validationResult: consolidatedData.validationResult,
             componentChange: consolidatedData.componentChange,
             enggName: consolidatedData.enggName,
             dispatchDate: consolidatedData.dispatchDate,
@@ -675,9 +644,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             failure: consolidatedData.failure,
             status: consolidatedData.status,
             pcbSrNo: consolidatedData.pcbSrNo,
-            rfObservation: consolidatedData.rfObservation,
             analysis: consolidatedData.analysis,
-            validationResult: consolidatedData.validationResult,
             componentChange: consolidatedData.componentChange,
             enggName: consolidatedData.enggName,
             dispatchDate: consolidatedData.dispatchDate,
@@ -755,9 +722,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       failure: '',
       status: '',
       pcbSrNo: '',
-      rfObservation: '',
       analysis: '',
-      validationResult: '',
       componentChange: '',
       enggName: engineerName || '',
       dispatchDate: '',
@@ -831,9 +796,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       failure: entry.failure,
       status: entry.status,
       pcbSrNo: entry.pcbSrNo,
-      rfObservation: entry.rfObservation,
+
       analysis: entry.analysis,
-      validationResult: entry.validationResult,
       componentChange: entry.componentChange,
       enggName: entry.enggName || engineerName || '',
       dispatchDate: entry.dispatchDate,
@@ -1059,16 +1023,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 disabled={!isPcbFound}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Validation Result:</label>
-              <textarea
-                name="validationResult"
-                value={formData.validationResult} // Show actual BOM validation result
-                readOnly
-                rows={3}
-                className="w-full p-1 text-sm border border-gray-300 rounded bg-gray-100"
-              />
-            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Component Change:</label>
               <textarea
@@ -1146,9 +1101,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                         failure: entry.failure || '',
                         status: entry.status || '',
                         pcbSrNo: entry.pcbSrNo || '',
-                        rfObservation: entry.rfObservation || '',
+                        
                         analysis: entry.analysis || '',
-                        validationResult: entry.validationResult || '',
                         componentChange: entry.componentChange || '',
                         enggName: entry.enggName || '',
                         dispatchDate: entry.dispatchDate || '',

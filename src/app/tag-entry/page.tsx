@@ -141,9 +141,9 @@ export default function TagEntryPage() {
   }, []);
 
   // Handle Excel export
-  const handleExportExcel = async () => {
+  const handleExportExcel = async (dcNo?: string) => {
     try {
-      await exportTagEntriesToExcel();
+      await exportTagEntriesToExcel(dcNo);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to export Excel file');
     }

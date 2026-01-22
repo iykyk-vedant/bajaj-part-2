@@ -39,27 +39,6 @@ export async function initializeDatabase() {
   try {
     const databaseName = process.env.PG_DATABASE || 'nexscan';
     
-    // Create sheets table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS sheets (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Create sheet_data table for storing the actual sheet data
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS sheet_data (
-        id SERIAL PRIMARY KEY,
-        sheet_id VARCHAR(255) NOT NULL,
-        data JSONB NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (sheet_id) REFERENCES sheets(id) ON DELETE CASCADE
-      )
-    `);
-    
     // Create BOM table for component validation
     await pool.query(`
       CREATE TABLE IF NOT EXISTS bom (
@@ -69,29 +48,6 @@ export async function initializeDatabase() {
         description TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (part_code, location)
-      )
-    `);
-    
-    // Create consumption_entries table with the required fields
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS consumption_entries (
-        id VARCHAR(255) PRIMARY KEY,
-        repair_date DATE,
-        testing VARCHAR(50),
-        failure VARCHAR(50),
-        status VARCHAR(50),
-        pcb_sr_no VARCHAR(255),
-        rf_observation TEXT,
-        analysis TEXT,
-        validation_result TEXT,
-        component_change TEXT,
-        engg_name VARCHAR(255),
-        dispatch_date DATE,
-        component_consumption TEXT,
-        consumption_entry VARCHAR(255),
-        consumption_entry_date TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     
@@ -128,9 +84,7 @@ export async function initializeDatabase() {
         failure VARCHAR(50),
         status VARCHAR(50),
         pcb_sr_no VARCHAR(255),
-        rf_observation TEXT,
         analysis TEXT,
-        validation_result TEXT,
         component_change TEXT,
         engg_name VARCHAR(255),
         tag_entry_by VARCHAR(255),
@@ -531,111 +485,7 @@ export async function deleteDcNumber(dcNumber: string): Promise<boolean> {
   }
 }
 
-// Sheet service functions
-export async function getAllSheets(): Promise<any[]> {
-  try {
-    const result = await pool.query(
-      'SELECT * FROM sheets ORDER BY created_at DESC'
-    );
-    return result.rows;
-  } catch (error) {
-    console.error('Error fetching sheets:', error);
-    return [];
-  }
-}
 
-export async function createSheet(sheet: any): Promise<any> {
-  try {
-    const createdAt = new Date().toISOString();
-    await pool.query(
-      'INSERT INTO sheets (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)',
-      [sheet.id, sheet.name, createdAt, createdAt]
-    );
-    return { ...sheet, createdAt, updatedAt: createdAt };
-  } catch (error) {
-    console.error('Error creating sheet:', error);
-    throw error;
-  }
-}
-
-export async function updateSheetName(sheetId: string, name: string): Promise<void> {
-  try {
-    const updatedAt = new Date().toISOString();
-    await pool.query(
-      'UPDATE sheets SET name = $1, updated_at = $2 WHERE id = $3',
-      [name, updatedAt, sheetId]
-    );
-  } catch (error) {
-    console.error('Error updating sheet name:', error);
-    throw error;
-  }
-}
-
-export async function deleteSheet(sheetId: string): Promise<void> {
-  try {
-    // First delete all associated data from sheet_data table
-    await pool.query(
-      'DELETE FROM sheet_data WHERE sheet_id = $1',
-      [sheetId]
-    );
-    
-    // Then delete the sheet itself
-    await pool.query(
-      'DELETE FROM sheets WHERE id = $1',
-      [sheetId]
-    );
-  } catch (error) {
-    console.error('Error deleting sheet:', error);
-    throw error;
-  }
-}
-
-export async function addDataToSheet(sheetId: string, data: any): Promise<void> {
-  try {
-    const createdAt = new Date().toISOString();
-    await pool.query(
-      'INSERT INTO sheet_data (sheet_id, data, created_at) VALUES ($1, $2, $3)',
-      [sheetId, JSON.stringify(data), createdAt]
-    );
-  } catch (error) {
-    console.error('Error adding data to sheet:', error);
-    throw error;
-  }
-}
-
-export async function updateSheetData(sheetId: string, data: any[]): Promise<void> {
-  try {
-    // First clear existing data
-    await pool.query(
-      'DELETE FROM sheet_data WHERE sheet_id = $1',
-      [sheetId]
-    );
-    
-    // Then insert new data
-    for (const item of data) {
-      const createdAt = new Date().toISOString();
-      await pool.query(
-        'INSERT INTO sheet_data (sheet_id, data, created_at) VALUES ($1, $2, $3)',
-        [sheetId, JSON.stringify(item), createdAt]
-      );
-    }
-  } catch (error) {
-    console.error('Error updating sheet data:', error);
-    throw error;
-  }
-}
-
-export async function clearSheetData(sheetId: string): Promise<void> {
-  try {
-    await pool.query(
-      'DELETE FROM sheet_data WHERE sheet_id = $1',
-      [sheetId]
-    );
-  } catch (error) {
-    console.error('Error clearing sheet data:', error);
-    throw error;
-  }
-}
 
 // Add sample BOM data for testing
 export async function addSampleBomData() {
@@ -666,9 +516,9 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
       INSERT INTO consolidated_data 
       (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
        date_of_purchase, complaint_no, part_code, defect, visiting_tech_name, mfg_month_year,
-       repair_date, testing, failure, status, pcb_sr_no, rf_observation, analysis, 
-       validation_result, component_change, engg_name, tag_entry_by, consumption_entry_by, dispatch_entry_by, dispatch_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+       repair_date, testing, failure, status, pcb_sr_no, analysis, 
+       component_change, engg_name, tag_entry_by, consumption_entry_by, dispatch_entry_by, dispatch_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
     `, [
       entry.srNo,
       entry.dcNo,
@@ -688,9 +538,7 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
       entry.failure,
       entry.status,
       entry.pcbSrNo,
-      entry.rfObservation,
       entry.analysis,
-      entry.validationResult,
       entry.componentChange,
       entry.enggName,
       entry.tagEntryBy,
@@ -1038,5 +886,58 @@ export async function searchConsolidatedDataEntriesByPcb(dcNo?: string, partCode
   } catch (error) {
     console.error('Error searching consolidated data entries by PCB:', error);
     return [];
+  }
+}
+
+// Get consolidated data entries by DC number
+export async function getConsolidatedDataEntriesByDcNo(dcNo: string): Promise<any[]> {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM consolidated_data WHERE dc_no = $1 ORDER BY created_at DESC',
+      [dcNo]
+    );
+    
+    return result.rows;
+  } catch (error) {
+    console.error('Error getting consolidated data entries by DC number:', error);
+    return [];
+  }
+}
+
+// Remove unused columns from consolidated_data table
+export async function removeUnusedColumnsFromConsolidatedData() {
+  try {
+    // Check if rf_observation column exists before attempting to drop it
+    const rfObsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'consolidated_data' AND column_name = 'rf_observation'
+    `);
+    
+    if (rfObsCheck.rows.length > 0) {
+      await pool.query('ALTER TABLE consolidated_data DROP COLUMN rf_observation');
+      console.log('Column rf_observation removed successfully');
+    } else {
+      console.log('Column rf_observation does not exist, skipping');
+    }
+    
+    // Check if validation_result column exists before attempting to drop it
+    const valResCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'consolidated_data' AND column_name = 'validation_result'
+    `);
+    
+    if (valResCheck.rows.length > 0) {
+      await pool.query('ALTER TABLE consolidated_data DROP COLUMN validation_result');
+      console.log('Column validation_result removed successfully');
+    } else {
+      console.log('Column validation_result does not exist, skipping');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error removing unused columns from consolidated_data:', error);
+    return false;
   }
 }

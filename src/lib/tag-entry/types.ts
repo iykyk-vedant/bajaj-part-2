@@ -18,9 +18,7 @@ export interface TagEntry {
   failure?: string;
   status?: string;
   pcbSrNo: string;
-  rfObservation?: string;
   analysis?: string;
-  validationResult?: string;
   componentChange?: string;
   enggName?: string;
   tagEntryBy?: string;

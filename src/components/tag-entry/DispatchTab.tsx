@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface DispatchTabProps {
   dcNumbers: string[];
   dcPartCodes: Record<string, string[]>;
-  onExportExcel?: () => void;
+  onExportExcel?: (dcNo?: string) => void;
 }
 
 interface DispatchFormData {
@@ -39,9 +39,7 @@ interface DispatchFormData {
   failure: string;
   status: string;
   pcbSrNo: string;
-  rfObservation: string;
   analysis: string;
-  validationResult: string;
   componentChange: string;
   enggName: string;
   dispatchEntryBy?: string;
@@ -60,6 +58,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<DispatchFormData | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedDcForExport, setSelectedDcForExport] = useState('');
 
   // Removed srNo increment/decrement functions since we're not using srNo for search
 
@@ -272,20 +271,34 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
     <div className="bg-white rounded-md shadow-sm flex flex-col h-full">
       <div className="flex justify-between items-center ">
         <h2 className="text-lg font-bold text-gray-800">Dispatch PCB</h2>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => {
-            if (onExportExcel) {
-              onExportExcel();
-            } else {
-              exportTagEntriesToExcel();
-            }
-          }}
-          className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded flex items-center gap-2 text-sm"
-        >
-          Export Excel
-        </Button>
+        <div className="flex gap-2">
+          <select
+            value={selectedDcForExport}
+            onChange={(e) => setSelectedDcForExport(e.target.value)}
+            className="p-2 text-sm border border-gray-300 rounded h-10"
+          >
+            <option value="">All DC Numbers</option>
+            {dcNumbers
+              .filter(dc => dc != null && dc !== '')
+              .map((dc, index) => (
+              <option key={`export-${dc}-${index}`} value={dc}>{dc}</option>
+            ))}
+          </select>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              if (onExportExcel) {
+                onExportExcel(selectedDcForExport || undefined);
+              } else {
+                exportTagEntriesToExcel(selectedDcForExport || undefined);
+              }
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded flex items-center gap-2 text-sm"
+          >
+            Export Excel
+          </Button>
+        </div>
       </div>
 
       {/* Search Section */}

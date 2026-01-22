@@ -189,38 +189,11 @@ export async function saveConsumptionEntry(entry: {
   consumptionEntryDate: string;
 }): Promise<boolean> {
   try {
-    // Handle empty dates by converting them to NULL and format to MySQL date format
-    const dispatchDateValue = convertToPostgresDate(entry.dispatchDate);
-    const repairDateValue = convertToPostgresDate(entry.repairDate);
-    const consumptionEntryDateValue = convertToPostgresDate(entry.consumptionEntryDate);
-    
-    await pool.query(`
-      INSERT INTO consumption_entries 
-      (id, repair_date, testing, failure, status, pcb_sr_no, rf_observation, analysis, 
-       validation_result, component_change, engg_name, dispatch_date, component_consumption, 
-       consumption_entry, consumption_entry_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-    `, [
-      entry.id,
-      repairDateValue,
-      entry.testing,
-      entry.failure,
-      entry.status,
-      entry.pcbSrNo,
-      entry.rfObservation,
-      entry.analysis,
-      entry.validationResult,
-      entry.componentChange,
-      entry.enggName,
-      dispatchDateValue,
-      entry.componentConsumption,
-      entry.consumptionEntry,
-      consumptionEntryDateValue
-    ]);
-    
+    // Consumption entries table has been removed, so we don't save to database anymore
+    console.log('Consumption entries table has been removed. Skipping database save.');
     return true;
   } catch (error) {
-    console.error('Error saving consumption entry:', error);
+    console.error('Error in saveConsumptionEntry:', error);
     return false;
   }
 }
@@ -228,8 +201,9 @@ export async function saveConsumptionEntry(entry: {
 // Get all consumption entries
 export async function getConsumptionEntries(): Promise<any[]> {
   try {
-    const result = await pool.query('SELECT * FROM consumption_entries ORDER BY created_at DESC');
-    return result.rows;
+    // Consumption entries table has been removed, so return empty array
+    console.log('Consumption entries table has been removed. Returning empty array.');
+    return [];
   } catch (error) {
     console.error('Error fetching consumption entries:', error);
     return [];

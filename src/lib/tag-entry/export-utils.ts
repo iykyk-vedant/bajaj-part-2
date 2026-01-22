@@ -8,17 +8,31 @@ import { TagEntry } from './types';
  * 
  * @returns Promise that resolves when the file download is triggered
  */
-export async function exportTagEntriesToExcel(): Promise<void> {
+export async function exportTagEntriesToExcel(dcNo?: string): Promise<void> {
   try {
-    // Get all tag entries from the database
-    const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
-    const result = await getConsolidatedDataEntries();
+    let entries;
     
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to fetch entries from database');
-    }
+    if (dcNo) {
+      // If DC number is provided, fetch only entries for that DC number
+      const { getConsolidatedDataEntriesByDcNoAction } = await import('@/app/actions/consumption-actions');
+      const result = await getConsolidatedDataEntriesByDcNoAction(dcNo);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch entries from database');
+      }
+      
+      entries = result.data;
+    } else {
+      // Get all tag entries from the database
+      const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
+      const result = await getConsolidatedDataEntries();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch entries from database');
+      }
 
-    const entries = result.data;
+      entries = result.data;
+    }
 
     if (!entries || entries.length === 0) {
       throw new Error('No entries to export. Please save some entries first.');
@@ -30,7 +44,7 @@ export async function exportTagEntriesToExcel(): Promise<void> {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ entries }),
+      body: JSON.stringify({ entries, dcNo }),
     });
 
     if (!response.ok) {
@@ -45,7 +59,12 @@ export async function exportTagEntriesToExcel(): Promise<void> {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Tag_Entries_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    // Use DC number in filename if provided
+    if (dcNo) {
+      link.download = `Tag_Entries_Export_DC_${dcNo}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    } else {
+      link.download = `Tag_Entries_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    }
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

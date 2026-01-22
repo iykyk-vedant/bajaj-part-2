@@ -16,9 +16,9 @@ import { TagEntry } from '@/lib/tag-entry/types';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get all consolidated data entries from the database instead of from request body
-    const { getAllConsolidatedDataEntries } = await import('@/lib/pg-db');
-    const entries = await getAllConsolidatedDataEntries();
+    // Get request body to check if DC number is provided
+    const body = await request.json();
+    const { entries, dcNo } = body;
 
     if (!entries || entries.length === 0) {
       return NextResponse.json(
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     // 25. Tag_Entry_By, 26. Consumption_Entry_By, 27. Dispatch_Entry_By,
     // 28. Tag_Entry, 29. Tag_Entry_Date, 30. Consumption_Entry, 31. Consumption_Entry_Date
 
-    entries.forEach((entry, index) => {
+    entries.forEach((entry: any, index: number) => {
       const row = worksheet.addRow([]);
       
       // Get current date for timestamps
@@ -160,9 +160,14 @@ export async function POST(request: NextRequest) {
     // Generate Excel file buffer
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // Generate filename with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-    const filename = `Tag_Entries_Export_${timestamp}.xlsx`;
+    // Generate filename with DC number if provided, otherwise with timestamp
+    let filename;
+    if (dcNo) {
+      filename = `Tag_Entries_Export_DC_${dcNo}_${new Date().toISOString().replace(/[:.]/g, '-').split('T')[0]}.xlsx`;
+    } else {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+      filename = `Tag_Entries_Export_${timestamp}.xlsx`;
+    }
 
     // Return the file as a download
     return new NextResponse(buffer, {

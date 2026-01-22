@@ -8,7 +8,7 @@ import { Download } from 'lucide-react';
 interface FindTabProps {
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
-  onExportExcel?: () => void;
+  onExportExcel?: (dcNo?: string) => void;
 }
 
 export function FindTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }: FindTabProps) {
@@ -16,6 +16,7 @@ export function FindTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }: Fin
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
   const [srNo, setSrNo] = useState('');
+  const [selectedDcForExport, setSelectedDcForExport] = useState('');
 
   const handleFind = () => {
     // Implementation for finding PCB
@@ -29,13 +30,27 @@ export function FindTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }: Fin
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold text-gray-800">Find PCB</h2>
         {onExportExcel && (
-          <button
-            onClick={onExportExcel}
-            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded flex items-center gap-2 text-sm"
-          >
-            <Download className="h-4 w-4" />
-            Export Excel
-          </button>
+          <div className="flex gap-2">
+            <select
+              value={selectedDcForExport}
+              onChange={(e) => setSelectedDcForExport(e.target.value)}
+              className="p-2 text-sm border border-gray-300 rounded h-10"
+            >
+              <option value="">All DC Numbers</option>
+              {dcNumbers
+                .filter(dc => dc != null && dc !== '')
+                .map((dc, index) => (
+                <option key={`export-${dc}-${index}`} value={dc}>{dc}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => onExportExcel(selectedDcForExport || undefined)}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded flex items-center gap-2 text-sm"
+            >
+              <Download className="h-4 w-4" />
+              Export Excel
+            </button>
+          </div>
         )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

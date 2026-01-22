@@ -1,13 +1,9 @@
 'use server';
 
 import { 
-  getAllSheets as getAllSheetsService,
   createSheet as createSheetService,
   updateSheetName as updateSheetNameService,
   deleteSheet as deleteSheetService,
-  addDataToSheet as addDataToSheetService,
-  updateSheetData as updateSheetDataService,
-  clearSheetData as clearSheetDataService,
   getSheetById as getSheetByIdService,
   Sheet
 } from '@/lib/sheet-service';
@@ -17,8 +13,9 @@ import { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
 // Server action to get all sheets
 export async function getAllSheetsAction(): Promise<{ sheets: Sheet[]; error?: string }> {
   try {
-    const sheets = await getAllSheetsService();
-    return { sheets };
+    // Sheet data table has been removed, so return empty array
+    console.log('Sheet data table has been removed. Returning empty array.');
+    return { sheets: [] };
   } catch (error) {
     console.error('Error in getAllSheetsAction:', error);
     return { sheets: [], error: 'Failed to fetch sheets' };
@@ -72,7 +69,8 @@ export async function deleteSheetAction(sheetId: string): Promise<{ error?: stri
 // Server action to add data to a sheet
 export async function addDataToSheetAction(sheetId: string, data: ExtractDataOutput): Promise<{ error?: string }> {
   try {
-    await addDataToSheetService(sheetId, data);
+    // Sheet data table has been removed, so skip database operation
+    console.log('Sheet data table has been removed. Skipping database operation.');
     return {};
   } catch (error) {
     console.error('Error in addDataToSheetAction:', error);
@@ -83,7 +81,8 @@ export async function addDataToSheetAction(sheetId: string, data: ExtractDataOut
 // Server action to update sheet data
 export async function updateSheetDataAction(sheetId: string, data: ExtractDataOutput[]): Promise<{ error?: string }> {
   try {
-    await updateSheetDataService(sheetId, data);
+    // Sheet data table has been removed, so skip database operation
+    console.log('Sheet data table has been removed. Skipping database operation.');
     return {};
   } catch (error) {
     console.error('Error in updateSheetDataAction:', error);
@@ -94,7 +93,8 @@ export async function updateSheetDataAction(sheetId: string, data: ExtractDataOu
 // Server action to clear sheet data
 export async function clearSheetDataAction(sheetId: string): Promise<{ error?: string }> {
   try {
-    await clearSheetDataService(sheetId);
+    // Sheet data table has been removed, so skip database operation
+    console.log('Sheet data table has been removed. Skipping database operation.');
     return {};
   } catch (error) {
     console.error('Error in clearSheetDataAction:', error);

@@ -3,9 +3,7 @@
 import { 
   validateConsumption as validateConsumptionService, 
   formatValidatedComponents,
-  formatComponentConsumption,
-  saveConsumptionEntry as saveConsumptionEntryService,
-  getConsumptionEntries as getConsumptionEntriesService
+  formatComponentConsumption
 } from '@/lib/consumption-validation-service';
 import { saveConsolidatedDataEntry } from '@/lib/pg-db';
 
@@ -58,13 +56,14 @@ export async function validateBomComponents(analysisText: string, partCode?: str
 // Server action to save consumption entry
 export async function saveConsumptionEntry(entry: any) {
   try {
-    const result = await saveConsumptionEntryService(entry);
+    // Consumption entries table has been removed, so we don't save to database anymore
+    console.log('Consumption entries table has been removed. Skipping database save.');
     return {
       success: true,
-      data: result
+      data: true
     };
   } catch (error) {
-    console.error('Error saving consumption entry:', error);
+    console.error('Error in saveConsumptionEntry:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred'
@@ -75,10 +74,11 @@ export async function saveConsumptionEntry(entry: any) {
 // Server action to get consumption entries
 export async function getConsumptionEntries() {
   try {
-    const entries = await getConsumptionEntriesService();
+    // Consumption entries table has been removed, so return empty array
+    console.log('Consumption entries table has been removed. Returning empty array.');
     return {
       success: true,
-      data: entries
+      data: []
     };
   } catch (error) {
     console.error('Error fetching consumption entries:', error);
@@ -255,9 +255,7 @@ export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo
       testing: entry.testing || null,
       failure: entry.failure || null,
       status: entry.status || null,
-      rf_observation: entry.rfObservation || entry.rf_observation,
       analysis: entry.analysis || null,
-      validation_result: entry.validationResult || entry.validation_result,
       component_change: entry.componentChange || entry.component_change,
       engg_name: entry.enggName || entry.engg_name,
       // Dispatch field
@@ -270,6 +268,24 @@ export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo
     };
   } catch (error) {
     console.error('Error updating consolidated data entry by product_sr_no:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
+// Server action to get consolidated data entries by DC number
+export async function getConsolidatedDataEntriesByDcNoAction(dcNo: string) {
+  try {
+    const { getConsolidatedDataEntriesByDcNo } = await import('@/lib/pg-db');
+    const entries = await getConsolidatedDataEntriesByDcNo(dcNo);
+    return {
+      success: true,
+      data: entries
+    };
+  } catch (error) {
+    console.error('Error getting consolidated data entries by DC number:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred'

@@ -8,7 +8,7 @@ export const getMonthCode = (monthIndex: number) => {
   return codes[monthIndex] ?? 'A';
 };
 
-// Generates PCB number using provided Part Code, mfgMonthYear, and an incrementing counter
+// Generates PCB number using provided Part Code and an incrementing counter, always using current month and year
 export const generatePcbNumber = (partCode: string, srNo?: string, mfgMonthYear?: string) => {
   if (!partCode) throw new Error('Please provide a Part Code before generating PCB number');
 
@@ -16,33 +16,10 @@ export const generatePcbNumber = (partCode: string, srNo?: string, mfgMonthYear?
   const cleanPartCode = partCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   const partCodeSegment = cleanPartCode.substring(0, 7).padEnd(7, '0');
 
-  // Extract month and year from mfgMonthYear if provided and valid, otherwise use current date
-  let monthCode: string, year: string;
+  // Always use current month and year, ignoring mfgMonthYear parameter
   const now = new Date();
-  
-  if (mfgMonthYear && mfgMonthYear.trim() !== '') {
-    // Parse mfgMonthYear in MM/YYYY format
-    const [monthStr, yearStr] = mfgMonthYear.split('/');
-    if (monthStr && yearStr && monthStr.length === 2 && yearStr.length === 4) {
-      const monthNum = parseInt(monthStr, 10) - 1; // Convert to 0-based index
-      if (!isNaN(monthNum) && monthNum >= 0 && monthNum <= 11) {
-        monthCode = getMonthCode(monthNum);
-        year = yearStr.slice(-2); // Get last 2 digits of year
-      } else {
-        // Invalid format, use current date
-        monthCode = getMonthCode(now.getMonth());
-        year = String(now.getFullYear()).slice(-2);
-      }
-    } else {
-      // Invalid format, use current date
-      monthCode = getMonthCode(now.getMonth());
-      year = String(now.getFullYear()).slice(-2);
-    }
-  } else {
-    // Use current date if mfgMonthYear is not provided or is empty
-    monthCode = getMonthCode(now.getMonth());
-    year = String(now.getFullYear()).slice(-2);
-  }
+  const monthCode = getMonthCode(now.getMonth());
+  const year = String(now.getFullYear()).slice(-2);
 
   // Use SR number if provided, otherwise use counter
   let identifier;
@@ -73,33 +50,10 @@ export const getPcbNumberForDc = (partCode: string, srNo?: string, mfgMonthYear?
   const cleanPartCode = partCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   const partCodeSegment = cleanPartCode.substring(0, 7).padEnd(7, '0');
 
-  // Extract month and year from mfgMonthYear if provided and valid, otherwise use current date
-  let monthCode: string, year: string;
+  // Always use current month and year, ignoring mfgMonthYear parameter
   const now = new Date();
-  
-  if (mfgMonthYear && mfgMonthYear.trim() !== '') {
-    // Parse mfgMonthYear in MM/YYYY format
-    const [monthStr, yearStr] = mfgMonthYear.split('/');
-    if (monthStr && yearStr && monthStr.length === 2 && yearStr.length === 4) {
-      const monthNum = parseInt(monthStr, 10) - 1; // Convert to 0-based index
-      if (!isNaN(monthNum) && monthNum >= 0 && monthNum <= 11) {
-        monthCode = getMonthCode(monthNum);
-        year = yearStr.slice(-2); // Get last 2 digits of year
-      } else {
-        // Invalid format, use current date
-        monthCode = getMonthCode(now.getMonth());
-        year = String(now.getFullYear()).slice(-2);
-      }
-    } else {
-      // Invalid format, use current date
-      monthCode = getMonthCode(now.getMonth());
-      year = String(now.getFullYear()).slice(-2);
-    }
-  } else {
-    // Use current date if mfgMonthYear is not provided or is empty
-    monthCode = getMonthCode(now.getMonth());
-    year = String(now.getFullYear()).slice(-2);
-  }
+  const monthCode = getMonthCode(now.getMonth());
+  const year = String(now.getFullYear()).slice(-2);
 
   // Use SR number if provided, otherwise use counter
   let identifier;

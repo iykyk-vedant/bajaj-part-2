@@ -23,7 +23,7 @@ import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
 import { addDcNumberWithPartCode } from '@/lib/dc-data-sync';
 import { getDcNumbersAction, addDcNumberAction } from '@/app/actions/db-actions';
 import { TagEntryPreview } from '@/components/tag-entry/TagEntryPreview';
-import { EngineerName } from '@/components/ui/engineer-name';
+import { EngineerName } from '@/components/ui/engineer-name-db';
 import {
   DropdownMenu,
   DropdownMenuContent,

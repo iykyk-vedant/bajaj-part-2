@@ -8,7 +8,7 @@ import { LockButton } from './LockButton';
 import { spareParts } from '@/lib/spare-parts';
 import { generatePcbNumber, getMonthCode } from '@/lib/pcb-utils';
 import { tagEntryEventEmitter, TAG_ENTRY_EVENTS } from '@/lib/event-emitter';
-import { EngineerName } from '@/components/ui/engineer-name';
+import { EngineerName } from '@/components/ui/engineer-name-db';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Dialog components for DC creation modal
@@ -368,6 +368,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   };
 
   const handleSubmit = (e: React.FormEvent) => {
+    console.log('handleSubmit called');
     e.preventDefault();
 
     // Validate required fields
@@ -738,10 +739,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     // Only handle Alt key combinations
     if (!e.altKey) return;
 
+    console.log('Keyboard shortcut detected:', e.key);
+    
     // Prevent browser default behavior for these shortcuts
     switch (e.key.toLowerCase()) {
       case 's':
         e.preventDefault();
+        console.log('Alt+S pressed, submitting form');
         handleSubmit(e as unknown as React.FormEvent);
         break;
       case 'd':
@@ -761,7 +765,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       default:
         break;
     }
-  }, [formData.id]);
+  }, [formData.id, handleSubmit, handleDelete, handleClear, handleUpdate]);
 
   // Add keyboard event listener
   useEffect(() => {

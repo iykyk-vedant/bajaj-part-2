@@ -10,7 +10,7 @@ import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
 import { loadDcNumbersFromDb, loadDcPartCodesFromDb, addDcNumberWithPartCode } from '@/lib/dc-data-sync';
 import { addDcNumberAction } from '@/app/actions/db-actions';
 import { TagEntryPreview } from '@/components/tag-entry/TagEntryPreview';
-import { EngineerName } from '@/components/ui/engineer-name';
+import { EngineerName } from '@/components/ui/engineer-name-db';
 
 export default function TagEntryPage() {
   const [activeTab, setActiveTab] = useState<

@@ -6,7 +6,7 @@ import { useLockStore } from '@/store/lockStore';
 import { LockButton } from './LockButton';
 import { validateBomComponents, saveConsolidatedData, searchConsolidatedDataEntries } from '@/app/actions/consumption-actions';
 import { getPcbNumberForDc } from '@/lib/pcb-utils';
-import { EngineerName } from '@/components/ui/engineer-name';
+import { EngineerName } from '@/components/ui/engineer-name-db';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ConsumptionTabProps {
@@ -716,18 +716,15 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Failure:</label>
-              <select
+              <input
+                type="text"
                 name="failure"
                 value={formData.failure}
                 onChange={handleChange}
                 className="w-full p-1 text-sm border border-gray-300 rounded h-8"
+                placeholder="Enter failure details"
                 disabled={!isPcbFound}
-              >
-                <option value="">Select</option>
-                <option value="Component">Component</option>
-                <option value="Soldering">Soldering</option>
-                <option value="Design">Design</option>
-              </select>
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status:</label>

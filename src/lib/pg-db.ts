@@ -111,6 +111,24 @@ export async function initializeDatabase() {
       )
     `);
     
+    // Create engineers table for storing engineer names
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS engineers (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Create indexes for better query performance
+    try {
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_engineer_name ON engineers (name);`);
+    } catch (indexError) {
+      // Index might already exist, which is fine
+      console.log('Engineer index creation attempted - may already exist');
+    }
+    
     // Add name column if it doesn't exist (for existing databases)
     try {
       await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;`);
@@ -335,6 +353,48 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
     return true;
   } catch (error) {
     console.error('Error updating consolidated data entry by product_sr_no:', error);
+    return false;
+  }
+}
+
+// Engineer service functions
+export async function getAllEngineers(): Promise<{id: number, name: string}[]> {
+  try {
+    const result = await pool.query(
+      'SELECT id, name FROM engineers ORDER BY name ASC'
+    );
+    
+    return result.rows;
+  } catch (error) {
+    console.error('Error fetching engineers:', error);
+    return [];
+  }
+}
+
+export async function addEngineer(name: string): Promise<boolean> {
+  try {
+    await pool.query(
+      'INSERT INTO engineers (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
+      [name.trim()]
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error adding engineer:', error);
+    return false;
+  }
+}
+
+export async function deleteEngineer(id: number): Promise<boolean> {
+  try {
+    await pool.query(
+      'DELETE FROM engineers WHERE id = $1',
+      [id]
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting engineer:', error);
     return false;
   }
 }

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useLockStore } from '@/store/lockStore';
 import { LockButton } from '@/components/tag-entry/LockButton';
-import { EngineerName } from '@/components/ui/engineer-name';
+import { EngineerName } from '@/components/ui/engineer-name-db';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DispatchTabProps {
@@ -39,9 +39,11 @@ interface DispatchFormData {
   failure: string;
   status: string;
   pcbSrNo: string;
+  rfObservation?: string;
   analysis: string;
   componentChange: string;
   enggName: string;
+  validationResult?: string;
   dispatchEntryBy?: string;
   dispatchDate?: string;
 }

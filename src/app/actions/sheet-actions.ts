@@ -13,9 +13,9 @@ import { ExtractDataOutput } from '@/ai/schemas/form-extraction-schemas';
 // Server action to get all sheets
 export async function getAllSheetsAction(): Promise<{ sheets: Sheet[]; error?: string }> {
   try {
-    // Sheet data table has been removed, so return empty array
-    console.log('Sheet data table has been removed. Returning empty array.');
-    return { sheets: [] };
+    const { getAllSheets } = await import('@/lib/sheet-service');
+    const sheets = await getAllSheets();
+    return { sheets };
   } catch (error) {
     console.error('Error in getAllSheetsAction:', error);
     return { sheets: [], error: 'Failed to fetch sheets' };

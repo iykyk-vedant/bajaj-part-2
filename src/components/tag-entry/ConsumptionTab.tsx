@@ -31,6 +31,7 @@ interface ConsumptionEntry {
   enggName: string;
   consumptionEntryBy?: string;
   dispatchDate: string;
+  validationResult?: string;
 }
 
 interface TagEntry {
@@ -74,6 +75,7 @@ interface TableRow {
   componentChange?: string;
   enggName?: string;
   dispatchDate?: string;
+  validationResult?: string;
 }
 
 export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {}, engineerName = '', onEngineerNameChange }: ConsumptionTabProps) {
@@ -97,6 +99,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     componentChange: '',
     enggName: engineerName || '',
     dispatchDate: '',
+    validationResult: '',
   });
 
   // Consumption entries state
@@ -116,6 +119,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     [formData.analysis]
   );
 
+  // State for validation result
+  const [validationResult, setValidationResult] = useState('');
+
   // Effect to update enggName when the prop changes
   useEffect(() => {
     setFormData(prev => ({
@@ -133,34 +139,15 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
   
 
-  // Function to load data from database
+  // Function to load data from database - only load tag entry data, not consumption
   const loadAllData = async () => {
     try {
-      // Load consumption entries from database
+      // Load consolidated data entries from database
       const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
       const result = await getConsolidatedDataEntries();
-      let loadedConsumptionEntries: ConsumptionEntry[] = [];
 
       if (result.success) {
         const dbEntries = result.data || [];
-        // Convert database entries to ConsumptionEntry format
-        loadedConsumptionEntries = dbEntries.map((entry: any) => ({
-          id: entry.id,
-          srNo: entry.sr_no,
-          dcNo: entry.dc_no,
-          partCode: entry.part_code,
-          repairDate: entry.repair_date || '',
-          testing: entry.testing || '',
-          failure: entry.failure || '',
-          status: entry.status || '',
-          pcbSrNo: entry.pcb_sr_no || '',
-          analysis: entry.analysis || '',
-          componentChange: entry.component_change || '',
-          enggName: entry.engg_name || '',
-          dispatchDate: entry.dispatch_date || '',
-        }));
-        
-        setConsumptionEntries(loadedConsumptionEntries);
         
         // Convert database entries to TableRow format for the table
         const tableRows: TableRow[] = dbEntries.map((entry: any) => ({
@@ -175,19 +162,20 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           dateOfPurchase: entry.date_of_purchase ? (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : (entry.date_of_purchase && typeof entry.date_of_purchase === 'object' && 'toISOString' in entry.date_of_purchase ? (entry.date_of_purchase as Date).toISOString().split('T')[0] : new Date(entry.date_of_purchase).toISOString().split('T')[0])) : '',
           complaintNo: entry.complaint_no || '',
           partCode: entry.part_code || '',
-          defect: entry.defect || '',
+          defect: entry.nature_of_defect || '', // Fixed field name
           visitingTechName: entry.visiting_tech_name || '',
           mfgMonthYear: entry.mfg_month_year ? (typeof entry.mfg_month_year === 'string' ? entry.mfg_month_year : (entry.mfg_month_year && typeof entry.mfg_month_year === 'object' && 'toISOString' in entry.mfg_month_year ? (entry.mfg_month_year as Date).toISOString().split('T')[0] : new Date(entry.mfg_month_year).toISOString().split('T')[0])) : '',
-          // Consumption-specific fields
-          repairDate: entry.repair_date ? (typeof entry.repair_date === 'string' ? entry.repair_date : (entry.repair_date && typeof entry.repair_date === 'object' && 'toISOString' in entry.repair_date ? (entry.repair_date as Date).toISOString().split('T')[0] : new Date(entry.repair_date).toISOString().split('T')[0])) : '',
-          testing: entry.testing || '',
-          failure: entry.failure || '',
-          status: entry.status || '',
+          // Consumption-specific fields - not loaded from database
+          repairDate: '', // Not loaded from database
+          testing: '', // Not loaded from database
+          failure: '', // Not loaded from database
+          status: '', // Not loaded from database
           pcbSrNo: entry.pcb_sr_no || '',
-          analysis: entry.analysis || '',
-          componentChange: entry.component_change || '',
-          enggName: entry.engg_name || '',
-          dispatchDate: entry.dispatch_date ? (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : (entry.dispatch_date && typeof entry.dispatch_date === 'object' && 'toISOString' in entry.dispatch_date ? (entry.dispatch_date as Date).toISOString().split('T')[0] : new Date(entry.dispatch_date).toISOString().split('T')[0])) : '',
+          analysis: '', // Not loaded from database
+          componentChange: '', // Not loaded from database
+          enggName: '', // Not loaded from database
+          dispatchDate: '', // Not loaded from database
+          validationResult: '', // Not loaded from database
         }));
         
         setTableData(tableRows);
@@ -240,6 +228,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           componentChange: existingEntry.component_change || '',
           enggName: existingEntry.engg_name || engineerName || '',
           dispatchDate: existingEntry.dispatch_date || '',
+          validationResult: existingEntry.validation_result || '',
         }));
       } else {
         // If no existing entry is found, use default values
@@ -249,6 +238,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           repairDate: new Date().toISOString().split('T')[0], // Today's date
           testing: 'PASS', // Default value
           status: 'OK', // Default value
+          validationResult: '',
         }));
       }
   
@@ -336,6 +326,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         componentChange: ''
         // componentChange is already handled in handleChange
       }));
+      setValidationResult('');
       return;
     }
 
@@ -393,18 +384,16 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         
         const cleanedResult = cleanedLines.join('\n');
         
-        // Update form data with the cleaned result if needed
-        // componentChange is handled in handleChange
+        // Update validation result state
+        setValidationResult(cleanedResult);
       } else {
         // Handle validation error
         console.error('BOM validation error:', result.error);
-        // Handle validation error
-        // componentChange is handled in handleChange
+        setValidationResult('Validation error: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error validating BOM components:', error);
-      // Handle validation error
-      // componentChange is handled in handleChange
+      setValidationResult('Error validating BOM components');
     }
   };
 
@@ -423,121 +412,13 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       return;
     }
 
-    // Save data when consuming
+    // Since we're not saving consumption data to the database, just show success message
     try {
-      // Combine tag entry data with consumption data
-      const consolidatedData = {
-        srNo: srNo,
-        dcNo: '', // DC No is no longer used in PCB generation
-        partCode: partCode,
-        repairDate: formData.repairDate || null,
-        testing: formData.testing || null,
-        failure: formData.failure || null,
-        status: formData.status || null,
-        pcbSrNo: formData.pcbSrNo || null,
-        analysis: formData.analysis || null,
-        componentChange: formData.componentChange || null,
-        enggName: engineerName || null, // Use engineer name from navigation tab
-        consumptionEntryBy: formData.consumptionEntryBy || user?.name || user?.email || null, // New field for consumption entry
-        dispatchDate: formData.dispatchDate || null,
-      };
-
-      // Find existing entry by PCB serial number and update it
-      const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
-      
-      // First, we need to find the entry with the same pcbSrNo
-      // Use the mfgMonthYear from the state
-      const regeneratedPcbSrNo = getPcbNumberForDc(partCode, srNo, mfgMonthYear);
-      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, regeneratedPcbSrNo);
-      
-      if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
-        const existingEntry = searchResult.data[0];
-        
-        // Update the existing entry - prioritize updating by ID if available, otherwise by product_sr_no
-        if (existingEntry.id) {
-          const updateResult = await updateConsolidatedDataEntryAction(existingEntry.id, {
-            // Use existing tag entry fields from the database, fallback to form values if needed
-            srNo: existingEntry.sr_no || srNo,
-            dcNo: existingEntry.dc_no || '',
-            branch: existingEntry.branch || '',
-            bccdName: existingEntry.bccd_name || '',
-            productDescription: existingEntry.product_description || '',
-            productSrNo: existingEntry.product_sr_no || srNo,
-            dateOfPurchase: existingEntry.date_of_purchase || '',
-            complaintNo: existingEntry.complaint_no || '',
-            partCode: existingEntry.part_code || '',
-            natureOfDefect: existingEntry.nature_of_defect || '',
-            visitingTechName: existingEntry.visiting_tech_name || '',
-            mfgMonthYear: existingEntry.mfg_month_year || '',
-            // Update consumption fields
-            repairDate: consolidatedData.repairDate,
-            testing: consolidatedData.testing,
-            failure: consolidatedData.failure,
-            status: consolidatedData.status,
-            pcbSrNo: consolidatedData.pcbSrNo,
-            analysis: consolidatedData.analysis,
-            componentChange: consolidatedData.componentChange,
-            enggName: consolidatedData.enggName,
-            dispatchDate: consolidatedData.dispatchDate,
-          });
-          
-          if (!updateResult.success) {
-            console.error('Error updating existing consolidated data entry:', updateResult.error);
-            alert('Error updating existing entry. Please try again.');
-            return;
-          }
-        } else if (existingEntry.product_sr_no) {
-          // Fallback to update by product_sr_no if no ID available
-          const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(existingEntry.product_sr_no, {
-            // Map consolidatedData fields to database column names
-            srNo: existingEntry.sr_no || srNo,
-            dcNo: existingEntry.dc_no || '',
-            branch: existingEntry.branch || '',
-            bccdName: existingEntry.bccd_name || '',
-            productDescription: existingEntry.product_description || '',
-            productSrNo: existingEntry.product_sr_no || srNo,
-            dateOfPurchase: existingEntry.date_of_purchase || '',
-            complaintNo: existingEntry.complaint_no || '',
-            partCode: existingEntry.part_code || '',
-            natureOfDefect: existingEntry.nature_of_defect || '',
-            visitingTechName: existingEntry.visiting_tech_name || '',
-            mfgMonthYear: existingEntry.mfg_month_year || '',
-            // Consumption fields
-            repairDate: consolidatedData.repairDate,
-            testing: consolidatedData.testing,
-            failure: consolidatedData.failure,
-            status: consolidatedData.status,
-            pcbSrNo: consolidatedData.pcbSrNo,
-            analysis: consolidatedData.analysis,
-            componentChange: consolidatedData.componentChange,
-            enggName: consolidatedData.enggName,
-            dispatchDate: consolidatedData.dispatchDate,
-          });
-          
-          if (!updateResult.success) {
-            console.error('Error updating consolidated data by product_sr_no:', updateResult.error);
-            alert('Error updating existing entry. Please try again.');
-            return;
-          }
-        }
-      } else {
-        // If no existing entry found, save a new entry
-        const saveResult = await saveConsolidatedData(consolidatedData);
-        if (!saveResult.success) {
-          console.error('Error saving consolidated data:', saveResult.error);
-          alert('Error saving new entry. Please try again.');
-          return;
-        }
-      }
-
-      // Refresh all data to show the updated entry
-      await loadAllData();
-      
       // Implementation for consuming data
-      alert('Data consumed and saved successfully!');
+      alert('Data consumed successfully! (Note: Consumption data is not stored in database or Excel as requested)');
     } catch (error) {
-      console.error('Error saving data:', error);
-      alert('Data consumed but there was an error saving to database.');
+      console.error('Error during consume operation:', error);
+      alert('There was an error processing the consumption data.');
     }
   };
 
@@ -561,122 +442,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       )
     );
 
-    // Also update consolidated data table
-    try {
-      // Combine tag entry data with consumption data
-      const consolidatedData = {
-        srNo: srNo,
-        dcNo: '', // DC No is no longer used in PCB generation
-        partCode: partCode,
-        repairDate: formData.repairDate || null,
-        testing: formData.testing || null,
-        failure: formData.failure || null,
-        status: formData.status || null,
-        pcbSrNo: formData.pcbSrNo || null,
-        
-        analysis: formData.analysis || null,
-        componentChange: formData.componentChange || null,
-        enggName: engineerName || null, // Use engineer name from navigation tab
-        dispatchDate: formData.dispatchDate || null,
-      };
-
-      // Find existing entry by PCB serial number and update it
-      const { updateConsolidatedDataEntryByProductSrNoAction, searchConsolidatedDataEntriesByPcb, saveConsolidatedData, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
-      
-      // First, we need to find the entry with the same pcbSrNo
-      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, formData.pcbSrNo);
-      
-      if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
-        const existingEntry = searchResult.data[0];
-        
-        // Update the existing entry - prioritize updating by ID if available, otherwise by product_sr_no
-        if (existingEntry.id) {
-          const updateResult = await updateConsolidatedDataEntryAction(existingEntry.id, {
-            // Use existing tag entry fields from the database, fallback to form values if needed
-            srNo: existingEntry.sr_no || srNo,
-            dcNo: existingEntry.dc_no || '',
-            branch: existingEntry.branch || '',
-            bccdName: existingEntry.bccd_name || '',
-            productDescription: existingEntry.product_description || '',
-            productSrNo: existingEntry.product_sr_no || srNo,
-            dateOfPurchase: existingEntry.date_of_purchase || '',
-            complaintNo: existingEntry.complaint_no || '',
-            partCode: existingEntry.part_code || '',
-            natureOfDefect: existingEntry.nature_of_defect || '',
-            visitingTechName: existingEntry.visiting_tech_name || '',
-            mfgMonthYear: existingEntry.mfg_month_year || '',
-            // Update consumption fields
-            repairDate: consolidatedData.repairDate,
-            testing: consolidatedData.testing,
-            failure: consolidatedData.failure,
-            status: consolidatedData.status,
-            pcbSrNo: consolidatedData.pcbSrNo,
-            analysis: consolidatedData.analysis,
-            componentChange: consolidatedData.componentChange,
-            enggName: consolidatedData.enggName,
-            dispatchDate: consolidatedData.dispatchDate,
-          });
-          
-          if (!updateResult.success) {
-            console.error('Error updating existing consolidated data entry:', updateResult.error);
-            alert('Error updating existing entry. Please try again.');
-            return;
-          }
-        } else if (existingEntry.product_sr_no) {
-          // Fallback to update by product_sr_no if no ID available
-          const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(existingEntry.product_sr_no, {
-            // Map consolidatedData fields to database column names
-            srNo: existingEntry.sr_no || srNo,
-            dcNo: existingEntry.dc_no || '',
-            branch: existingEntry.branch || '',
-            bccdName: existingEntry.bccd_name || '',
-            productDescription: existingEntry.product_description || '',
-            productSrNo: existingEntry.product_sr_no || srNo,
-            dateOfPurchase: existingEntry.date_of_purchase || '',
-            complaintNo: existingEntry.complaint_no || '',
-            partCode: existingEntry.part_code || '',
-            natureOfDefect: existingEntry.nature_of_defect || '',
-            visitingTechName: existingEntry.visiting_tech_name || '',
-            mfgMonthYear: existingEntry.mfg_month_year || '',
-            // Consumption fields
-            repairDate: consolidatedData.repairDate,
-            testing: consolidatedData.testing,
-            failure: consolidatedData.failure,
-            status: consolidatedData.status,
-            pcbSrNo: consolidatedData.pcbSrNo,
-            analysis: consolidatedData.analysis,
-            componentChange: consolidatedData.componentChange,
-            enggName: consolidatedData.enggName,
-            dispatchDate: consolidatedData.dispatchDate,
-          });
-          
-          if (!updateResult.success) {
-            console.error('Error updating consolidated data by product_sr_no:', updateResult.error);
-            alert('Error updating existing entry. Please try again.');
-            return;
-          }
-        }
-      } else {
-        // If no existing entry found, save a new entry
-        const saveResult = await saveConsolidatedData(consolidatedData);
-        if (!saveResult.success) {
-          console.error('Error saving consolidated data:', saveResult.error);
-          alert('Error saving new entry. Please try again.');
-          return;
-        }
-      }
-    } catch (error) {
-      console.error('Error updating consolidated data:', error);
-    }
-    
-    // Refresh all data to show the updated entry
-    try {
-      await loadAllData();
-    } catch (error) {
-      console.error('Error refreshing all data after update:', error);
-    }
-
-    alert('Consumption entry updated successfully!');
+    // Since we're not saving consumption data to the database, just show success message
+    alert('Consumption entry updated successfully! (Note: Changes are not stored in database or Excel as requested)');
   }, [selectedEntryId, formData, srNo, partCode, mfgMonthYear, engineerName]);
 
   const handleDelete = async () => {
@@ -689,29 +456,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       return;
     }
 
-    try {
-      // Delete from database
-      const { deleteConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
-      const deleteResult = await deleteConsolidatedDataEntryAction(selectedEntryId);
-      
-      if (!deleteResult.success) {
-        console.error('Error deleting consolidated data entry:', deleteResult.error);
-        alert('Error deleting entry. Please try again.');
-        return;
-      }
-      
-      setConsumptionEntries(prev => prev.filter(entry => entry.id !== selectedEntryId));
-      setSelectedEntryId(null);
-      handleClearForm();
-      
-      // Refresh all data to show the updated entries
-      await loadAllData();
-      
-      alert('Consumption entry deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting consolidated data entry:', error);
-      alert('Error deleting entry. Please try again.');
-    }
+    // Since we're not saving consumption data to the database, just update local state
+    setConsumptionEntries(prev => prev.filter(entry => entry.id !== selectedEntryId));
+    setSelectedEntryId(null);
+    handleClearForm();
+    
+    alert('Consumption entry deleted successfully! (Note: No data was removed from database or Excel as requested)');
   };
 
   const handleClearForm = () => {
@@ -726,6 +476,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       componentChange: '',
       enggName: engineerName || '',
       dispatchDate: '',
+      validationResult: '',
     });
 
     // Reset workflow state
@@ -801,6 +552,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       componentChange: entry.componentChange,
       enggName: entry.enggName || engineerName || '',
       dispatchDate: entry.dispatchDate,
+      validationResult: entry.validationResult || '',
     });
     setSelectedEntryId(entry.id || null);
     // Set the search fields if they exist in the entry
@@ -1035,6 +787,17 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 disabled={!isPcbFound}
               />
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Validation Result:</label>
+              <textarea
+                name="validationResult"
+                value={validationResult}
+                readOnly
+                rows={3}
+                className="w-full p-1 text-sm border border-gray-300 rounded bg-gray-100"
+              />
+            </div>
           </div>
 
 
@@ -1086,6 +849,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Component Change</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Engg Name</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Dispatch Date</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Validation Result</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -1101,11 +865,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                         failure: entry.failure || '',
                         status: entry.status || '',
                         pcbSrNo: entry.pcbSrNo || '',
-                        
+                                            
                         analysis: entry.analysis || '',
                         componentChange: entry.componentChange || '',
                         enggName: entry.enggName || '',
                         dispatchDate: entry.dispatchDate || '',
+                        validationResult: entry.validationResult || '',
                       });
                       setSelectedEntryId(entry.id || null);
                     }}
@@ -1131,6 +896,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.componentChange}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.enggName}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dispatchDate}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.validationResult}</td>
                   </tr>
                 ))}
                 {tableData.length === 0 && (

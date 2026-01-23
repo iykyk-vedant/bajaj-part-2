@@ -11,8 +11,7 @@ export interface Sheet {
 // Get all sheets for a user
 export async function getAllSheets(): Promise<Sheet[]> {
   try {
-    // Sheet data table has been removed, so only return sheet metadata
-    console.log('Sheet data table has been removed. Returning sheets without data.');
+    // Return sheet metadata without data since sheet_data table is removed
     const result = await pool.query(
       `SELECT s.id, s.name, s.created_at
        FROM sheets s

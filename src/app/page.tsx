@@ -14,6 +14,7 @@ import { FindTab } from '@/components/tag-entry/FindTab';
 import { DispatchTab } from '@/components/tag-entry/DispatchTab';
 import { ConsumptionTab } from '@/components/tag-entry/ConsumptionTab';
 import { ValidateDataSection } from '@/components/validate-data-section';
+import { ValidateConsumptionSection } from '@/components/validate-consumption-section';
 
 import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -779,7 +780,7 @@ export default function Home() {
 
         {activeTab === "consumption" && (
           <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
-            <ConsumptionTab
+            <ValidateConsumptionSection
               dcNumbers={dcNumbers}
               dcPartCodes={dcPartCodes}
               engineerName={consumptionEngineerName}

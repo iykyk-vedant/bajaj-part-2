@@ -124,9 +124,7 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
           failure: entry.failure || '',
           status: entry.status || '',
           pcbSrNo: entry.pcb_sr_no || '',
-          rfObservation: entry.rf_observation || '',
           analysis: entry.analysis || '',
-          validationResult: entry.validation_result || '',
           componentChange: entry.component_change || '',
           enggName: entry.engg_name || '',
           dispatchDate: entry.dispatch_date ? (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : (entry.dispatch_date && typeof entry.dispatch_date === 'object' && 'toISOString' in entry.dispatch_date ? (entry.dispatch_date as Date).toISOString().split('T')[0] : new Date(entry.dispatch_date).toISOString().split('T')[0])) : '',
@@ -323,9 +321,7 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
                     <TableHead className="w-[100px]">Testing</TableHead>
                     <TableHead className="w-[100px]">Failure</TableHead>
                     <TableHead className="w-[100px]">Status</TableHead>
-                    <TableHead className="w-[150px]">RF Observation</TableHead>
                     <TableHead className="w-[150px]">Analysis</TableHead>
-                    <TableHead className="w-[150px]">Validation Result</TableHead>
                     <TableHead className="w-[150px]">Component Change</TableHead>
                     <TableHead className="w-[150px]">Engg Name</TableHead>
                     <TableHead className="w-[120px]">Dispatch Date</TableHead>
@@ -409,16 +405,8 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
                           onSave={(newValue) => handleSaveEntry(Number(entry.id), 'status', newValue)} 
                         />
                         <EditableCell 
-                          value={entry.rfObservation || ''} 
-                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'rfObservation', newValue)} 
-                        />
-                        <EditableCell 
                           value={entry.analysis || ''} 
                           onSave={(newValue) => handleSaveEntry(Number(entry.id), 'analysis', newValue)} 
-                        />
-                        <EditableCell 
-                          value={entry.validationResult || ''} 
-                          onSave={(newValue) => handleSaveEntry(Number(entry.id), 'validationResult', newValue)} 
                         />
                         <EditableCell 
                           value={entry.componentChange || ''} 
@@ -436,7 +424,7 @@ export function TagEntryPreview({ open, onOpenChange, refreshTrigger }: TagEntry
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={23} className="text-center text-gray-500 py-8">
+                      <TableCell colSpan={22} className="text-center text-gray-500 py-8">
                         {searchTerm ? 'No entries match your search.' : 'No tag entries found.'}
                       </TableCell>
                     </TableRow>

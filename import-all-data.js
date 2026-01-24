@@ -9,7 +9,7 @@ const pool = new Pool({
   user: process.env.PG_USER?.replace(/'/g, ''),
   password: process.env.PG_PASSWORD?.replace(/'/g, ''),
   database: process.env.PG_DATABASE?.replace(/'/g, ''),
-  ssl: {
+  ssl: process.env.DB_SSL_DISABLED === 'true' ? false : {
     rejectUnauthorized: false
   },
   connectionTimeoutMillis: 10000,

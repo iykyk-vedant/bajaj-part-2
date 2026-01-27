@@ -54,7 +54,8 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
   const { user } = useAuth();
   const [dcNo, setDcNo] = useState('');
   const [partCode, setPartCode] = useState('');
-  const [pcbSrNo, setPcbSrNo] = useState(''); // Changed from srNo to pcbSrNo
+  const [mfgMonthYear, setMfgMonthYear] = useState('');
+  const [srNo, setSrNo] = useState('');
   const [dispatchDate, setDispatchDate] = useState('');
   const [isPcbFound, setIsPcbFound] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -65,11 +66,11 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
   // Removed srNo increment/decrement functions since we're not using srNo for search
 
   const handleFind = async () => {
-    if (!pcbSrNo) { // Changed condition to check pcbSrNo instead of dcNo, partCode, and srNo
+    if (!partCode || !mfgMonthYear || !srNo) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
-        description: 'Please enter PCB Serial No.'
+        description: 'Please fill in all search fields: Part Code, Mfg Month/Year, and Serial No.'
       });
       return;
     }
@@ -77,8 +78,12 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
     setIsSearching(true);
 
     try {
+      // Generate the same PCB number that would be generated in TagEntryForm
+      const { getPcbNumberForDc } = await import('@/lib/pcb-utils');
+      const pcbSrNo = getPcbNumberForDc(partCode, srNo, mfgMonthYear);
+      
       // Use searchConsolidatedDataEntriesByPcb to search by PCB serial number
-      const result = await searchConsolidatedDataEntriesByPcb(dcNo, partCode, pcbSrNo);
+      const result = await searchConsolidatedDataEntriesByPcb('', partCode, pcbSrNo);
       
       if (result.success) {
         const entries = result.data || [];
@@ -262,12 +267,28 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
 
   // Reset form when search criteria change
   useEffect(() => {
-    if (pcbSrNo) { // Changed condition to check pcbSrNo instead of dcNo, partCode, and srNo
+    if (partCode || mfgMonthYear || srNo) {
       setIsPcbFound(false);
       setSelectedEntry(null);
       setSearchResults([]);
     }
-  }, [pcbSrNo]); // Changed dependency to pcbSrNo instead of dcNo, partCode, and srNo
+  }, [partCode, mfgMonthYear, srNo]);
+  
+  const handleSrNoIncrement = () => {
+    const currentSrNo = parseInt(srNo || '0');
+    if (!isNaN(currentSrNo)) {
+      const newSrNo = currentSrNo + 1;
+      setSrNo(String(newSrNo).padStart(3, '0'));
+    }
+  };
+  
+  const handleSrNoDecrement = () => {
+    const currentSrNo = parseInt(srNo || '0');
+    if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
+      const newSrNo = currentSrNo - 1;
+      setSrNo(String(newSrNo).padStart(3, '0'));
+    }
+  };
 
   return (
     <div className="bg-white rounded-md shadow-sm flex flex-col h-full">
@@ -348,13 +369,44 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
             </Select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">PCB Serial No.</label> {/* Changed label */}
+            <label className="block text-sm font-medium text-gray-700 mb-2">Mfg Month/Year (MM/YYYY)</label>
             <Input
               type="text"
-              value={pcbSrNo} 
-              onChange={(e) => setPcbSrNo(e.target.value)} 
+              value={mfgMonthYear}
+              onChange={(e) => setMfgMonthYear(e.target.value)}
               className="w-full"
-              placeholder="Enter PCB Serial No." 
+              placeholder="MM/YYYY"
+              disabled={isPcbFound}
+            />
+          </div>
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-sm font-medium text-gray-700">Serial No.</label>
+              <div className="flex space-x-1">
+                <button
+                  type="button"
+                  onClick={() => handleSrNoIncrement()}
+                  className="text-gray-700 hover:text-gray-900 px-1"
+                  disabled={isPcbFound}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSrNoDecrement()}
+                  className="text-gray-700 hover:text-gray-900 px-1"
+                  disabled={isPcbFound}
+                >
+                  -
+                </button>
+              </div>
+            </div>
+            <Input
+              type="text"
+              value={srNo}
+              onChange={(e) => setSrNo(e.target.value)}
+              className="w-full"
+              placeholder="Enter Serial No."
               disabled={isPcbFound}
             />
           </div>

@@ -66,29 +66,60 @@ export async function POST(request: NextRequest) {
     // 25. Tag_Entry_By, 26. Consumption_Entry_By, 27. Dispatch_Entry_By,
     // 28. Tag_Entry, 29. Tag_Entry_Date, 30. Consumption_Entry, 31. Consumption_Entry_Date
 
+    // Helper function to format dates for Excel
+    function formatDateForExcel(dateValue: string | Date | null | undefined): string {
+      if (!dateValue) return '';
+      
+      // If it's already in DD/MM/YYYY format, return as is
+      if (typeof dateValue === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
+        return dateValue;
+      }
+      
+      // If it's a date string, parse it and convert to DD/MM/YYYY format
+      let date: Date;
+      if (typeof dateValue === 'string') {
+        // Handle various date formats (YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY, etc.)
+        date = new Date(dateValue);
+      } else {
+        date = dateValue as Date;
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      
+      // Format as DD/MM/YYYY
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      
+      return `${day}/${month}/${year}`;
+    }
+    
     entries.forEach((entry: any, index: number) => {
       const row = worksheet.addRow([]);
       
       // Get current date for timestamps
       const currentDate = new Date();
       const dateStr = currentDate.toLocaleDateString('en-GB'); // DD/MM/YYYY format
-      const dateTimeStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const dateTimeStr = currentDate.toLocaleDateString('en-GB'); // DD/MM/YYYY format for dates in Excel
 
       // Map each field according to template column order
       row.getCell(1).value = entry.sr_no || (index + 1).toString(); // Sr_No
       row.getCell(2).value = entry.dc_no || ''; // DC_No
-      row.getCell(3).value = entry.dc_date || dateStr; // DC_Date
+      row.getCell(3).value = formatDateForExcel(entry.dc_date) || dateStr; // DC_Date
       row.getCell(4).value = entry.branch || ''; // Branch
       row.getCell(5).value = entry.bccd_name || entry.bccdName || ''; // BCCD_Name
       row.getCell(6).value = entry.product_description || entry.productDescription || ''; // Product_Description
       row.getCell(7).value = entry.product_sr_no || entry.productSrNo || ''; // Product_Sr_No
-      row.getCell(8).value = entry.date_of_purchase || entry.dateOfPurchase || ''; // Date_of_Purchase
+      row.getCell(8).value = formatDateForExcel(entry.date_of_purchase || entry.dateOfPurchase) || ''; // Date_of_Purchase
       row.getCell(9).value = entry.complaint_no || entry.complaintNo || ''; // Complaint_No
       row.getCell(10).value = entry.part_code || entry.partCode || ''; // PartCode
       row.getCell(11).value = entry.nature_of_defect || entry.defect || ''; // Defect
       row.getCell(12).value = entry.visiting_tech_name || entry.visitingTechName || ''; // Visiting_Tech_Name
       row.getCell(13).value = entry.mfg_month_year || entry.mfgMonthYear || ''; // Mfg_Month_Year
-      row.getCell(14).value = entry.repair_date || entry.repairDate || ''; // Repair_Date
+      row.getCell(14).value = formatDateForExcel(entry.repair_date || entry.repairDate) || ''; // Repair_Date
       row.getCell(15).value = entry.defect_age || entry.defectAge || ''; // Defect_Age
       row.getCell(16).value = entry.pcb_sr_no || entry.pcbSrNo || ''; // PCB_Sr_No
       row.getCell(17).value = entry.testing || ''; // Testing
@@ -96,7 +127,7 @@ export async function POST(request: NextRequest) {
       row.getCell(19).value = entry.analysis || ''; // Analysis
       row.getCell(20).value = entry.component_consumption || entry.componentConsumption || ''; // Component_Consumption
       row.getCell(21).value = entry.status || ''; // Status
-      row.getCell(22).value = entry.send_date || entry.dispatch_date || entry.sendDate || ''; // Send_Date
+      row.getCell(22).value = formatDateForExcel(entry.send_date || entry.dispatch_date || entry.sendDate) || ''; // Send_Date
       row.getCell(23).value = entry.engg_name || entry.enggName || ''; // Engg_Name
       row.getCell(24).value = entry.tag_entry_by || entry.tagEntryBy || ''; // Tag_Entry_By
       row.getCell(25).value = entry.consumption_entry_by || entry.consumptionEntryBy || ''; // Consumption_Entry_By

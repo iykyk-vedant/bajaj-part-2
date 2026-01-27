@@ -5,7 +5,6 @@ import {
   formatValidatedComponents,
   formatComponentConsumption
 } from '@/lib/consumption-validation-service';
-import { saveConsolidatedDataEntry } from '@/lib/pg-db';
 
 // Server action to validate consumption
 export async function validateConsumption(analysisText: string, partCode?: string) {
@@ -92,21 +91,22 @@ export async function getConsumptionEntries() {
 // Server action to save consolidated data entry
 export async function saveConsolidatedData(data: any) {
   try {
-    // Don't save consumption-specific data to database
+    // Don't save consumption-specific data to database for new entries
     const dataWithoutConsumption = {
       ...data,
-      repairDate: null,
-      testing: null,
-      failure: null,
-      status: null,
-      analysis: null,
-      componentChange: null,
-      enggName: null,
-      dispatchDate: null,
-      rfObservation: null,
-      validationResult: null
+      repairDate: data.repairDate || null,
+      testing: data.testing || null,
+      failure: data.failure || null,
+      status: data.status || null,
+      analysis: data.analysis || null,
+      componentChange: data.componentChange || null,
+      enggName: data.enggName || null,
+      dispatchDate: data.dispatchDate || null,
+      rfObservation: data.rfObservation || null,
+      validationResult: data.validationResult || null
     };
     
+    const { saveConsolidatedDataEntry } = await import('@/lib/pg-db');
     const result = await saveConsolidatedDataEntry(dataWithoutConsumption);
     return {
       success: true,
@@ -180,12 +180,11 @@ export async function updateConsolidatedDataEntryAction(id: string, entry: any) 
   try {
     const { updateConsolidatedDataEntry } = await import('@/lib/pg-db');
     // Convert field names to match database column names if needed
-    // Don't update consumption-specific data in the database
     const entryForDb = {
       dc_date: typeof entry.dcDate === 'string' ? entry.dcDate : (typeof entry.dc_date === 'string' ? entry.dc_date : null),
       date_of_purchase: typeof entry.dateOfPurchase === 'string' ? entry.dateOfPurchase : (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : null),
-      repair_date: null, // Don't update consumption data
-      dispatch_date: null, // Don't update consumption data
+      repair_date: entry.repairDate || entry.repair_date || null,
+      dispatch_date: entry.dispatchDate || entry.dispatch_date || null,
       sr_no: entry.srNo || entry.sr_no,
       dc_no: entry.dcNo || entry.dc_no,
       bccd_name: entry.bccdName || entry.bccd_name,
@@ -197,14 +196,13 @@ export async function updateConsolidatedDataEntryAction(id: string, entry: any) 
       visiting_tech_name: entry.visitingTechName || entry.visiting_tech_name,
       mfg_month_year: entry.mfgMonthYear || entry.mfg_month_year,
       pcb_sr_no: entry.pcbSrNo || entry.pcb_sr_no,
-      rf_observation: null, // Don't update consumption data
-      analysis: null, // Don't update consumption data
-      testing: null, // Don't update consumption data
-      failure: null, // Don't update consumption data
-      status: null, // Don't update consumption data
-      validation_result: null, // Don't update consumption data
-      component_change: null, // Don't update consumption data
-      engg_name: null, // Don't update consumption data
+      analysis: entry.analysis || entry.analysis || null,
+      testing: entry.testing || entry.testing || null,
+      failure: entry.failure || entry.failure || null,
+      status: entry.status || entry.status || null,
+      // validation_result column has been removed from database
+      component_change: entry.componentChange || entry.component_change || null,
+      engg_name: entry.enggName || entry.engg_name || null,
       tag_entry_by: entry.tagEntryBy || entry.tag_entry_by,
       consumption_entry_by: entry.consumptionEntryBy || entry.consumption_entry_by,
       dispatch_entry_by: entry.dispatchEntryBy || entry.dispatch_entry_by,
@@ -244,9 +242,11 @@ export async function findConsolidatedDataEntryByProductSrNoAction(productSrNo: 
 // Server action to update consolidated data entry by product_sr_no
 export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo: string, entry: any) {
   try {
+    console.log('Server action called with productSrNo:', productSrNo);
+    console.log('Server action entry data:', entry);
+    
     const { updateConsolidatedDataEntryByProductSrNo } = await import('@/lib/pg-db');
     // Include all fields in the update to preserve and update all data
-    // Don't update consumption-specific data in the database
     const allFieldsEntry = {
       // Tag entry fields
       sr_no: entry.srNo || entry.sr_no,
@@ -267,16 +267,17 @@ export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo
       tag_entry_by: entry.tagEntryBy || entry.tag_entry_by,
       consumption_entry_by: entry.consumptionEntryBy || entry.consumption_entry_by,
       dispatch_entry_by: entry.dispatchEntryBy || entry.dispatch_entry_by,
-      // Consumption fields - Don't update these in database
-      repair_date: null, // Don't update consumption data
-      testing: null, // Don't update consumption data
-      failure: null, // Don't update consumption data
-      status: null, // Don't update consumption data
-      analysis: null, // Don't update consumption data
-      component_change: null, // Don't update consumption data
-      engg_name: null, // Don't update consumption data
+      // Consumption fields - Now allow updating these in database
+      repair_date: entry.repairDate || entry.repair_date || null,
+      testing: entry.testing || entry.testing || null,
+      failure: entry.failure || entry.failure || null,
+      status: entry.status || entry.status || null,
+      analysis: entry.analysis || entry.analysis || null,
+      component_change: entry.componentChange || entry.component_change || null,
+      engg_name: entry.enggName || entry.engg_name || null,
+      // validation_result column has been removed from database
       // Dispatch field
-      dispatch_date: null, // Don't update consumption data
+      dispatch_date: entry.dispatchDate || entry.dispatch_date || null,
     };
     const result = await updateConsolidatedDataEntryByProductSrNo(productSrNo, allFieldsEntry);
     return {

@@ -133,13 +133,14 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         const dcNo = initialData.dcNo || prev.dcNo;
         let newSrNo = prev.srNo; // Default to current srNo
 
-        if (dcNo) {
-          // Find entries with the same DC number
-          const dcEntries = savedEntries.filter(entry => entry.dcNo === dcNo);
+        if (initialData.sparePartCode || prev.partCode) {
+          // Find entries with the same part code
+          const partCode = initialData.sparePartCode || prev.partCode;
+          const partCodeEntries = savedEntries.filter(entry => entry.partCode === partCode);
 
-          // Calculate next sequential number (1, 2, 3, ...)
-          const nextSrNo = dcEntries.length > 0
-            ? Math.max(...dcEntries.map(e => parseInt(e.srNo) || 0)) + 1
+          // Calculate next sequential number (1, 2, 3, ...) for this part code
+          const nextSrNo = partCodeEntries.length > 0
+            ? Math.max(...partCodeEntries.map(e => parseInt(e.srNo) || 0)) + 1
             : 1;
 
           newSrNo = String(nextSrNo).padStart(3, '0');
@@ -202,16 +203,16 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     }
   }, [formData.partCode, formData.srNo, formData.mfgMonthYear]);
 
-  // Update serial number when DC number changes
-  // Calculate next sequential number for the selected DC
+  // Update serial number when part code changes
+  // Calculate next sequential number for the selected part code
   useEffect(() => {
-    if (formData.dcNo && !isDcLocked) { // Only update when not locked
-      // Find entries with the same DC number
-      const dcEntries = savedEntries.filter(entry => entry.dcNo === formData.dcNo);
+    if (formData.partCode && !isDcLocked) { // Only update when not locked
+      // Find entries with the same part code
+      const partCodeEntries = savedEntries.filter(entry => entry.partCode === formData.partCode);
 
-      // Calculate next sequential number (1, 2, 3, ...)
-      const nextSrNo = dcEntries.length > 0
-        ? Math.max(...dcEntries.map(e => parseInt(e.srNo) || 0)) + 1
+      // Calculate next sequential number (1, 2, 3, ...) for this part code
+      const nextSrNo = partCodeEntries.length > 0
+        ? Math.max(...partCodeEntries.map(e => parseInt(e.srNo) || 0)) + 1
         : 1;
 
       setFormData(prev => ({
@@ -226,13 +227,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         partCode: useLockStore.getState().lockedPartCode
       }));
     } else {
-      // If no DC is selected, reset to 001
+      // If no part code is selected, reset to 001
       setFormData(prev => ({
         ...prev,
         srNo: '001'
       }));
     }
-  }, [formData.dcNo, savedEntries, isDcLocked]);
+  }, [formData.partCode, savedEntries, isDcLocked]);
 
   // Sync with lock store when locked values change
   useEffect(() => {
@@ -416,7 +417,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     }
 
     const entryToSave: TagEntry = {
-      id: formData.id || Date.now().toString(),
+      id: formData.id || '',
       srNo: formData.srNo || '001',
       dcNo: formData.dcNo || '',
       branch: formData.branch || 'Mumbai',
@@ -475,7 +476,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             validationResult: '',
             componentChange: '',
             enggName: formData.enggName || '',
-            tagEntryBy: formData.tagEntryBy || '',
+            tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
             dispatchDate: '',
           });
           
@@ -498,7 +499,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             validationResult: '',
             componentChange: '',
             enggName: formData.enggName || '',
-            tagEntryBy: formData.tagEntryBy || '',
+            tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
             dispatchDate: '',
           };
           const saveResult = await saveConsolidatedData(consolidatedData);
@@ -541,6 +542,14 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       return;
     }
 
+    // Validate that the ID is a reasonable integer (not a large timestamp)
+    const idNum = parseInt(String(formData.id), 10);
+    if (isNaN(idNum) || idNum > 2147483647) { // Max 32-bit integer
+      alert('Invalid entry ID. Please search and select a valid entry to delete.');
+      console.error('Attempted to delete entry with invalid ID:', formData.id);
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this entry?')) {
       return;
     }
@@ -557,9 +566,11 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
           if (!result.success) {
             console.error('Failed to delete entry from database:', result.error);
+            alert('Error: Could not delete entry from database');
           }
         } catch (e) {
           console.error('Error deleting entry from database:', e);
+          alert('Error: Could not delete entry from database');
         }
       }
     };

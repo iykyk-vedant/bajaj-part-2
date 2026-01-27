@@ -171,6 +171,9 @@ export async function findConsolidatedDataEntryByProductSrNo(productSrNo: string
 // Update consolidated data entry by product_sr_no
 export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: string, entry: any): Promise<boolean> {
   try {
+    console.log('Updating consolidated data entry for product_sr_no:', productSrNo);
+    console.log('Entry data being sent:', entry);
+    
     // Build dynamic query based on provided fields
     const updates = [];
     const values = [];
@@ -256,8 +259,17 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       updates.push(`repair_date = $${paramCount}`);
       values.push(repairDateValue);
       paramCount++;
+    } else if (entry.repair_date !== undefined && entry.repair_date !== null) {
+      const repairDateValue = entry.repair_date && entry.repair_date.trim() !== '' ? convertToPostgresDate(entry.repair_date) : null;
+      updates.push(`repair_date = $${paramCount}`);
+      values.push(repairDateValue);
+      paramCount++;
     }
     if (entry.testing !== undefined && entry.testing !== null) {
+      updates.push(`testing = $${paramCount}`);
+      values.push(entry.testing);
+      paramCount++;
+    } else if (entry.testing !== undefined && entry.testing !== null) {
       updates.push(`testing = $${paramCount}`);
       values.push(entry.testing);
       paramCount++;
@@ -266,8 +278,16 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       updates.push(`failure = $${paramCount}`);
       values.push(entry.failure);
       paramCount++;
+    } else if (entry.failure !== undefined && entry.failure !== null) {
+      updates.push(`failure = $${paramCount}`);
+      values.push(entry.failure);
+      paramCount++;
     }
     if (entry.status !== undefined && entry.status !== null) {
+      updates.push(`status = $${paramCount}`);
+      values.push(entry.status);
+      paramCount++;
+    } else if (entry.status !== undefined && entry.status !== null) {
       updates.push(`status = $${paramCount}`);
       values.push(entry.status);
       paramCount++;
@@ -276,28 +296,26 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       updates.push(`rf_observation = $${paramCount}`);
       values.push(entry.rfObservation);
       paramCount++;
+    } else if (entry.rf_observation !== undefined && entry.rf_observation !== null) {
+      updates.push(`rf_observation = $${paramCount}`);
+      values.push(entry.rf_observation);
+      paramCount++;
     }
     if (entry.analysis !== undefined && entry.analysis !== null) {
       updates.push(`analysis = $${paramCount}`);
       values.push(entry.analysis);
       paramCount++;
-    }
-    if (entry.validationResult !== undefined && entry.validationResult !== null) {
-      updates.push(`validation_result = $${paramCount}`);
-      values.push(entry.validationResult);
+    } else if (entry.analysis !== undefined && entry.analysis !== null) {
+      updates.push(`analysis = $${paramCount}`);
+      values.push(entry.analysis);
       paramCount++;
     }
-    if (entry.validation_result !== undefined && entry.validation_result !== null) {
-      updates.push(`validation_result = $${paramCount}`);
-      values.push(entry.validation_result);
-      paramCount++;
-    }
+    // validation_result column has been removed from database
     if (entry.componentChange !== undefined && entry.componentChange !== null) {
       updates.push(`component_change = $${paramCount}`);
       values.push(entry.componentChange);
       paramCount++;
-    }
-    if (entry.component_change !== undefined && entry.component_change !== null) {
+    } else if (entry.component_change !== undefined && entry.component_change !== null) {
       updates.push(`component_change = $${paramCount}`);
       values.push(entry.component_change);
       paramCount++;
@@ -306,8 +324,7 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       updates.push(`engg_name = $${paramCount}`);
       values.push(entry.enggName);
       paramCount++;
-    }
-    if (entry.engg_name !== undefined && entry.engg_name !== null) {
+    } else if (entry.engg_name !== undefined && entry.engg_name !== null) {
       updates.push(`engg_name = $${paramCount}`);
       values.push(entry.engg_name);
       paramCount++;
@@ -318,20 +335,32 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       updates.push(`tag_entry_by = $${paramCount}`);
       values.push(entry.tagEntryBy);
       paramCount++;
+    } else if (entry.tag_entry_by !== undefined && entry.tag_entry_by !== null) {
+      updates.push(`tag_entry_by = $${paramCount}`);
+      values.push(entry.tag_entry_by);
+      paramCount++;
     }
     if (entry.consumptionEntryBy !== undefined && entry.consumptionEntryBy !== null) {
       updates.push(`consumption_entry_by = $${paramCount}`);
       values.push(entry.consumptionEntryBy);
+      paramCount++;
+    } else if (entry.consumption_entry_by !== undefined && entry.consumption_entry_by !== null) {
+      updates.push(`consumption_entry_by = $${paramCount}`);
+      values.push(entry.consumption_entry_by);
       paramCount++;
     }
     if (entry.dispatchEntryBy !== undefined && entry.dispatchEntryBy !== null) {
       updates.push(`dispatch_entry_by = $${paramCount}`);
       values.push(entry.dispatchEntryBy);
       paramCount++;
+    } else if (entry.dispatch_entry_by !== undefined && entry.dispatch_entry_by !== null) {
+      updates.push(`dispatch_entry_by = $${paramCount}`);
+      values.push(entry.dispatch_entry_by);
+      paramCount++;
     }
     
-    if (entry.dispatchDate !== undefined && entry.dispatchDate !== null) {
-      const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
+    if ((entry.dispatchDate !== undefined && entry.dispatchDate !== null) || (entry.dispatch_date !== undefined && entry.dispatch_date !== null)) {
+      const dispatchDateValue = (entry.dispatchDate || entry.dispatch_date) && (entry.dispatchDate || entry.dispatch_date).trim() !== '' ? convertToPostgresDate(entry.dispatchDate || entry.dispatch_date) : null;
       updates.push(`dispatch_date = $${paramCount}`);
       values.push(dispatchDateValue);
       paramCount++;
@@ -348,11 +377,51 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
     
     const query = `UPDATE consolidated_data SET ${updates.join(', ')} WHERE product_sr_no = $${paramCount}`;
     
-    await pool.query(query, values);
+    console.log('Executing query:', query);
+    console.log('With values:', values);
+    
+    const result = await pool.query(query, values);
+    
+    console.log('Query result:', result);
+    console.log('Rows affected:', result.rowCount);
     
     return true;
   } catch (error) {
     console.error('Error updating consolidated data entry by product_sr_no:', error);
+    return false;
+  }
+}
+
+// Test function to verify database updates are working
+export async function testDatabaseUpdate(): Promise<boolean> {
+  try {
+    console.log('Testing database update...');
+    
+    // First, try to get a test record
+    const testResult = await pool.query(
+      'SELECT product_sr_no FROM consolidated_data LIMIT 1'
+    );
+    
+    if (testResult.rows.length === 0) {
+      console.log('No records found in consolidated_data table');
+      return false;
+    }
+    
+    const testProductSrNo = testResult.rows[0].product_sr_no;
+    console.log('Testing update for product_sr_no:', testProductSrNo);
+    
+    // Try a simple update
+    const updateResult = await pool.query(
+      'UPDATE consolidated_data SET updated_at = CURRENT_TIMESTAMP WHERE product_sr_no = $1',
+      [testProductSrNo]
+    );
+    
+    console.log('Test update result:', updateResult);
+    console.log('Rows affected:', updateResult.rowCount);
+    
+    return (updateResult.rowCount || 0) > 0;
+  } catch (error) {
+    console.error('Error testing database update:', error);
     return false;
   }
 }
@@ -718,8 +787,16 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       updates.push(`testing = $${paramCount}`);
       values.push(entry.testing);
       paramCount++;
+    } else if (entry.testing !== undefined && entry.testing !== null) {
+      updates.push(`testing = $${paramCount}`);
+      values.push(entry.testing);
+      paramCount++;
     }
     if (entry.failure !== undefined && entry.failure !== null) {
+      updates.push(`failure = $${paramCount}`);
+      values.push(entry.failure);
+      paramCount++;
+    } else if (entry.failure !== undefined && entry.failure !== null) {
       updates.push(`failure = $${paramCount}`);
       values.push(entry.failure);
       paramCount++;
@@ -728,33 +805,35 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       updates.push(`status = $${paramCount}`);
       values.push(entry.status);
       paramCount++;
+    } else if (entry.status !== undefined && entry.status !== null) {
+      updates.push(`status = $${paramCount}`);
+      values.push(entry.status);
+      paramCount++;
     }
     if (entry.rfObservation !== undefined && entry.rfObservation !== null) {
       updates.push(`rf_observation = $${paramCount}`);
       values.push(entry.rfObservation);
+      paramCount++;
+    } else if (entry.rf_observation !== undefined && entry.rf_observation !== null) {
+      updates.push(`rf_observation = $${paramCount}`);
+      values.push(entry.rf_observation);
       paramCount++;
     }
     if (entry.analysis !== undefined && entry.analysis !== null) {
       updates.push(`analysis = $${paramCount}`);
       values.push(entry.analysis);
       paramCount++;
-    }
-    if (entry.validationResult !== undefined && entry.validationResult !== null) {
-      updates.push(`validation_result = $${paramCount}`);
-      values.push(entry.validationResult);
+    } else if (entry.analysis !== undefined && entry.analysis !== null) {
+      updates.push(`analysis = $${paramCount}`);
+      values.push(entry.analysis);
       paramCount++;
     }
-    if (entry.validation_result !== undefined && entry.validation_result !== null) {
-      updates.push(`validation_result = $${paramCount}`);
-      values.push(entry.validation_result);
-      paramCount++;
-    }
+    // validation_result column has been removed from database
     if (entry.componentChange !== undefined && entry.componentChange !== null) {
       updates.push(`component_change = $${paramCount}`);
       values.push(entry.componentChange);
       paramCount++;
-    }
-    if (entry.component_change !== undefined && entry.component_change !== null) {
+    } else if (entry.component_change !== undefined && entry.component_change !== null) {
       updates.push(`component_change = $${paramCount}`);
       values.push(entry.component_change);
       paramCount++;
@@ -763,8 +842,7 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       updates.push(`engg_name = $${paramCount}`);
       values.push(entry.enggName);
       paramCount++;
-    }
-    if (entry.engg_name !== undefined && entry.engg_name !== null) {
+    } else if (entry.engg_name !== undefined && entry.engg_name !== null) {
       updates.push(`engg_name = $${paramCount}`);
       values.push(entry.engg_name);
       paramCount++;
@@ -775,20 +853,37 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       updates.push(`tag_entry_by = $${paramCount}`);
       values.push(entry.tagEntryBy);
       paramCount++;
+    } else if (entry.tag_entry_by !== undefined && entry.tag_entry_by !== null) {
+      updates.push(`tag_entry_by = $${paramCount}`);
+      values.push(entry.tag_entry_by);
+      paramCount++;
     }
     if (entry.consumptionEntryBy !== undefined && entry.consumptionEntryBy !== null) {
       updates.push(`consumption_entry_by = $${paramCount}`);
       values.push(entry.consumptionEntryBy);
+      paramCount++;
+    } else if (entry.consumption_entry_by !== undefined && entry.consumption_entry_by !== null) {
+      updates.push(`consumption_entry_by = $${paramCount}`);
+      values.push(entry.consumption_entry_by);
       paramCount++;
     }
     if (entry.dispatchEntryBy !== undefined && entry.dispatchEntryBy !== null) {
       updates.push(`dispatch_entry_by = $${paramCount}`);
       values.push(entry.dispatchEntryBy);
       paramCount++;
+    } else if (entry.dispatch_entry_by !== undefined && entry.dispatch_entry_by !== null) {
+      updates.push(`dispatch_entry_by = $${paramCount}`);
+      values.push(entry.dispatch_entry_by);
+      paramCount++;
     }
     
     if (entry.dispatchDate !== undefined && entry.dispatchDate !== null) {
       const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
+      updates.push(`dispatch_date = $${paramCount}`);
+      values.push(dispatchDateValue);
+      paramCount++;
+    } else if (entry.dispatch_date !== undefined && entry.dispatch_date !== null) {
+      const dispatchDateValue = entry.dispatch_date && entry.dispatch_date.trim() !== '' ? convertToPostgresDate(entry.dispatch_date) : null;
       updates.push(`dispatch_date = $${paramCount}`);
       values.push(dispatchDateValue);
       paramCount++;
@@ -921,19 +1016,20 @@ export async function searchConsolidatedDataEntriesByPcb(dcNo?: string, partCode
     const params: any[] = [];
     let paramCount = 1;
     
-    if (dcNo) {
+    // Only add conditions for non-empty parameters
+    if (dcNo && dcNo.trim() !== '') {
       query += ` AND dc_no = $${paramCount}`;
       params.push(dcNo);
       paramCount++;
     }
     
-    if (partCode) {
+    if (partCode && partCode.trim() !== '') {
       query += ` AND part_code = $${paramCount}`;
       params.push(partCode);
       paramCount++;
     }
     
-    if (pcbSrNo) {
+    if (pcbSrNo && pcbSrNo.trim() !== '') {
       query += ` AND pcb_sr_no = $${paramCount}`;
       params.push(pcbSrNo);
       paramCount++;
@@ -941,7 +1037,10 @@ export async function searchConsolidatedDataEntriesByPcb(dcNo?: string, partCode
     
     query += ' ORDER BY created_at DESC';
     
+    console.log('Executing search query:', query, 'with params:', params);
+    
     const result = await pool.query(query, params);
+    console.log('Search returned', result.rows.length, 'results');
     return result.rows;
   } catch (error) {
     console.error('Error searching consolidated data entries by PCB:', error);

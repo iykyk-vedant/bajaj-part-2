@@ -41,35 +41,66 @@ export async function POST(request: Request) {
       { header: 'Dispatch Date', key: 'dispatchDate', width: 15 },
     ];
 
+    // Helper function to format dates for Excel
+    function formatDateForExcel(dateValue: string | Date | null | undefined): string {
+      if (!dateValue) return '';
+      
+      // If it's already in DD/MM/YYYY format, return as is
+      if (typeof dateValue === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
+        return dateValue;
+      }
+      
+      // If it's a date string, parse it and convert to DD/MM/YYYY format
+      let date: Date;
+      if (typeof dateValue === 'string') {
+        // Handle various date formats (YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY, etc.)
+        date = new Date(dateValue);
+      } else {
+        date = dateValue as Date;
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      
+      // Format as DD/MM/YYYY
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      
+      return `${day}/${month}/${year}`;
+    }
+    
     // Add all consolidated data to the worksheet
     allConsolidatedData.forEach((entry: any) => {
       worksheet.addRow({
         srNo: entry.sr_no || '',
         dcNo: entry.dc_no || '',
-        dcDate: entry.dc_date || '',
+        dcDate: formatDateForExcel(entry.dc_date) || '',
         branch: entry.branch || '',
         bccdName: entry.bccd_name || '',
         productDescription: entry.product_description || '',
         productSrNo: entry.product_sr_no || '',
-        dateOfPurchase: entry.date_of_purchase || '',
+        dateOfPurchase: formatDateForExcel(entry.date_of_purchase) || '',
         complaintNo: entry.complaint_no || '',
         partCode: entry.part_code || '',
         natureOfDefect: entry.nature_of_defect || '',
         visitingTechName: entry.visiting_tech_name || '',
         mfgMonthYear: entry.mfg_month_year || '',
         // Consumption-specific fields
-        repairDate: entry.repair_date || '',
+        repairDate: formatDateForExcel(entry.repair_date) || '',
         testing: entry.testing || '',
         failure: entry.failure || '',
         status: entry.status || '',
-        pcbSrNo: entry.pcb_sr_no || '',
+        pcbSrNo: entry.pcbSr_no || '',
         analysis: entry.analysis || '',
         componentChange: entry.component_change || '',
         enggName: entry.engg_name || '',
         tagEntryBy: entry.tag_entry_by || '',
         consumptionEntryBy: entry.consumption_entry_by || '',
         dispatchEntryBy: entry.dispatch_entry_by || '',
-        dispatchDate: entry.dispatch_date || '',
+        dispatchDate: formatDateForExcel(entry.dispatch_date) || '',
       });
     });
     

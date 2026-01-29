@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Camera, FileUp, Loader2, Video, ScanLine } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { saveCapturedImage } from '@/lib/camera-utils';
+import { toast } from '@/hooks/use-toast';
 
 type ImageUploaderProps = {
   onImageReady: (dataUrl: string) => void;
@@ -38,14 +40,31 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
     }
   };
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const dataUrl = e.target?.result as string;
         setImageDataUrl(dataUrl);
         onImageReady(dataUrl);
+        
+        // Save the uploaded image to the configured path
+        const saveResult = await saveCapturedImage(dataUrl, 'upload');
+        
+        if (saveResult.success) {
+          toast({
+            title: 'Image Saved',
+            description: `Image saved successfully to: ${saveResult.filePath}`,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Save Failed',
+            description: saveResult.error || 'Failed to save image',
+          });
+        }
+        
         stopCamera();
       };
       reader.readAsDataURL(file);
@@ -91,7 +110,7 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
     setIsCameraOn(false);
   };
 
-  const takePicture = () => {
+  const takePicture = async () => {
     if (videoRef.current) {
         const canvas = document.createElement('canvas');
         canvas.width = videoRef.current.videoWidth;
@@ -100,6 +119,23 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
         const dataUrl = canvas.toDataURL('image/jpeg');
         setImageDataUrl(dataUrl);
         onImageReady(dataUrl);
+        
+        // Save the image to the configured path
+        const saveResult = await saveCapturedImage(dataUrl, 'camera');
+        
+        if (saveResult.success) {
+          toast({
+            title: 'Photo Saved',
+            description: `Image saved successfully to: ${saveResult.filePath}`,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Save Failed',
+            description: saveResult.error || 'Failed to save image',
+          });
+        }
+        
         stopCamera();
     }
   };

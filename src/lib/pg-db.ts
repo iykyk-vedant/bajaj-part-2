@@ -38,7 +38,7 @@ const pool = new Pool(poolConfig);
 export async function initializeDatabase() {
   try {
     const databaseName = process.env.PG_DATABASE || 'nexscan';
-    
+
     // Create BOM table for component validation
     await pool.query(`
       CREATE TABLE IF NOT EXISTS bom (
@@ -50,7 +50,7 @@ export async function initializeDatabase() {
         UNIQUE (part_code, location)
       )
     `);
-    
+
     // Create dc_numbers table for storing DC numbers and their part codes
     await pool.query(`
       CREATE TABLE IF NOT EXISTS dc_numbers (
@@ -61,7 +61,7 @@ export async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     // Create consolidated_data table that matches the Excel export structure
     await pool.query(`
       CREATE TABLE IF NOT EXISTS consolidated_data (
@@ -95,11 +95,11 @@ export async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     // Create users table for Supabase user synchronization
     // Enable the pgcrypto extension for gen_random_uuid() if not already enabled
     await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
-    
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -110,7 +110,7 @@ export async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
-    
+
     // Create engineers table for storing engineer names
     await pool.query(`
       CREATE TABLE IF NOT EXISTS engineers (
@@ -120,7 +120,7 @@ export async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     // Create indexes for better query performance
     try {
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_engineer_name ON engineers (name);`);
@@ -128,7 +128,7 @@ export async function initializeDatabase() {
       // Index might already exist, which is fine
       console.log('Engineer index creation attempted - may already exist');
     }
-    
+
     // Add name column if it doesn't exist (for existing databases)
     try {
       await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;`);
@@ -136,7 +136,7 @@ export async function initializeDatabase() {
       // Column may already exist, which is fine
       console.log('Name column addition attempted - may already exist');
     }
-    
+
     // Create indexes for better query performance
     try {
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_supabase_user_id ON users (supabase_user_id);`);
@@ -145,6 +145,16 @@ export async function initializeDatabase() {
       // Indexes might already exist, which is fine
       console.log('Indexes creation attempted - may already exist');
     }
+
+    // Create sheets table for grouping data
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sheets (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     console.log('Database initialized successfully');
   } catch (error) {
@@ -160,7 +170,7 @@ export async function findConsolidatedDataEntryByProductSrNo(productSrNo: string
       'SELECT * FROM consolidated_data WHERE product_sr_no = $1 LIMIT 1',
       [productSrNo]
     );
-    
+
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
     console.error('Error finding consolidated data entry by product_sr_no:', error);
@@ -173,12 +183,12 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
   try {
     console.log('Updating consolidated data entry for product_sr_no:', productSrNo);
     console.log('Entry data being sent:', entry);
-    
+
     // Build dynamic query based on provided fields
     const updates = [];
     const values = [];
     let paramCount = 1;
-    
+
     // Handle tag entry fields (only update if provided)
     if (entry.srNo !== undefined && entry.srNo !== null) {
       updates.push(`sr_no = $${paramCount}`);
@@ -252,7 +262,7 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       values.push(entry.pcbSrNo);
       paramCount++;
     }
-    
+
     // Handle consumption fields (only update if provided)
     if (entry.repairDate !== undefined && entry.repairDate !== null) {
       const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? convertToPostgresDate(entry.repairDate) : null;
@@ -329,7 +339,7 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       values.push(entry.engg_name);
       paramCount++;
     }
-    
+
     // Handle new separate engineer name fields
     if (entry.tagEntryBy !== undefined && entry.tagEntryBy !== null) {
       updates.push(`tag_entry_by = $${paramCount}`);
@@ -358,33 +368,33 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       values.push(entry.dispatch_entry_by);
       paramCount++;
     }
-    
+
     if ((entry.dispatchDate !== undefined && entry.dispatchDate !== null) || (entry.dispatch_date !== undefined && entry.dispatch_date !== null)) {
       const dispatchDateValue = (entry.dispatchDate || entry.dispatch_date) && (entry.dispatchDate || entry.dispatch_date).trim() !== '' ? convertToPostgresDate(entry.dispatchDate || entry.dispatch_date) : null;
       updates.push(`dispatch_date = $${paramCount}`);
       values.push(dispatchDateValue);
       paramCount++;
     }
-    
+
     if (updates.length === 0) {
       console.log('No fields to update');
       return true; // Nothing to update, but not an error
     }
-    
+
     // Add updated_at and product_sr_no to the end
     updates.push('updated_at = CURRENT_TIMESTAMP');
     values.push(productSrNo);
-    
+
     const query = `UPDATE consolidated_data SET ${updates.join(', ')} WHERE product_sr_no = $${paramCount}`;
-    
+
     console.log('Executing query:', query);
     console.log('With values:', values);
-    
+
     const result = await pool.query(query, values);
-    
+
     console.log('Query result:', result);
     console.log('Rows affected:', result.rowCount);
-    
+
     return true;
   } catch (error) {
     console.error('Error updating consolidated data entry by product_sr_no:', error);
@@ -396,29 +406,29 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
 export async function testDatabaseUpdate(): Promise<boolean> {
   try {
     console.log('Testing database update...');
-    
+
     // First, try to get a test record
     const testResult = await pool.query(
       'SELECT product_sr_no FROM consolidated_data LIMIT 1'
     );
-    
+
     if (testResult.rows.length === 0) {
       console.log('No records found in consolidated_data table');
       return false;
     }
-    
+
     const testProductSrNo = testResult.rows[0].product_sr_no;
     console.log('Testing update for product_sr_no:', testProductSrNo);
-    
+
     // Try a simple update
     const updateResult = await pool.query(
       'UPDATE consolidated_data SET updated_at = CURRENT_TIMESTAMP WHERE product_sr_no = $1',
       [testProductSrNo]
     );
-    
+
     console.log('Test update result:', updateResult);
     console.log('Rows affected:', updateResult.rowCount);
-    
+
     return (updateResult.rowCount || 0) > 0;
   } catch (error) {
     console.error('Error testing database update:', error);
@@ -427,12 +437,12 @@ export async function testDatabaseUpdate(): Promise<boolean> {
 }
 
 // Engineer service functions
-export async function getAllEngineers(): Promise<{id: number, name: string}[]> {
+export async function getAllEngineers(): Promise<{ id: number, name: string }[]> {
   try {
     const result = await pool.query(
       'SELECT id, name FROM engineers ORDER BY name ASC'
     );
-    
+
     return result.rows;
   } catch (error) {
     console.error('Error fetching engineers:', error);
@@ -446,7 +456,7 @@ export async function addEngineer(name: string): Promise<boolean> {
       'INSERT INTO engineers (name) VALUES ($1) ON CONFLICT (name) DO NOTHING',
       [name.trim()]
     );
-    
+
     return true;
   } catch (error) {
     console.error('Error adding engineer:', error);
@@ -460,7 +470,7 @@ export async function deleteEngineer(id: number): Promise<boolean> {
       'DELETE FROM engineers WHERE id = $1',
       [id]
     );
-    
+
     return true;
   } catch (error) {
     console.error('Error deleting engineer:', error);
@@ -478,7 +488,7 @@ export async function getBomDescription(partCode: string, location: string): Pro
       'SELECT description FROM bom WHERE part_code = $1 AND location = $2',
       [partCode, location]
     );
-    
+
     if (result.rows.length > 0) {
       return result.rows[0].description;
     }
@@ -496,7 +506,7 @@ export async function checkIfLocationExists(location: string): Promise<boolean> 
       'SELECT COUNT(*) as count FROM bom WHERE location = $1',
       [location]
     );
-    
+
     return parseInt(result.rows[0].count) > 0;
   } catch (error) {
     console.error('Error checking if location exists:', error);
@@ -513,7 +523,7 @@ export async function checkComponentForPartCode(partCode: string, location: stri
       'SELECT COUNT(*) as count FROM bom WHERE part_code = $1 AND location = $2',
       [partCode, location]
     );
-    
+
     return parseInt(result.rows[0].count) > 0;
   } catch (error) {
     console.error('Error checking component for part code:', error);
@@ -522,12 +532,12 @@ export async function checkComponentForPartCode(partCode: string, location: stri
 }
 
 // DC Number service functions
-export async function getAllDcNumbers(): Promise<{dcNumber: string, partCodes: string[]}[]> {
+export async function getAllDcNumbers(): Promise<{ dcNumber: string, partCodes: string[] }[]> {
   try {
     const result = await pool.query(
       'SELECT dc_number, part_codes FROM dc_numbers ORDER BY created_at ASC'
     );
-    
+
     return result.rows.map((row: any) => {
       let partCodes: string[] = [];
       if (row.part_codes) {
@@ -566,7 +576,7 @@ export async function addDcNumber(dcNumber: string, partCodes: string[] = []): P
       'SELECT id FROM dc_numbers WHERE dc_number = $1',
       [dcNumber]
     );
-    
+
     if (existingResult.rows.length > 0) {
       // Update existing record
       await pool.query(
@@ -580,7 +590,7 @@ export async function addDcNumber(dcNumber: string, partCodes: string[] = []): P
         [dcNumber, JSON.stringify(partCodes)]
       );
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error adding DC number:', error);
@@ -624,7 +634,7 @@ export async function addSampleBomData() {
     if (parseInt(countResult.rows[0].count) > 0) {
       return; // Already has data
     }
-    
+
     // No sample data to add - keeping database empty as per requirements
     console.log('No sample BOM data added - database kept empty');
   } catch (error) {
@@ -640,7 +650,7 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
     const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? convertToPostgresDate(entry.dateOfPurchase) : null;
     const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? convertToPostgresDate(entry.repairDate) : null;
     const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
-    
+
     await pool.query(`
       INSERT INTO consolidated_data 
       (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
@@ -675,7 +685,7 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
       entry.dispatchEntryBy,
       dispatchDateValue
     ]);
-    
+
     return true;
   } catch (error) {
     console.error('Error saving consolidated data entry:', error);
@@ -701,7 +711,7 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
     const updates = [];
     const values = [];
     let paramCount = 1;
-    
+
     // Handle tag entry fields (only update if provided)
     if (entry.srNo !== undefined && entry.srNo !== null) {
       updates.push(`sr_no = $${paramCount}`);
@@ -775,7 +785,7 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       values.push(entry.pcbSrNo);
       paramCount++;
     }
-    
+
     // Handle consumption fields (only update if provided)
     if (entry.repairDate !== undefined && entry.repairDate !== null) {
       const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? convertToPostgresDate(entry.repairDate) : null;
@@ -847,7 +857,7 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       values.push(entry.engg_name);
       paramCount++;
     }
-    
+
     // Handle new separate engineer name fields
     if (entry.tagEntryBy !== undefined && entry.tagEntryBy !== null) {
       updates.push(`tag_entry_by = $${paramCount}`);
@@ -876,7 +886,7 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       values.push(entry.dispatch_entry_by);
       paramCount++;
     }
-    
+
     if (entry.dispatchDate !== undefined && entry.dispatchDate !== null) {
       const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
       updates.push(`dispatch_date = $${paramCount}`);
@@ -888,20 +898,20 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       values.push(dispatchDateValue);
       paramCount++;
     }
-    
+
     if (updates.length === 0) {
       console.log('No fields to update');
       return true; // Nothing to update, but not an error
     }
-    
+
     // Add updated_at and id to the end
     updates.push('updated_at = CURRENT_TIMESTAMP');
     values.push(id);
-    
+
     const query = `UPDATE consolidated_data SET ${updates.join(', ')} WHERE id = $${paramCount}`;
-    
+
     await pool.query(query, values);
-    
+
     return true;
   } catch (error) {
     console.error('Error updating consolidated data entry:', error);
@@ -928,24 +938,24 @@ export function convertToPostgresDate(dateStr: string | null): string | null {
   if (!dateStr || dateStr.trim() === '') {
     return null;
   }
-  
+
   // If already in YYYY-MM-DD format, return as is
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr;
   }
-  
+
   // Try to parse DD/MM/YYYY or MM/DD/YYYY or DD-MM-YYYY format
   const parts = dateStr.split(/[\/-]/);
   if (parts.length === 3) {
     const [first, second, year] = parts;
-    
+
     // If year is 2 digits, convert to 4 digits (assuming 20xx)
     let fullYear = year.length === 2 ? `20${year}` : year;
-    
+
     // Check if first part looks like day (1-31) or month (1-12)
     const firstNum = parseInt(first, 10);
     const secondNum = parseInt(second, 10);
-    
+
     // If first number is more than 12, assume it's DD/MM/YYYY or DD-MM-YYYY
     if (firstNum > 12) {
       // DD/MM/YYYY or DD-MM-YYYY format
@@ -959,7 +969,7 @@ export function convertToPostgresDate(dateStr: string | null): string | null {
       return `${fullYear}-${month}-${day}`;
     }
   }
-  
+
   // If we can't parse it, return as is and let PostgreSQL handle the error
   return dateStr;
 }
@@ -980,27 +990,27 @@ export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: st
     let query = 'SELECT * FROM consolidated_data WHERE TRUE';
     const params: any[] = [];
     let paramCount = 1;
-    
+
     if (dcNo) {
       query += ` AND dc_no = $${paramCount}`;
       params.push(dcNo);
       paramCount++;
     }
-    
+
     if (partCode) {
       query += ` AND part_code = $${paramCount}`;
       params.push(partCode);
       paramCount++;
     }
-    
+
     if (productSrNo) {
       query += ` AND product_sr_no = $${paramCount}`;
       params.push(productSrNo);
       paramCount++;
     }
-    
+
     query += ' ORDER BY created_at DESC';
-    
+
     const result = await pool.query(query, params);
     return result.rows;
   } catch (error) {
@@ -1015,30 +1025,30 @@ export async function searchConsolidatedDataEntriesByPcb(dcNo?: string, partCode
     let query = 'SELECT * FROM consolidated_data WHERE TRUE';
     const params: any[] = [];
     let paramCount = 1;
-    
+
     // Only add conditions for non-empty parameters
     if (dcNo && dcNo.trim() !== '') {
       query += ` AND dc_no = $${paramCount}`;
       params.push(dcNo);
       paramCount++;
     }
-    
+
     if (partCode && partCode.trim() !== '') {
       query += ` AND part_code = $${paramCount}`;
       params.push(partCode);
       paramCount++;
     }
-    
+
     if (pcbSrNo && pcbSrNo.trim() !== '') {
       query += ` AND pcb_sr_no = $${paramCount}`;
       params.push(pcbSrNo);
       paramCount++;
     }
-    
+
     query += ' ORDER BY created_at DESC';
-    
+
     console.log('Executing search query:', query, 'with params:', params);
-    
+
     const result = await pool.query(query, params);
     console.log('Search returned', result.rows.length, 'results');
     return result.rows;
@@ -1055,7 +1065,7 @@ export async function getConsolidatedDataEntriesByDcNo(dcNo: string): Promise<an
       'SELECT * FROM consolidated_data WHERE dc_no = $1 ORDER BY created_at DESC',
       [dcNo]
     );
-    
+
     return result.rows;
   } catch (error) {
     console.error('Error getting consolidated data entries by DC number:', error);
@@ -1072,28 +1082,28 @@ export async function removeUnusedColumnsFromConsolidatedData() {
       FROM information_schema.columns 
       WHERE table_name = 'consolidated_data' AND column_name = 'rf_observation'
     `);
-    
+
     if (rfObsCheck.rows.length > 0) {
       await pool.query('ALTER TABLE consolidated_data DROP COLUMN rf_observation');
       console.log('Column rf_observation removed successfully');
     } else {
       console.log('Column rf_observation does not exist, skipping');
     }
-    
+
     // Check if validation_result column exists before attempting to drop it
     const valResCheck = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'consolidated_data' AND column_name = 'validation_result'
     `);
-    
+
     if (valResCheck.rows.length > 0) {
       await pool.query('ALTER TABLE consolidated_data DROP COLUMN validation_result');
       console.log('Column validation_result removed successfully');
     } else {
       console.log('Column validation_result does not exist, skipping');
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error removing unused columns from consolidated_data:', error);

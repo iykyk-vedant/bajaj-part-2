@@ -174,11 +174,11 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
           setSavedEntries(tagEntries);
           
-          // Set initial SR No based on DC Number from database
-          if (formData.dcNo) {
-            console.log('Loading SR No for DC:', formData.dcNo);
-            const { getNextSrNoForDcAction } = await import('@/app/actions/consumption-actions');
-            const srNoResult = await getNextSrNoForDcAction(formData.dcNo);
+          // Set initial SR No based on Partcode from database
+          if (formData.partCode) {
+            console.log('Loading SR No for Partcode:', formData.partCode);
+            const { getNextSrNoForPartcodeAction } = await import('@/app/actions/consumption-actions');
+            const srNoResult = await getNextSrNoForPartcodeAction(formData.partCode);
             console.log('SR No result:', srNoResult);
             if (srNoResult.success && srNoResult.data) {
               console.log('Setting SR No to:', srNoResult.data);
@@ -216,16 +216,16 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       }
 
       setFormData(prev => {
-        // Calculate next sequential serial number for the selected DC from database
-        const dcNo = initialData.dcNo || prev.dcNo;
+        // Calculate next sequential serial number for the selected Partcode from database
+        const partCode = initialData.partCode || prev.partCode;
         let newSrNo = prev.srNo; // Default to current srNo
 
         // Use database-based SR No generation
         const generateSrNoFromDb = async () => {
-          if (dcNo) {
+          if (partCode) {
             try {
-              const { getNextSrNoForDcAction } = await import('@/app/actions/consumption-actions');
-              const srNoResult = await getNextSrNoForDcAction(dcNo);
+              const { getNextSrNoForPartcodeAction } = await import('@/app/actions/consumption-actions');
+              const srNoResult = await getNextSrNoForPartcodeAction(partCode);
               if (srNoResult.success && srNoResult.data) {
                 return srNoResult.data;
               }
@@ -469,7 +469,29 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('=== HANDLE SUBMIT CALLED (SIMPLIFIED) ===');
+    console.log('=== HANDLE SUBMIT CALLED ===');
+    console.log('Form data:', formData);
+    console.log('Session data:', { sessionDcNumber, sessionPartCode });
+    
+    // Check if all required fields are present
+    const requiredFields = {
+      dcNo: formData.dcNo,
+      productSrNo: formData.productSrNo,
+      complaintNo: formData.complaintNo
+    };
+    
+    console.log('Required fields check:', requiredFields);
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key);
+    
+    if (missingFields.length > 0) {
+      console.log('MISSING REQUIRED FIELDS:', missingFields);
+      alert(`Missing required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+    
+    console.log('All required fields present');
     
     // Skip all validation and use direct save approach
     console.log('Using direct save approach...');
@@ -492,23 +514,27 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
     };
     
-    console.log('Saving entry:', entryToSave);
+    console.log('Entry to save:', entryToSave);
     
     try {
+      console.log('Importing save function...');
       const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
+      console.log('Calling save function with session data:', { sessionDcNumber, sessionPartCode });
       const result = await saveConsolidatedData(entryToSave, sessionDcNumber || undefined, sessionPartCode || undefined);
       
       console.log('Save result:', result);
       
       if (result.success) {
+        console.log('SAVE SUCCESSFUL');
         alert('Entry saved successfully!');
         handleClear();
         setShowSavedList(true);
       } else {
+        console.log('SAVE FAILED:', result.error);
         alert('Failed to save entry: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error saving entry:', error);
+      console.error('SAVE ERROR:', error);
       alert('Error saving entry: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
@@ -1058,42 +1084,6 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Save (Alt+S)
-        </button>
-        
-        {/* DEBUG: Test save function directly */}
-        <button
-          type="button"
-          onClick={async () => {
-            console.log('=== DIRECT SAVE TEST ===');
-            console.log('Current form data:', formData);
-            console.log('Session data:', { sessionDcNumber, sessionPartCode });
-            
-            // Call save function directly
-            const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
-            const testData = {
-              srNo: '999',
-              dcNo: 'TEST_DC',
-              branch: 'Test Branch',
-              bccdName: 'Test BCCD',
-              productDescription: 'Test Product',
-              productSrNo: 'TEST_' + Date.now(),
-              complaintNo: 'TEST_COMPLAINT',
-              partCode: 'TEST_PART',
-              natureOfDefect: 'Test Defect',
-              visitingTechName: 'Test Tech',
-              mfgMonthYear: '01/2025',
-              pcbSrNo: 'TEST_PCB',
-              enggName: 'Test Engineer',
-              tagEntryBy: 'Test User',
-            };
-            
-            console.log('Calling save with test data...');
-            const result = await saveConsolidatedData(testData, 'TEST_DC_NUM', 'TEST_PART_CODE');
-            console.log('Save result:', result);
-          }}
-          className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 ml-2"
-        >
-          Test Save
         </button>
       </div>
 

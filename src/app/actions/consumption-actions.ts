@@ -117,10 +117,17 @@ export async function saveConsolidatedData(data: any, sessionDcNumber?: string, 
     
     console.log('Database save result:', result);
     
-    return {
-      success: true,
-      data: result
-    };
+    if (result === true) {
+      return {
+        success: true,
+        data: true
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Failed to save data to database'
+      };
+    }
   } catch (error) {
     console.error('Error saving consolidated data:', error);
     return {
@@ -320,19 +327,19 @@ export async function getConsolidatedDataEntriesByDcNoAction(dcNo: string) {
   }
 }
 
-// Server action to get the next SR No for a given DC Number
-export async function getNextSrNoForDcAction(dcNo: string) {
+// Server action to get the next SR No for a given Partcode
+export async function getNextSrNoForPartcodeAction(partcode: string) {
   try {
-    console.log('getNextSrNoForDcAction called with DC:', dcNo);
-    const { getNextSrNoForDc } = await import('@/lib/pg-db');
-    const nextSrNo = await getNextSrNoForDc(dcNo);
-    console.log('getNextSrNoForDcAction returning:', nextSrNo);
+    console.log('getNextSrNoForPartcodeAction called with Partcode:', partcode);
+    const { getNextSrNoForPartcode } = await import('@/lib/pg-db');
+    const nextSrNo = await getNextSrNoForPartcode(partcode);
+    console.log('getNextSrNoForPartcodeAction returning:', nextSrNo);
     return {
       success: true,
       data: nextSrNo
     };
   } catch (error) {
-    console.error('Error getting next SR No for DC:', error);
+    console.error('Error getting next SR No for Partcode:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred'

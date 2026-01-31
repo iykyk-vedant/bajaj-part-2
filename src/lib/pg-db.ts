@@ -153,14 +153,14 @@ export async function initializeDatabase() {
   }
 }
 
-// Get the next sequential SR No for a given DC Number
-export async function getNextSrNoForDc(dcNo: string): Promise<string> {
+// Get the next sequential SR No for a given Partcode
+export async function getNextSrNoForPartcode(partcode: string): Promise<string> {
   try {
-    console.log('Getting next SR No for DC:', dcNo);
+    console.log('Getting next SR No for Partcode:', partcode);
     
     const result = await pool.query(
-      'SELECT MAX(CAST(sr_no AS INTEGER)) as max_sr_no FROM consolidated_data WHERE dc_no = $1',
-      [dcNo]
+      'SELECT MAX(CAST(sr_no AS INTEGER)) as max_sr_no FROM consolidated_data WHERE partcode = $1',
+      [partcode]
     );
     
     console.log('Database query result:', result.rows);
@@ -175,7 +175,7 @@ export async function getNextSrNoForDc(dcNo: string): Promise<string> {
     
     return formattedSrNo;
   } catch (error) {
-    console.error('Error getting next SR No for DC:', error);
+    console.error('Error getting next SR No for Partcode:', error);
     return '001'; // Default fallback
   }
 }
@@ -666,6 +666,17 @@ export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: st
     console.log('Entry data:', entry);
     console.log('Session data - DC Number:', sessionDcNumber, 'Partcode:', sessionPartcode);
     
+    // Validate required fields
+    const requiredFields = ['srNo', 'dcNo', 'productSrNo', 'complaintNo'];
+    const missingFields = requiredFields.filter(field => !entry[field]);
+    
+    if (missingFields.length > 0) {
+      console.log('MISSING REQUIRED FIELDS:', missingFields);
+      return false;
+    }
+    
+    console.log('All required fields present');
+    
     // Handle empty dates by converting them to NULL
     const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? convertToPostgresDate(entry.dcDate) : null;
     const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? convertToPostgresDate(entry.dateOfPurchase) : null;
@@ -674,6 +685,7 @@ export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: st
     
     console.log('Converted dates - DC:', dcDateValue, 'Purchase:', dateOfPurchaseValue, 'Repair:', repairDateValue, 'Dispatch:', dispatchDateValue);
     
+    console.log('Executing database insert...');
     const result = await pool.query(`
       INSERT INTO consolidated_data 
       (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
@@ -716,9 +728,23 @@ export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: st
     console.log('Database insert result:', result);
     console.log('Inserted record ID:', result.rows[0]?.id);
     
-    return true;
+    if (result.rows.length > 0) {
+      console.log('SUCCESS: Record inserted with ID:', result.rows[0].id);
+      return true;
+    } else {
+      console.log('WARNING: No rows returned from insert');
+      return false;
+    }
   } catch (error) {
-    console.error('Error saving consolidated data entry:', error);
+    console.error('=== DATABASE SAVE ERROR ===');
+    console.error('Error details:', error);
+    
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
     return false;
   }
 }

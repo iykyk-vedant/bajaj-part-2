@@ -10,6 +10,7 @@
   "start": "next start -p ${PORT:-3000}",
   "lint": "echo \"Lint skipped due to config issue\"",
   "test": "echo \"No tests defined\"",
+  "test:coverage": "echo \"Coverage not configured\"",
   "typecheck": "tsc --noEmit",
   "init-db": "tsx src/lib/pg-init-db.ts",
   "import-bom": "tsx src/lib/import-bom.ts",

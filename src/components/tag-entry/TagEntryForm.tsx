@@ -477,6 +477,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     const entryToSave = {
       srNo: formData.srNo || '001',
       dcNo: formData.dcNo || '',
+      dcDate: formData.dcDate || '',
       branch: formData.branch || 'Mumbai',
       bccdName: formData.bccdName || '',
       productDescription: formData.productDescription || '',
@@ -484,12 +485,19 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       dateOfPurchase: formData.dateOfPurchase || '',
       complaintNo: formData.complaintNo || '',
       partCode: formData.partCode || '',
-      natureOfDefect: formData.natureOfDefect || '',
+      defect: formData.natureOfDefect || '', // Map natureOfDefect to defect field
       visitingTechName: formData.visitingTechName || '',
       mfgMonthYear: formData.mfgMonthYear || '',
+      repairDate: formData.repairDate || '',
+      testing: formData.testing || '',
+      failure: formData.failure || '',
+      status: formData.status || '',
       pcbSrNo: formData.pcbSrNo || '',
+      analysis: formData.analysis || '',
+      componentChange: formData.componentChange || '',
       enggName: formData.enggName || '',
       tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
+      dispatchDate: formData.dispatchDate || '',
     };
     
     console.log('Saving entry:', entryToSave);

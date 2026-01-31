@@ -243,8 +243,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           dcNo: initialData.dcNo || prev.dcNo,
           branch: initialData.branch || prev.branch,
           bccdName: initialData.bccdName || prev.bccdName,
-          // Don't override productDescription if partCode is already set
-          productDescription: (prev.partCode || initialData.sparePartCode) ? prev.productDescription : (initialData.productDescription || prev.productDescription),
+          // Always allow productDescription to be updated from initialData or auto-population
+          productDescription: initialData.productDescription || prev.productDescription,
           productSrNo: initialData.productSrNo || prev.productSrNo,
           dateOfPurchase: initialData.dateOfPurchase || prev.dateOfPurchase,
           complaintNo: initialData.complaintNo || prev.complaintNo,
@@ -284,7 +284,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         }));
       }
     }
-  }, [formData.partCode]);
+  }, [formData.partCode, spareParts, formData.productDescription]);
 
   // Auto-generate PCB serial number when part code or mfgMonthYear changes
   useEffect(() => {
@@ -1060,41 +1060,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           Save (Alt+S)
         </button>
         
-        {/* DEBUG: Test save function directly */}
-        <button
-          type="button"
-          onClick={async () => {
-            console.log('=== DIRECT SAVE TEST ===');
-            console.log('Current form data:', formData);
-            console.log('Session data:', { sessionDcNumber, sessionPartCode });
-            
-            // Call save function directly
-            const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
-            const testData = {
-              srNo: '999',
-              dcNo: 'TEST_DC',
-              branch: 'Test Branch',
-              bccdName: 'Test BCCD',
-              productDescription: 'Test Product',
-              productSrNo: 'TEST_' + Date.now(),
-              complaintNo: 'TEST_COMPLAINT',
-              partCode: 'TEST_PART',
-              natureOfDefect: 'Test Defect',
-              visitingTechName: 'Test Tech',
-              mfgMonthYear: '01/2025',
-              pcbSrNo: 'TEST_PCB',
-              enggName: 'Test Engineer',
-              tagEntryBy: 'Test User',
-            };
-            
-            console.log('Calling save with test data...');
-            const result = await saveConsolidatedData(testData, 'TEST_DC_NUM', 'TEST_PART_CODE');
-            console.log('Save result:', result);
-          }}
-          className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 ml-2"
-        >
-          Test Save
-        </button>
+
       </div>
 
       {/* Search Bar (below action buttons) */}

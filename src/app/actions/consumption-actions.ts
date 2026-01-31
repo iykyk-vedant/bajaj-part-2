@@ -1,7 +1,7 @@
 'use server';
 
-import { 
-  validateConsumption as validateConsumptionService, 
+import {
+  validateConsumption as validateConsumptionService,
   formatValidatedComponents,
   formatComponentConsumption
 } from '@/lib/consumption-validation-service';
@@ -128,6 +128,7 @@ export async function saveConsolidatedData(data: any, sessionDcNumber?: string, 
         error: 'Failed to save data to database'
       };
     }
+
   } catch (error) {
     console.error('Error saving consolidated data:', error);
     return {
@@ -195,35 +196,8 @@ export async function searchConsolidatedDataEntriesByPcb(dcNo?: string, partCode
 export async function updateConsolidatedDataEntryAction(id: string, entry: any) {
   try {
     const { updateConsolidatedDataEntry } = await import('@/lib/pg-db');
-    // Convert field names to match database column names if needed
-    const entryForDb = {
-      dc_date: typeof entry.dcDate === 'string' ? entry.dcDate : (typeof entry.dc_date === 'string' ? entry.dc_date : null),
-      date_of_purchase: typeof entry.dateOfPurchase === 'string' ? entry.dateOfPurchase : (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : null),
-      repair_date: entry.repairDate || entry.repair_date || null,
-      dispatch_date: entry.dispatchDate || entry.dispatch_date || null,
-      sr_no: entry.srNo || entry.sr_no,
-      dc_no: entry.dcNo || entry.dc_no,
-      bccd_name: entry.bccdName || entry.bccd_name,
-      product_description: entry.productDescription || entry.product_description,
-      product_sr_no: entry.productSrNo || entry.product_sr_no,
-      complaint_no: entry.complaintNo || entry.complaint_no,
-      part_code: entry.partCode || entry.part_code,
-      nature_of_defect: entry.natureOfDefect || entry.nature_of_defect,
-      visiting_tech_name: entry.visitingTechName || entry.visiting_tech_name,
-      mfg_month_year: entry.mfgMonthYear || entry.mfg_month_year,
-      pcb_sr_no: entry.pcbSrNo || entry.pcb_sr_no,
-      analysis: entry.analysis || entry.analysis || null,
-      testing: entry.testing || entry.testing || null,
-      failure: entry.failure || entry.failure || null,
-      status: entry.status || entry.status || null,
-      // validation_result column has been removed from database
-      component_change: entry.componentChange || entry.component_change || null,
-      engg_name: entry.enggName || entry.engg_name || null,
-      tag_entry_by: entry.tagEntryBy || entry.tag_entry_by,
-      consumption_entry_by: entry.consumptionEntryBy || entry.consumption_entry_by,
-      dispatch_entry_by: entry.dispatchEntryBy || entry.dispatch_entry_by,
-    };
-    const result = await updateConsolidatedDataEntry(id.toString(), entryForDb);
+    // Pass entry directly as pg-db expects camelCase keys
+    const result = await updateConsolidatedDataEntry(id.toString(), entry);
     return {
       success: true,
       data: result
@@ -260,42 +234,10 @@ export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo
   try {
     console.log('Server action called with productSrNo:', productSrNo);
     console.log('Server action entry data:', entry);
-    
+
     const { updateConsolidatedDataEntryByProductSrNo } = await import('@/lib/pg-db');
-    // Include all fields in the update to preserve and update all data
-    const allFieldsEntry = {
-      // Tag entry fields
-      sr_no: entry.srNo || entry.sr_no,
-      dc_no: entry.dcNo || entry.dc_no,
-      dc_date: entry.dcDate || entry.dc_date,
-      branch: entry.branch || entry.branch,
-      bccd_name: entry.bccdName || entry.bccd_name,
-      product_description: entry.productDescription || entry.product_description,
-      product_sr_no: entry.productSrNo || entry.product_sr_no,
-      date_of_purchase: entry.dateOfPurchase || entry.date_of_purchase,
-      complaint_no: entry.complaintNo || entry.complaint_no,
-      part_code: entry.partCode || entry.part_code,
-      nature_of_defect: entry.natureOfDefect || entry.nature_of_defect,
-      visiting_tech_name: entry.visitingTechName || entry.visiting_tech_name,
-      mfg_month_year: entry.mfgMonthYear || entry.mfg_month_year,
-      pcb_sr_no: entry.pcbSrNo || entry.pcb_sr_no,
-      // Entry tracking fields
-      tag_entry_by: entry.tagEntryBy || entry.tag_entry_by,
-      consumption_entry_by: entry.consumptionEntryBy || entry.consumption_entry_by,
-      dispatch_entry_by: entry.dispatchEntryBy || entry.dispatch_entry_by,
-      // Consumption fields - Now allow updating these in database
-      repair_date: entry.repairDate || entry.repair_date || null,
-      testing: entry.testing || entry.testing || null,
-      failure: entry.failure || entry.failure || null,
-      status: entry.status || entry.status || null,
-      analysis: entry.analysis || entry.analysis || null,
-      component_change: entry.componentChange || entry.component_change || null,
-      engg_name: entry.enggName || entry.engg_name || null,
-      // validation_result column has been removed from database
-      // Dispatch field
-      dispatch_date: entry.dispatchDate || entry.dispatch_date || null,
-    };
-    const result = await updateConsolidatedDataEntryByProductSrNo(productSrNo, allFieldsEntry);
+    // Pass entry directly as pg-db expects camelCase keys
+    const result = await updateConsolidatedDataEntryByProductSrNo(productSrNo, entry);
     return {
       success: result,
       data: result

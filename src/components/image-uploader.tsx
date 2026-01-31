@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Camera, FileUp, Loader2, Video, ScanLine } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { saveCapturedImage } from '@/app/actions';
 import { toast } from '@/hooks/use-toast';
 import { saveCapturedImageAction } from '@/app/actions/save-image-action';
 
@@ -49,31 +50,22 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
         setImageDataUrl(dataUrl);
         onImageReady(dataUrl);
         
-        // Save the uploaded image using server action
-        try {
-          const saveResult = await saveCapturedImageAction(dataUrl, 'upload');
-          
-          if (saveResult.success) {
-            toast({
-              title: 'Image Saved',
-              description: `Image saved successfully to: ${saveResult.filePath}`,
-            });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Save Failed',
-              description: saveResult.error || 'Failed to save image',
-            });
-          }
-        } catch (error) {
-          console.error('Error saving image:', error);
+        // Save the uploaded image to the configured path        
+        const saveResult = await saveCapturedImage(dataUrl, 'upload');
+
+        if (saveResult.success) {
+          toast({
+            title: 'Image Saved',
+            description: `Image saved successfully to: ${saveResult.filePath}`,
+          });
+        } else {
           toast({
             variant: 'destructive',
             title: 'Save Failed',
-            description: 'Failed to save image',
+            description: saveResult.error || 'Failed to save image',
           });
         }
-        
+
         stopCamera();
       };
       reader.readAsDataURL(file);
@@ -86,30 +78,30 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
 
   const startCamera = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try {
-            await navigator.mediaDevices.getUserMedia({ video: true });
-            await getDevices();
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        await getDevices();
 
-            const constraints: MediaStreamConstraints = { 
-              video: { 
-                deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined 
-              } 
-            };
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                await videoRef.current.play();
-                setIsCameraOn(true);
-                setImageDataUrl(null); 
-                onImageReady(''); 
-            }
-        } catch (error) {
-            console.error("Error accessing camera:", error);
-            alert("Could not access the selected camera. Please check permissions and try again.");
+        const constraints: MediaStreamConstraints = {
+          video: {
+            deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined
+          }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          setIsCameraOn(true);
+          setImageDataUrl(null);
+          onImageReady('');
         }
+      } catch (error) {
+        console.error("Error accessing camera:", error);
+        alert("Could not access the selected camera. Please check permissions and try again.");
+      }
     }
   };
-  
+
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
@@ -121,40 +113,31 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
 
   const takePicture = async () => {
     if (videoRef.current) {
-        const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg');
-        setImageDataUrl(dataUrl);
-        onImageReady(dataUrl);
-        
-        // Save the image using server action
-        try {
-          const saveResult = await saveCapturedImageAction(dataUrl, 'camera');
-          
-          if (saveResult.success) {
-            toast({
-              title: 'Photo Saved',
-              description: `Image saved successfully to: ${saveResult.filePath}`,
-            });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Save Failed',
-              description: saveResult.error || 'Failed to save image',
-            });
-          }
-        } catch (error) {
-          console.error('Error saving image:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Save Failed',
-            description: 'Failed to save image',
-          });
-        }
-        
-        stopCamera();
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      setImageDataUrl(dataUrl);
+      onImageReady(dataUrl);
+
+      // Save the image to the configured path
+      const saveResult = await saveCapturedImage(dataUrl, 'camera');
+
+      if (saveResult.success) {
+        toast({
+          title: 'Photo Saved',
+          description: `Image saved successfully to: ${saveResult.filePath}`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Save Failed',
+          description: saveResult.error || 'Failed to save image',
+        });
+      }
+
+      stopCamera();
     }
   };
 
@@ -164,7 +147,7 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
       if (event.key === 'Enter' && isCameraOn) {
         event.preventDefault();
         takePicture();
-      } 
+      }
       // Toggle camera mode when Escape key is pressed
       else if (event.key === 'Escape') {
         event.preventDefault();
@@ -181,7 +164,7 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCameraOn]);
 
 
@@ -200,21 +183,21 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
         )}
         <video ref={videoRef} className={`h-full w-full object-cover ${isCameraOn ? '' : 'hidden'}`} muted playsInline />
         {!isCameraOn && (
-            imageDataUrl ? (
-              <Image
-                src={imageDataUrl}
-                alt="Form preview"
-                fill
-                className="object-contain p-3"
-                data-ai-hint="handwritten form"
-              />
-            ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center text-center text-muted-foreground p-3">
-                <ScanLine className="h-10 w-10 mb-3 animate-pulse text-primary/50" />
-                <p className="font-semibold text-base">Ready to Scan</p>
+          imageDataUrl ? (
+            <Image
+              src={imageDataUrl}
+              alt="Form preview"
+              fill
+              className="object-contain p-3"
+              data-ai-hint="handwritten form"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center text-center text-muted-foreground p-3">
+              <ScanLine className="h-10 w-10 mb-3 animate-pulse text-primary/50" />
+              <p className="font-semibold text-base">Ready to Scan</p>
 
-              </div>
-            )
+            </div>
+          )
         )}
       </CardContent>
       <CardFooter className="p-3 flex flex-col gap-3">
@@ -246,26 +229,26 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
             disabled={isLoading}
           />
           {isCameraOn ? (
-              <>
-                  <Button onClick={takePicture} disabled={isLoading} className="bg-accent hover:bg-accent/90 h-10 py-2 text-sm">
-                      <Camera className="mr-2 h-4 w-4" />
-                      Capture (Enter)
-                  </Button>
-                  <Button onClick={stopCamera} variant="outline" disabled={isLoading} className="h-10 py-2 text-sm">
-                      Cancel (Esc)
-                  </Button>
-              </>
+            <>
+              <Button onClick={takePicture} disabled={isLoading} className="bg-accent hover:bg-accent/90 h-10 py-2 text-sm">
+                <Camera className="mr-2 h-4 w-4" />
+                Capture (Enter)
+              </Button>
+              <Button onClick={stopCamera} variant="outline" disabled={isLoading} className="h-10 py-2 text-sm">
+                Cancel (Esc)
+              </Button>
+            </>
           ) : (
-              <>
-                  <Button onClick={handleUploadClick} disabled={isLoading} className="h-10 py-2 text-sm">
-                      <FileUp className="mr-2 h-4 w-4" />
-                      Upload Image
-                  </Button>
-                  <Button onClick={startCamera} variant="outline" disabled={isLoading} className="h-10 py-2 text-sm">
-                      <Camera className="mr-2 h-4 w-4" />
-                      Use Camera (ESC)
-                  </Button>
-              </>
+            <>
+              <Button onClick={handleUploadClick} disabled={isLoading} className="h-10 py-2 text-sm">
+                <FileUp className="mr-2 h-4 w-4" />
+                Upload Image
+              </Button>
+              <Button onClick={startCamera} variant="outline" disabled={isLoading} className="h-10 py-2 text-sm">
+                <Camera className="mr-2 h-4 w-4" />
+                Use Camera (ESC)
+              </Button>
+            </>
           )}
         </div>
       </CardFooter>

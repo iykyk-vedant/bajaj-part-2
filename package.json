@@ -70,6 +70,7 @@
     "@types/pg": "^8.10.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "baseline-browser-mapping": "^2.9.19",
     "eslint": "9.39.2",
     "eslint-config-next": "16.0.10",
     "genkit-cli": "^1.27.0",

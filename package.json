@@ -2,19 +2,19 @@
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack -p 3001",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
-    "start": "next start -p ${PORT:-3000}",
-  "lint": "echo \"Lint skipped due to config issue\""
-,
-    "typecheck": "tsc --noEmit",
-    "init-db": "tsx src/lib/pg-init-db.ts",
-    "import-bom": "tsx src/lib/import-bom.ts",
-    "db:init": "tsx src/lib/pg-init-db.ts"
-  },
+"scripts": {
+  "dev": "next dev --turbopack -p 3001",
+  "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
+  "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
+  "build": "next build",
+  "start": "next start -p ${PORT:-3000}",
+  "lint": "echo \"Lint skipped due to config issue\"",
+  "test": "echo \"No tests defined\"",
+  "typecheck": "tsc --noEmit",
+  "init-db": "tsx src/lib/pg-init-db.ts",
+  "import-bom": "tsx src/lib/import-bom.ts",
+  "db:init": "tsx src/lib/pg-init-db.ts"
+},
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.27.0",

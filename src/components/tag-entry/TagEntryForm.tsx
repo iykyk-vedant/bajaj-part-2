@@ -608,7 +608,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       dcNo: sessionDcNumber || '', // Preserve session DC Number
       branch: 'Mumbai',
       bccdName: 'BCCD-001',
-      productDescription: '',
+      productDescription: formData.productDescription || '', // Preserve Product Description
       productSrNo: '',
       dateOfPurchase: '',
       complaintNo: '',

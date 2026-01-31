@@ -5,14 +5,27 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface DcNumber {
+  dcNumber: string;
+  partCodes: string[];
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [dcNumbers, setDcNumbers] = useState<DcNumber[]>([]);
+  const [selectedDcNumber, setSelectedDcNumber] = useState('');
+  const [selectedPartCode, setSelectedPartCode] = useState('');
   const router = useRouter();
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signIn, user, loading: authLoading, getSelectedDcNumber, getSelectedPartCode } = useAuth();
+
+  // Load DC numbers on component mount
+  useEffect(() => {
+    loadDcNumbers();
+  }, []);
 
   // Check if user is already logged in on initial load
   useEffect(() => {
@@ -20,27 +33,84 @@ export default function LoginPage() {
       setIsRedirecting(true);
       router.push('/dashboard');
     }
-  }, [authLoading, user, isRedirecting, router]); // Include isRedirecting to prevent multiple redirects
+  }, [authLoading, user, isRedirecting, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    // Validate that DC Number and Partcode are selected
+    if (!selectedDcNumber || !selectedPartCode) {
+      setError('Please select both DC Number and Partcode');
+      setLoading(false);
+      return;
+    }
+
+    // First: authenticate user
     const result = await signIn(email, password);
     
     if (result.success) {
-      // Redirect to dashboard on successful login
-      setIsRedirecting(true);
-      // Add small delay to allow AuthContext state to update properly
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 100);
+      try {
+        // Store DC Number and Partcode in localStorage/session
+        console.log('=== LOGIN SUCCESS - STORING SESSION DATA ===');
+        console.log('Values to store - DC Number:', selectedDcNumber, 'Part Code:', selectedPartCode);
+        console.log('Types - DC Number:', typeof selectedDcNumber, 'Part Code:', typeof selectedPartCode);
+        console.log('Lengths - DC Number:', selectedDcNumber?.length, 'Part Code:', selectedPartCode?.length);
+        console.log('Truthy check - DC Number:', !!selectedDcNumber, 'Part Code:', !!selectedPartCode);
+        
+        localStorage.setItem('selectedDcNumber', selectedDcNumber);
+        localStorage.setItem('selectedPartCode', selectedPartCode);
+        
+        // Verify immediate storage
+        const storedDc = localStorage.getItem('selectedDcNumber');
+        const storedPart = localStorage.getItem('selectedPartCode');
+        console.log('=== STORAGE VERIFICATION ===');
+        console.log('Immediately stored - DC Number:', storedDc, 'Part Code:', storedPart);
+        console.log('Match check:', storedDc === selectedDcNumber && storedPart === selectedPartCode);
+        
+        // Test retrieval in same context
+        console.log('=== CONTEXT RETRIEVAL TEST ===');
+        console.log('getSelectedDcNumber():', getSelectedDcNumber());
+        console.log('getSelectedPartCode():', getSelectedPartCode());
+        
+        // Redirect to dashboard
+        setIsRedirecting(true);
+        setTimeout(() => {
+          console.log('=== REDIRECTING TO DASHBOARD ===');
+          console.log('Final storage check before redirect - DC Number:', localStorage.getItem('selectedDcNumber'), 'Part Code:', localStorage.getItem('selectedPartCode'));
+          
+          // TEST: Manually verify the data can be retrieved
+          console.log('=== MANUAL TEST ===');
+          console.log('Manual localStorage check:', localStorage.getItem('selectedDcNumber'), localStorage.getItem('selectedPartCode'));
+          
+          router.push('/dashboard');
+        }, 1000); // Increased delay to ensure data persistence
+      } catch (error) {
+        setError('Failed to store session data');
+      }
     } else {
       setError(result.error);
     }
     
     setLoading(false);
+  };
+
+  const loadDcNumbers = async () => {
+    try {
+      console.log('Loading DC numbers...');
+      const response = await fetch('/api/dc-numbers');
+      console.log('Response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('DC numbers data:', data);
+        setDcNumbers(data.dcNumbers || []);
+      } else {
+        console.error('Failed to load DC numbers, status:', response.status);
+      }
+    } catch (error) {
+      console.error('Error loading DC numbers:', error);
+    }
   };
 
   // Show loading if checking auth status
@@ -75,6 +145,7 @@ export default function LoginPage() {
               <div className="text-sm text-red-700">{error}</div>
             </div>
           )}
+          
           <input type="hidden" name="remember" defaultValue="true" />
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
@@ -105,9 +176,58 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
               />
+            </div>
+          </div>
+          
+          {/* DC Number and Partcode selection */}
+          <div className="space-y-4 pt-4">
+            <div>
+              <label htmlFor="dc-number" className="block text-sm font-medium text-gray-700 mb-1">
+                DC Number *
+              </label>
+              <select
+                id="dc-number"
+                value={selectedDcNumber}
+                onChange={(e) => {
+                  setSelectedDcNumber(e.target.value);
+                  setSelectedPartCode(''); // Reset partcode when DC changes
+                }}
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                required
+              >
+                <option value="">Select DC Number</option>
+                {dcNumbers.map((dc) => (
+                  <option key={dc.dcNumber} value={dc.dcNumber}>
+                    {dc.dcNumber}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="part-code" className="block text-sm font-medium text-gray-700 mb-1">
+                Partcode *
+              </label>
+              <select
+                id="part-code"
+                value={selectedPartCode}
+                onChange={(e) => setSelectedPartCode(e.target.value)}
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                required
+                disabled={!selectedDcNumber}
+              >
+                <option value="">Select Partcode</option>
+                {selectedDcNumber && dcNumbers
+                  .find(dc => dc.dcNumber === selectedDcNumber)
+                  ?.partCodes.map((partCode) => (
+                    <option key={partCode} value={partCode}>
+                      {partCode}
+                    </option>
+                  ))}
+              </select>
             </div>
           </div>
 
@@ -127,6 +247,9 @@ export default function LoginPage() {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
+          </div>
+          <div className="text-center text-sm text-gray-600 mt-4">
+            Your DC Number and Partcode selection will be locked for this session
           </div>
         </form>
       </div>

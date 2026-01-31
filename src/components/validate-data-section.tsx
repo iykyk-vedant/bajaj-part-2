@@ -35,38 +35,37 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
     setLocalDcPartCodes(dcPartCodes || {});
   }, [dcNumbers, dcPartCodes]);
 
-  // Function to add a new DC number
+  // Add DC number function
   const addDcNumber = async (dcNo: string, partCode: string) => {
-    if (dcNo && !localDcNumbers.includes(dcNo)) {
-      // Update local state
-      setLocalDcNumbers(prev => [...prev, dcNo]);
+    try {
+      // Save to database
+      const { addDcNumberAction } = await import('@/app/actions/db-actions');
+      const result = await addDcNumberAction(dcNo, partCode, localDcNumbers, localDcPartCodes);
       
-      // Also add to part codes mapping if partCode is provided
-      if (partCode) {
-        setLocalDcPartCodes(prev => ({
-          ...prev,
-          [dcNo]: [...(prev[dcNo] || []), partCode]
+      if (result.success) {
+        // Reload DC numbers and part codes from database to reflect the changes
+        const { loadDcNumbersFromDb, loadDcPartCodesFromDb } = await import('@/lib/dc-data-sync');
+        const updatedDcNumbers = await loadDcNumbersFromDb();
+        const updatedDcPartCodes = await loadDcPartCodesFromDb();
+        
+        setLocalDcNumbers(updatedDcNumbers);
+        setLocalDcPartCodes(updatedDcPartCodes);
+        
+        // Update parent component's state by calling a callback if provided
+        window.dispatchEvent(new CustomEvent('refreshDcNumbers', { 
+          detail: { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } 
         }));
       } else {
-        // Initialize with empty array if no part code provided
-        setLocalDcPartCodes(prev => ({
-          ...prev,
-          [dcNo]: prev[dcNo] || []
-        }));
+        throw new Error(result.error);
       }
-      
-      // Trigger a refresh of DC numbers and part codes from DB
-      window.dispatchEvent(new CustomEvent('refreshDcNumbers', { 
-        detail: { dcNumbers: [...localDcNumbers, dcNo], dcPartCodes: {
-          ...localDcPartCodes,
-          [dcNo]: partCode ? [partCode] : []
-        }} 
-      }));
+    } catch (error) {
+      console.error('Error saving DC number to database:', error);
+      alert(`Error saving DC number: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
+  // Update current time every second
   useEffect(() => {
-    // Update current time every second
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -74,31 +73,30 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
     // Check caps lock status
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.getModifierState) {
-        setIsCapsLockOn(e.getModifierState('CapsLock'));
+        setIsCapsLockOn(e.getModifierState("CapsLock"));
       }
     };
     
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.getModifierState) {
-        setIsCapsLockOn(e.getModifierState('CapsLock'));
+        setIsCapsLockOn(e.getModifierState("CapsLock"));
       }
     };
     
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 
     return () => {
       clearInterval(timer);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
   }, []);
 
-  // If we're in the original loading or empty state, show the original UI
-  if (!initialData && !isLoading) {
+  if (!initialData) {
     return (
-      <div className="flex-1 flex flex-col justify-center items-center min-h-[500px] lg:min-h-full border-2 border-dashed border-gray-300 rounded-lg p-8">
-        <div className="text-center">
+      <div className="flex-1 flex flex-col justify-center items-center min-h-[500px] lg:min-h-full p-8">
+        <div className="text-center max-w-md">
           <div className="flex justify-center mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -129,7 +127,6 @@ export function ValidateDataSection({ initialData, isLoading, onSave, sheetActiv
   // Show the complete Tag Entry system
   return (
     <div className="flex-1 flex flex-col bg-white rounded-lg shadow-md p-3">
-
 
       {/* Tag Entry Form */}
       <div className="flex-1 mb-4">

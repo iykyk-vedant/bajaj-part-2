@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Camera, FileUp, Loader2, Video, ScanLine } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { saveCapturedImage } from '@/lib/camera-utils';
 import { toast } from '@/hooks/use-toast';
+import { saveCapturedImageAction } from '@/app/actions/save-image-action';
 
 type ImageUploaderProps = {
   onImageReady: (dataUrl: string) => void;
@@ -49,19 +49,28 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
         setImageDataUrl(dataUrl);
         onImageReady(dataUrl);
         
-        // Save the uploaded image to the configured path
-        const saveResult = await saveCapturedImage(dataUrl, 'upload');
-        
-        if (saveResult.success) {
-          toast({
-            title: 'Image Saved',
-            description: `Image saved successfully to: ${saveResult.filePath}`,
-          });
-        } else {
+        // Save the uploaded image using server action
+        try {
+          const saveResult = await saveCapturedImageAction(dataUrl, 'upload');
+          
+          if (saveResult.success) {
+            toast({
+              title: 'Image Saved',
+              description: `Image saved successfully to: ${saveResult.filePath}`,
+            });
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Save Failed',
+              description: saveResult.error || 'Failed to save image',
+            });
+          }
+        } catch (error) {
+          console.error('Error saving image:', error);
           toast({
             variant: 'destructive',
             title: 'Save Failed',
-            description: saveResult.error || 'Failed to save image',
+            description: 'Failed to save image',
           });
         }
         
@@ -120,19 +129,28 @@ export function ImageUploader({ onImageReady, isLoading }: ImageUploaderProps) {
         setImageDataUrl(dataUrl);
         onImageReady(dataUrl);
         
-        // Save the image to the configured path
-        const saveResult = await saveCapturedImage(dataUrl, 'camera');
-        
-        if (saveResult.success) {
-          toast({
-            title: 'Photo Saved',
-            description: `Image saved successfully to: ${saveResult.filePath}`,
-          });
-        } else {
+        // Save the image using server action
+        try {
+          const saveResult = await saveCapturedImageAction(dataUrl, 'camera');
+          
+          if (saveResult.success) {
+            toast({
+              title: 'Photo Saved',
+              description: `Image saved successfully to: ${saveResult.filePath}`,
+            });
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Save Failed',
+              description: saveResult.error || 'Failed to save image',
+            });
+          }
+        } catch (error) {
+          console.error('Error saving image:', error);
           toast({
             variant: 'destructive',
             title: 'Save Failed',
-            description: saveResult.error || 'Failed to save image',
+            description: 'Failed to save image',
           });
         }
         

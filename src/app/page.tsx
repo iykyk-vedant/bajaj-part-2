@@ -13,7 +13,6 @@ import { SettingsTab } from '@/components/tag-entry/SettingsTab';
 import { FindTab } from '@/components/tag-entry/FindTab';
 import { DispatchTab } from '@/components/tag-entry/DispatchTab';
 import { ConsumptionTab } from '@/components/tag-entry/ConsumptionTab';
-import { ValidateDataSection } from '@/components/validate-data-section';
 import { ValidateConsumptionSection } from '@/components/validate-consumption-section';
 
 import { ScanText, Download, History, Plus, Trash2, MoreVertical, Edit, Eye } from 'lucide-react';
@@ -755,14 +754,13 @@ export default function Home() {
               />
             </div>
             <div className="lg:w-3/5 xl:w-2/3 flex flex-col">
-              <ValidateDataSection
+              {/* Direct Tag Entry Form - Always visible with image data support */}
+              <TagEntryForm 
                 initialData={currentExtractedData}
-                isLoading={isLoading}
-                onSave={handleAddToSheet}
-                sheetActive={!!activeSheet}
-                onFormChange={setExtractionContext}
                 dcNumbers={dcNumbers}
                 dcPartCodes={dcPartCodes}
+                sessionDcNumber={localStorage.getItem('selectedDcNumber')}
+                sessionPartCode={localStorage.getItem('selectedPartCode')}
               />
             </div>
           </div>

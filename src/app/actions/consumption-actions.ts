@@ -89,8 +89,12 @@ export async function getConsumptionEntries() {
 }
 
 // Server action to save consolidated data entry
-export async function saveConsolidatedData(data: any) {
+export async function saveConsolidatedData(data: any, sessionDcNumber?: string, sessionPartcode?: string) {
   try {
+    console.log('=== SAVE CONSOLIDATED DATA CALLED ===');
+    console.log('Data received:', data);
+    console.log('Session data - DC Number:', sessionDcNumber, 'Partcode:', sessionPartcode);
+    
     // Don't save consumption-specific data to database for new entries
     const dataWithoutConsumption = {
       ...data,
@@ -106,8 +110,13 @@ export async function saveConsolidatedData(data: any) {
       validationResult: data.validationResult || null
     };
     
+    console.log('Data to save:', dataWithoutConsumption);
+    
     const { saveConsolidatedDataEntry } = await import('@/lib/pg-db');
-    const result = await saveConsolidatedDataEntry(dataWithoutConsumption);
+    const result = await saveConsolidatedDataEntry(dataWithoutConsumption, sessionDcNumber, sessionPartcode);
+    
+    console.log('Database save result:', result);
+    
     return {
       success: true,
       data: result
@@ -304,6 +313,26 @@ export async function getConsolidatedDataEntriesByDcNoAction(dcNo: string) {
     };
   } catch (error) {
     console.error('Error getting consolidated data entries by DC number:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
+// Server action to get the next SR No for a given DC Number
+export async function getNextSrNoForDcAction(dcNo: string) {
+  try {
+    console.log('getNextSrNoForDcAction called with DC:', dcNo);
+    const { getNextSrNoForDc } = await import('@/lib/pg-db');
+    const nextSrNo = await getNextSrNoForDc(dcNo);
+    console.log('getNextSrNoForDcAction returning:', nextSrNo);
+    return {
+      success: true,
+      data: nextSrNo
+    };
+  } catch (error) {
+    console.error('Error getting next SR No for DC:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred'

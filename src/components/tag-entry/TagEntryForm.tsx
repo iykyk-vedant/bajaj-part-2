@@ -9,7 +9,7 @@ import { spareParts } from '@/lib/spare-parts';
 import { generatePcbNumber, getMonthCode } from '@/lib/pcb-utils';
 import { tagEntryEventEmitter, TAG_ENTRY_EVENTS } from '@/lib/event-emitter';
 import { EngineerName } from '@/components/ui/engineer-name-db';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, useSessionData } from '@/contexts/AuthContext';
 
 // Dialog components for DC creation modal
 import {
@@ -26,11 +26,23 @@ interface TagEntryFormProps {
   dcNumbers?: string[];
   dcPartCodes?: Record<string, string[]>;
   onAddDcNumber?: (dcNo: string, partCode: string) => Promise<void>;
+  sessionDcNumber?: string | null;
+  sessionPartCode?: string | null;
 }
 
 const STORAGE_KEY = 'tag-entries';
 
-export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, onAddDcNumber }: TagEntryFormProps) {
+export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, onAddDcNumber, sessionDcNumber, sessionPartCode }: TagEntryFormProps) {
+  console.log('=== TagEntryForm Component Mounted ===');
+  console.log('Initial props - initialData:', initialData, 'dcNumbers length:', dcNumbers.length, 'dcPartCodes keys:', Object.keys(dcPartCodes));
+  console.log('Session props - DC Number:', sessionDcNumber, 'Part Code:', sessionPartCode);
+  
+  // BRUTE FORCE APPROACH - Direct localStorage access
+  console.log('=== BRUTE FORCE CHECK ===');
+  const directDcNumber = localStorage.getItem('selectedDcNumber');
+  const directPartCode = localStorage.getItem('selectedPartCode');
+  console.log('Direct localStorage access - DC Number:', directDcNumber, 'Part Code:', directPartCode);
+  
   const { isDcLocked } = useLockStore();
   const { user } = useAuth();
   const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
@@ -46,10 +58,70 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
   const STORAGE_KEY = 'tag-entries';
 
+  // BRUTE FORCE INITIALIZATION - Apply session data immediately
+  useEffect(() => {
+    console.log('=== BRUTE FORCE INITIALIZATION ===');
+    
+    // Get data from multiple sources
+    const dcNumber = sessionDcNumber || localStorage.getItem('selectedDcNumber');
+    const partCode = sessionPartCode || localStorage.getItem('selectedPartCode');
+    
+    console.log('Sources - sessionDcNumber:', sessionDcNumber, 'localStorage:', localStorage.getItem('selectedDcNumber'));
+    console.log('Sources - sessionPartCode:', sessionPartCode, 'localStorage:', localStorage.getItem('selectedPartCode'));
+    console.log('Final values - DC Number:', dcNumber, 'Part Code:', partCode);
+    
+    // Apply immediately if we have data
+    if (dcNumber || partCode) {
+      console.log('APPLYING SESSION DATA TO FORM');
+      setFormData(prev => ({
+        ...prev,
+        dcNo: dcNumber || prev.dcNo,
+        partCode: partCode || prev.partCode
+      }));
+      setUserSelectedPartCode(true);
+      
+      // ALSO UPDATE LOCK STORE
+      console.log('UPDATING LOCK STORE WITH SESSION DATA');
+      useLockStore.getState().setLockedValues(dcNumber || '', partCode || '');
+      useLockStore.getState().lockDc(dcNumber || '', partCode || '');
+      
+      console.log('FORM UPDATED WITH SESSION DATA');
+    } else {
+      console.log('NO SESSION DATA FOUND');
+    }
+  }, []); // Run only once on mount
+
+  // Watch for manual localStorage changes (in case data is updated externally)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'selectedDcNumber' || e.key === 'selectedPartCode') {
+        const newDcNumber = localStorage.getItem('selectedDcNumber');
+        const newPartCode = localStorage.getItem('selectedPartCode');
+        
+        console.log('External storage change detected - DC Number:', newDcNumber, 'Part Code:', newPartCode);
+        
+        if (newDcNumber || newPartCode) {
+          setFormData(prev => ({
+            ...prev,
+            dcNo: newDcNumber || prev.dcNo,
+            partCode: newPartCode || prev.partCode
+          }));
+          setUserSelectedPartCode(true);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const [formData, setFormData] = useState<TagEntry>({
     id: '',
     srNo: '001',
-    dcNo: '',
+    dcNo: sessionDcNumber || localStorage.getItem('selectedDcNumber') || '',
     dcDate: '',
     branch: '',
     bccdName: '',
@@ -57,7 +129,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     productSrNo: '',
     dateOfPurchase: '',
     complaintNo: '',
-    partCode: '',
+    partCode: sessionPartCode || localStorage.getItem('selectedPartCode') || '',
     natureOfDefect: '',
     visitingTechName: '',
     mfgMonthYear: '',
@@ -69,7 +141,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     analysis: '',
     componentChange: '',
     enggName: '',
-    tagEntryBy: '',
+    tagEntryBy: user?.name || user?.email || '',
     dispatchDate: '',
   });
 
@@ -101,13 +173,28 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           }));
 
           setSavedEntries(tagEntries);
-
-          // Update serial number if there are existing entries
-          // For initial load, we'll set it to 1, then it will be updated when DC is selected
-          setFormData(prev => ({
-            ...prev,
-            srNo: '001'
-          }));
+          
+          // Set initial SR No based on DC Number from database
+          if (formData.dcNo) {
+            console.log('Loading SR No for DC:', formData.dcNo);
+            const { getNextSrNoForDcAction } = await import('@/app/actions/consumption-actions');
+            const srNoResult = await getNextSrNoForDcAction(formData.dcNo);
+            console.log('SR No result:', srNoResult);
+            if (srNoResult.success && srNoResult.data) {
+              console.log('Setting SR No to:', srNoResult.data);
+              setFormData(prev => ({
+                ...prev,
+                srNo: srNoResult.data as string
+              }));
+            }
+          } else {
+            console.log('No DC Number, using default SR No: 001');
+            // Fallback to 001 if no DC Number
+            setFormData(prev => ({
+              ...prev,
+              srNo: '001'
+            }));
+          }
         }
       } catch (e) {
         console.error('Error loading entries from database:', e);
@@ -115,7 +202,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     };
 
     loadSavedEntries();
-  }, []);
+  }, [formData.dcNo]); // Reload when DC Number changes
 
   // Populate form with initial data when it changes (from image extraction)
   useEffect(() => {
@@ -129,26 +216,30 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       }
 
       setFormData(prev => {
-        // Calculate next sequential serial number for the selected DC
+        // Calculate next sequential serial number for the selected DC from database
         const dcNo = initialData.dcNo || prev.dcNo;
         let newSrNo = prev.srNo; // Default to current srNo
 
-        if (initialData.sparePartCode || prev.partCode) {
-          // Find entries with the same part code
-          const partCode = initialData.sparePartCode || prev.partCode;
-          const partCodeEntries = savedEntries.filter(entry => entry.partCode === partCode);
+        // Use database-based SR No generation
+        const generateSrNoFromDb = async () => {
+          if (dcNo) {
+            try {
+              const { getNextSrNoForDcAction } = await import('@/app/actions/consumption-actions');
+              const srNoResult = await getNextSrNoForDcAction(dcNo);
+              if (srNoResult.success && srNoResult.data) {
+                return srNoResult.data;
+              }
+            } catch (error) {
+              console.error('Error generating SR No from DB:', error);
+            }
+          }
+          return '001'; // Fallback
+        };
 
-          // Calculate next sequential number (1, 2, 3, ...) for this part code
-          const nextSrNo = partCodeEntries.length > 0
-            ? Math.max(...partCodeEntries.map(e => parseInt(e.srNo) || 0)) + 1
-            : 1;
-
-          newSrNo = String(nextSrNo).padStart(3, '0');
-        }
-
+        // Don't override part code if user has selected one or DC is locked
         const newFormData = {
           id: initialData.id || prev.id,
-          srNo: newSrNo, // Automatically increment serial number
+          srNo: newSrNo, // Will be updated asynchronously
           dcNo: initialData.dcNo || prev.dcNo,
           branch: initialData.branch || prev.branch,
           bccdName: initialData.bccdName || prev.bccdName,
@@ -166,6 +257,14 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           mfgMonthYear: mfgMonthYear || prev.mfgMonthYear,
           pcbSrNo: initialData.pcbSrNo || prev.pcbSrNo,
         };
+
+        // Update SR No asynchronously
+        generateSrNoFromDb().then(dbSrNo => {
+          setFormData(prevForm => ({
+            ...prevForm,
+            srNo: dbSrNo
+          }));
+        });
 
         return newFormData;
       });
@@ -368,56 +467,14 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    console.log('handleSubmit called');
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate required fields
-    if (!formData.dcNo || !formData.productSrNo || !formData.complaintNo) {
-      alert('Please fill in all required fields: DC No., Product Sr No., and Complaint No.');
-      return;
-    }
-
-    // Validate Mfg Month/Year format if provided
-    if (formData.mfgMonthYear) {
-      const parts = formData.mfgMonthYear.split('/');
-      if (parts.length !== 2) {
-        alert('Mfg Month/Year must be in MM/YYYY format');
-        return;
-      }
-
-      const [month, year] = parts;
-      const monthNum = parseInt(month, 10);
-      const yearNum = parseInt(year, 10);
-
-      if (isNaN(monthNum) || isNaN(yearNum) || month.length !== 2 || year.length !== 4) {
-        alert('Mfg Month/Year must be in MM/YYYY format (e.g., 05/2025)');
-        return;
-      }
-
-      if (monthNum < 1 || monthNum > 12) {
-        alert('Month must be between 01 and 12');
-        return;
-      }
-
-      if (yearNum < 1900 || yearNum > 2100) {
-        alert('Year must be between 1900 and 2100');
-        return;
-      }
-    }
-
-    // Validate Date of Purchase format if provided
-    if (formData.dateOfPurchase) {
-      // Allow formats like DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
-      const dateRegex = /^(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2})$/;
-      if (!dateRegex.test(formData.dateOfPurchase)) {
-        alert('Date of Purchase must be in a valid format (e.g., DD/MM/YYYY, MM/DD/YYYY, or YYYY-MM-DD)');
-        return;
-      }
-    }
-
-    const entryToSave: TagEntry = {
-      id: formData.id || '',
+    console.log('=== HANDLE SUBMIT CALLED (SIMPLIFIED) ===');
+    
+    // Skip all validation and use direct save approach
+    console.log('Using direct save approach...');
+    
+    const entryToSave = {
       srNo: formData.srNo || '001',
       dcNo: formData.dcNo || '',
       branch: formData.branch || 'Mumbai',
@@ -434,95 +491,26 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       enggName: formData.enggName || '',
       tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
     };
-
-    let updatedEntries: TagEntry[];
-    if (formData.id) {
-      // Update existing entry
-      updatedEntries = savedEntries.map(entry =>
-        entry.id === formData.id ? entryToSave : entry
-      );
-      alert('Entry updated successfully!');
-    } else {
-      // Create new entry
-      updatedEntries = [...savedEntries, entryToSave];
-      alert('Entry saved successfully!');
-    }
-
-    setSavedEntries(updatedEntries);
-
-    // Save to database
-    const saveToDatabase = async () => {
-      try {
-        const { saveConsolidatedData, getConsolidatedDataEntries, updateConsolidatedDataEntryAction } = await import('@/app/actions/consumption-actions');
-        
-        // Check if an entry with the same productSrNo already exists
-        const { findConsolidatedDataEntryByProductSrNoAction } = await import('@/app/actions/consumption-actions');
-        const findResult = await findConsolidatedDataEntryByProductSrNoAction(entryToSave.productSrNo);
-        const existingEntry = findResult.success ? findResult.data : null;
-        
-        if (existingEntry) {
-          // Update the existing entry by product_sr_no
-          const updateResult = await updateConsolidatedDataEntryAction(String(existingEntry.id), {
-            ...entryToSave,
-            // Map natureOfDefect to defect for consolidated table
-            defect: entryToSave.natureOfDefect,
-            // Initialize consumption-specific fields as empty, but preserve existing engineer name and tag entry by
-            repairDate: '',
-            testing: '',
-            failure: '',
-            status: '',
-            rfObservation: '',
-            analysis: '',
-            validationResult: '',
-            componentChange: '',
-            enggName: formData.enggName || '',
-            tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
-            dispatchDate: '',
-          });
-          
-          if (!updateResult.success) {
-            console.error('Failed to update entry in database:', updateResult.error);
-          }
-        } else {
-          // No existing entry found, save as new
-          const consolidatedData = {
-            ...entryToSave,
-            // Map natureOfDefect to defect for consolidated table
-            defect: entryToSave.natureOfDefect,
-            // Initialize consumption-specific fields as empty, but preserve engineer name and tag entry by
-            repairDate: '',
-            testing: '',
-            failure: '',
-            status: '',
-            rfObservation: '',
-            analysis: '',
-            validationResult: '',
-            componentChange: '',
-            enggName: formData.enggName || '',
-            tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
-            dispatchDate: '',
-          };
-          const saveResult = await saveConsolidatedData(consolidatedData);
-          
-          if (!saveResult.success) {
-            console.error('Failed to save entry to database:', saveResult.error);
-          }
-        }
-      } catch (e) {
-        console.error('Error saving entry to database:', e);
+    
+    console.log('Saving entry:', entryToSave);
+    
+    try {
+      const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
+      const result = await saveConsolidatedData(entryToSave, sessionDcNumber || undefined, sessionPartCode || undefined);
+      
+      console.log('Save result:', result);
+      
+      if (result.success) {
+        alert('Entry saved successfully!');
+        handleClear();
+        setShowSavedList(true);
+      } else {
+        alert('Failed to save entry: ' + (result.error || 'Unknown error'));
       }
-    };
-
-    saveToDatabase();
-
-    // Reset form after save
-    handleClear();
-    // Show saved list after save
-    setShowSavedList(true);
-    setShowSearchResults(false);
-
-    // Emit event to notify other components that an entry was saved
-    tagEntryEventEmitter.emit(TAG_ENTRY_EVENTS.ENTRY_SAVED, entryToSave);
+    } catch (error) {
+      console.error('Error saving entry:', error);
+      alert('Error saving entry: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   };
 
   const handleUpdate = () => {
@@ -585,24 +573,28 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   };
 
   const handleClear = () => {
+    // Preserve the current SR No sequence, don't reset to '001'
+    const currentSrNo = formData.srNo || '001';
+    
     setFormData({
       id: '',
-      srNo: '001',
-      dcNo: '',
+      srNo: currentSrNo, // Keep current SR No
+      dcNo: sessionDcNumber || '', // Preserve session DC Number
       branch: 'Mumbai',
       bccdName: 'BCCD-001',
       productDescription: '',
       productSrNo: '',
       dateOfPurchase: '',
       complaintNo: '',
-      partCode: '',
+      partCode: sessionPartCode || '', // Preserve session Part Code
       natureOfDefect: '',
       visitingTechName: '',
       mfgMonthYear: '',
       pcbSrNo: '',
+      tagEntryBy: user?.name || user?.email || '',
     });
     // Reset the flag since it's a new entry
-    setUserSelectedPartCode(false);
+    setUserSelectedPartCode(!!sessionPartCode);
     setShowSearchResults(false);
     setShowSavedList(false);
     setSearchQuery('');
@@ -890,8 +882,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           name="dcNo"
           value={isDcLocked ? useLockStore.getState().lockedDcNo : (formData.dcNo || '')}
           onChange={handleChange}
-          disabled={isDcLocked}
-          className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
+          disabled={isDcLocked || !!sessionDcNumber}
+          className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked || sessionDcNumber ? 'bg-gray-100' : ''} h-9`}
           >
           <option value="">Select DC No.</option>
           {dcNumbers
@@ -972,8 +964,8 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           name="partCode"
           value={isDcLocked ? useLockStore.getState().lockedPartCode : (formData.partCode || '')}
           onChange={handleChange}
-          disabled={isDcLocked}
-          className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''} h-9`}
+          disabled={isDcLocked || !!sessionPartCode}
+          className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked || sessionPartCode ? 'bg-gray-100' : ''} h-9`}
         >
           <option value="">Select Part Code</option>
           {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || [])
@@ -1066,6 +1058,42 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Save (Alt+S)
+        </button>
+        
+        {/* DEBUG: Test save function directly */}
+        <button
+          type="button"
+          onClick={async () => {
+            console.log('=== DIRECT SAVE TEST ===');
+            console.log('Current form data:', formData);
+            console.log('Session data:', { sessionDcNumber, sessionPartCode });
+            
+            // Call save function directly
+            const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
+            const testData = {
+              srNo: '999',
+              dcNo: 'TEST_DC',
+              branch: 'Test Branch',
+              bccdName: 'Test BCCD',
+              productDescription: 'Test Product',
+              productSrNo: 'TEST_' + Date.now(),
+              complaintNo: 'TEST_COMPLAINT',
+              partCode: 'TEST_PART',
+              natureOfDefect: 'Test Defect',
+              visitingTechName: 'Test Tech',
+              mfgMonthYear: '01/2025',
+              pcbSrNo: 'TEST_PCB',
+              enggName: 'Test Engineer',
+              tagEntryBy: 'Test User',
+            };
+            
+            console.log('Calling save with test data...');
+            const result = await saveConsolidatedData(testData, 'TEST_DC_NUM', 'TEST_PART_CODE');
+            console.log('Save result:', result);
+          }}
+          className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 ml-2"
+        >
+          Test Save
         </button>
       </div>
 

@@ -10,6 +10,8 @@ interface User {
   name?: string;
   role: string;
   created_at: string;
+  dcNumber?: string;
+  partCode?: string;
 }
 
 interface AuthContextType {
@@ -19,6 +21,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<any>;
   signOut: () => Promise<void>;
   isAuthenticated: () => boolean;
+  getSelectedDcNumber: () => string | null;
+  getSelectedPartCode: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -159,9 +163,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
       });
 
-      // Clear tokens from localStorage
+      // Clear tokens and session data from localStorage
       localStorage.removeItem('supabase_access_token');
       localStorage.removeItem('supabase_refresh_token');
+      localStorage.removeItem('selectedDcNumber');
+      localStorage.removeItem('selectedPartCode');
 
       // Update user state
       setUser(null);
@@ -172,6 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Even if API call fails, still clear local tokens and state
       localStorage.removeItem('supabase_access_token');
       localStorage.removeItem('supabase_refresh_token');
+      localStorage.removeItem('selectedDcNumber');
+      localStorage.removeItem('selectedPartCode');
       setUser(null);
       
       console.error('Signout error:', error);
@@ -179,6 +187,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect to login page
       router.push('/login');
     }
+  };
+
+  const getSelectedDcNumber = (): string | null => {
+    if (typeof window !== 'undefined') {
+      const dcNumber = localStorage.getItem('selectedDcNumber');
+      console.log('getSelectedDcNumber returning:', dcNumber);
+      return dcNumber;
+    }
+    return null;
+  };
+
+  const getSelectedPartCode = (): string | null => {
+    if (typeof window !== 'undefined') {
+      const partCode = localStorage.getItem('selectedPartCode');
+      console.log('getSelectedPartCode returning:', partCode);
+      return partCode;
+    }
+    return null;
   };
 
   const isAuthenticated = () => {
@@ -192,6 +218,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
     isAuthenticated,
+    getSelectedDcNumber,
+    getSelectedPartCode,
   };
 
   return (
@@ -207,4 +235,22 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+// Helper hook to get session-scoped DC Number and Partcode
+export function useSessionData() {
+  const { getSelectedDcNumber, getSelectedPartCode } = useAuth();
+  
+  const dcNumber = getSelectedDcNumber();
+  const partCode = getSelectedPartCode();
+  
+  console.log('=== useSessionData Hook ===');
+  console.log('getSelectedDcNumber() returned:', dcNumber);
+  console.log('getSelectedPartCode() returned:', partCode);
+  console.log('Direct localStorage check:', localStorage.getItem('selectedDcNumber'), localStorage.getItem('selectedPartCode'));
+  
+  return {
+    dcNumber,
+    partCode,
+  };
 }

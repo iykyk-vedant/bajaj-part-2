@@ -153,6 +153,33 @@ export async function initializeDatabase() {
   }
 }
 
+// Get the next sequential SR No for a given DC Number
+export async function getNextSrNoForDc(dcNo: string): Promise<string> {
+  try {
+    console.log('Getting next SR No for DC:', dcNo);
+    
+    const result = await pool.query(
+      'SELECT MAX(CAST(sr_no AS INTEGER)) as max_sr_no FROM consolidated_data WHERE dc_no = $1',
+      [dcNo]
+    );
+    
+    console.log('Database query result:', result.rows);
+    const maxSrNo = result.rows[0]?.max_sr_no || 0;
+    console.log('Max SR No found:', maxSrNo);
+    
+    const nextSrNo = maxSrNo + 1;
+    console.log('Next SR No calculated:', nextSrNo);
+    
+    const formattedSrNo = String(nextSrNo).padStart(3, '0');
+    console.log('Formatted SR No:', formattedSrNo);
+    
+    return formattedSrNo;
+  } catch (error) {
+    console.error('Error getting next SR No for DC:', error);
+    return '001'; // Default fallback
+  }
+}
+
 // Find consolidated data entry by product_sr_no
 export async function findConsolidatedDataEntryByProductSrNo(productSrNo: string): Promise<any> {
   try {
@@ -632,22 +659,30 @@ export async function addSampleBomData() {
   }
 }
 
-// Save consolidated data entry
-export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
+// Save consolidated data entry with session-scoped DC Number and Partcode
+export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: string, sessionPartcode?: string): Promise<boolean> {
   try {
+    console.log('=== DATABASE SAVE FUNCTION CALLED ===');
+    console.log('Entry data:', entry);
+    console.log('Session data - DC Number:', sessionDcNumber, 'Partcode:', sessionPartcode);
+    
     // Handle empty dates by converting them to NULL
     const dcDateValue = entry.dcDate && entry.dcDate.trim() !== '' ? convertToPostgresDate(entry.dcDate) : null;
     const dateOfPurchaseValue = entry.dateOfPurchase && entry.dateOfPurchase.trim() !== '' ? convertToPostgresDate(entry.dateOfPurchase) : null;
     const repairDateValue = entry.repairDate && entry.repairDate.trim() !== '' ? convertToPostgresDate(entry.repairDate) : null;
     const dispatchDateValue = entry.dispatchDate && entry.dispatchDate.trim() !== '' ? convertToPostgresDate(entry.dispatchDate) : null;
     
-    await pool.query(`
+    console.log('Converted dates - DC:', dcDateValue, 'Purchase:', dateOfPurchaseValue, 'Repair:', repairDateValue, 'Dispatch:', dispatchDateValue);
+    
+    const result = await pool.query(`
       INSERT INTO consolidated_data 
       (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
        date_of_purchase, complaint_no, part_code, defect, visiting_tech_name, mfg_month_year,
        repair_date, testing, failure, status, pcb_sr_no, analysis, 
-       component_change, engg_name, tag_entry_by, consumption_entry_by, dispatch_entry_by, dispatch_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+       component_change, engg_name, tag_entry_by, consumption_entry_by, dispatch_entry_by, dispatch_date,
+       dc_number, partcode)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+      RETURNING id
     `, [
       entry.srNo,
       entry.dcNo,
@@ -673,8 +708,13 @@ export async function saveConsolidatedDataEntry(entry: any): Promise<boolean> {
       entry.tagEntryBy,
       entry.consumptionEntryBy,
       entry.dispatchEntryBy,
-      dispatchDateValue
+      dispatchDateValue,
+      sessionDcNumber || entry.dcNo, // Use session data if available
+      sessionPartcode || entry.partCode   // Use session data if available
     ]);
+    
+    console.log('Database insert result:', result);
+    console.log('Inserted record ID:', result.rows[0]?.id);
     
     return true;
   } catch (error) {

@@ -1,6 +1,6 @@
 'use server';
 
-import { 
+import {
   createSheet as createSheetService,
   updateSheetName as updateSheetNameService,
   deleteSheet as deleteSheetService,
@@ -67,10 +67,37 @@ export async function deleteSheetAction(sheetId: string): Promise<{ error?: stri
 }
 
 // Server action to add data to a sheet
+// Server action to add data to a sheet
 export async function addDataToSheetAction(sheetId: string, data: ExtractDataOutput): Promise<{ error?: string }> {
   try {
-    // Sheet data table has been removed, so skip database operation
-    console.log('Sheet data table has been removed. Skipping database operation.');
+    const { saveConsolidatedDataEntry } = await import('@/lib/pg-db');
+
+    // Prepare data for database insertion
+    const entryForDb: any = {
+      ...data,
+      // sr_no: data.srNo,
+      // dc_no: data.dcNo,
+      // dc_date: data.dcDate,
+      branch: data.branch,
+      bccd_name: data.bccdName,
+      product_description: data.productDescription,
+      product_sr_no: data.productSrNo,
+      date_of_purchase: data.dateOfPurchase,
+      complaint_no: data.complaintNo,
+      // part_code: data.partCode,
+      defect: data.natureOfDefect,
+      visiting_tech_name: data.visitingTechName,
+      // mfg_month_year: data.mfgMonthYear,
+      // pcb_sr_no: data.pcbSrNo,
+      // tag_entry_by: data.tagEntryBy
+    };
+
+    const result = await saveConsolidatedDataEntry(entryForDb);
+
+    if (!result) {
+      return { error: 'Failed to save data to database' };
+    }
+
     return {};
   } catch (error) {
     console.error('Error in addDataToSheetAction:', error);

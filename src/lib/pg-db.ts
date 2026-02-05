@@ -167,26 +167,41 @@ export async function initializeDatabase() {
 export async function getNextSrNoForPartcode(partcode: string): Promise<string> {
   try {
     console.log('Getting next SR No for Partcode:', partcode);
-    
+
     const result = await pool.query(
-      'SELECT MAX(CAST(sr_no AS INTEGER)) as max_sr_no FROM consolidated_data WHERE partcode = $1',
+      'SELECT MAX(CAST(sr_no AS INTEGER)) as max_sr_no FROM consolidated_data WHERE part_code = $1',
       [partcode]
     );
-    
+
     console.log('Database query result:', result.rows);
     const maxSrNo = result.rows[0]?.max_sr_no || 0;
     console.log('Max SR No found:', maxSrNo);
-    
+
     const nextSrNo = maxSrNo + 1;
     console.log('Next SR No calculated:', nextSrNo);
-    
+
     const formattedSrNo = String(nextSrNo).padStart(3, '0');
     console.log('Formatted SR No:', formattedSrNo);
-    
+
     return formattedSrNo;
   } catch (error) {
     console.error('Error getting next SR No for Partcode:', error);
     return '001'; // Default fallback
+  }
+}
+
+// Find consolidated data entry by part_code and sr_no
+export async function findConsolidatedDataEntryByPartCodeAndSrNo(partCode: string, srNo: string): Promise<any> {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM consolidated_data WHERE part_code = $1 AND sr_no = $2 LIMIT 1',
+      [partCode, srNo]
+    );
+
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding consolidated data entry by part_code and sr_no:', error);
+    return null;
   }
 }
 
@@ -701,13 +716,12 @@ export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: st
       (sr_no, dc_no, dc_date, branch, bccd_name, product_description, product_sr_no, 
        date_of_purchase, complaint_no, part_code, defect, visiting_tech_name, mfg_month_year,
        repair_date, testing, failure, status, pcb_sr_no, analysis, 
-       component_change, engg_name, tag_entry_by, consumption_entry_by, dispatch_entry_by, dispatch_date,
-       dc_number, partcode)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+       component_change, engg_name, tag_entry_by, consumption_entry_by, dispatch_entry_by, dispatch_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING id
     `, [
       entry.srNo,
-      entry.dcNo,
+      sessionDcNumber || entry.dcNo,
       dcDateValue,
       entry.branch,
       entry.bccdName,
@@ -715,7 +729,7 @@ export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: st
       entry.productSrNo,
       dateOfPurchaseValue,
       entry.complaintNo,
-      entry.partCode,
+      sessionPartcode || entry.partCode,
       entry.defect,
       entry.visitingTechName,
       entry.mfgMonthYear,
@@ -730,9 +744,7 @@ export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: st
       entry.tagEntryBy,
       entry.consumptionEntryBy,
       entry.dispatchEntryBy,
-      dispatchDateValue,
-      sessionDcNumber || entry.dcNo, // Use session data if available
-      sessionPartcode || entry.partCode   // Use session data if available
+      dispatchDateValue
     ]);
 
     console.log('Database insert result:', result);
@@ -748,13 +760,13 @@ export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: st
   } catch (error) {
     console.error('=== DATABASE SAVE ERROR ===');
     console.error('Error details:', error);
-    
+
     if (error instanceof Error) {
       console.error('Error name:', error.name);
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
     }
-    
+
     return false;
   }
 }

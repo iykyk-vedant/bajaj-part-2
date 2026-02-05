@@ -11,7 +11,7 @@ interface EngineerNameProps {
 }
 
 export function EngineerName({ value, onChange, className = '', disabled = false }: EngineerNameProps) {
-  const [engineers, setEngineers] = useState<{id: number, name: string}[]>([]);
+  const [engineers, setEngineers] = useState<{ id: number, name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customValue, setCustomValue] = useState('');
@@ -22,7 +22,7 @@ export function EngineerName({ value, onChange, className = '', disabled = false
       try {
         const response = await fetch('/api/engineers');
         const result = await response.json();
-        
+
         if (result.success) {
           setEngineers(result.data);
         } else {
@@ -64,14 +64,14 @@ export function EngineerName({ value, onChange, className = '', disabled = false
           },
           body: JSON.stringify({ name: trimmedValue }),
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
           // Update local state
           const newEngineer = { id: Date.now(), name: trimmedValue };
           setEngineers(prev => [...prev, newEngineer]);
-          
+
           // Set the value and close input
           onChange(trimmedValue);
           setShowCustomInput(false);
@@ -125,7 +125,7 @@ export function EngineerName({ value, onChange, className = '', disabled = false
               </SelectTrigger>
               <SelectContent>
                 {engineers.map((engineer) => (
-                  <SelectItem key={engineer.id} value={engineer.name}>
+                  <SelectItem key={`eng-${engineer.id}`} value={engineer.name}>
                     {engineer.name}
                   </SelectItem>
                 ))}
@@ -147,19 +147,19 @@ export function EngineerName({ value, onChange, className = '', disabled = false
                 disabled={disabled}
               />
             </div>
-            <Button 
-              type="button" 
-              size="sm" 
+            <Button
+              type="button"
+              size="sm"
               onClick={handleCustomSubmit}
               className="h-8 px-2 flex-shrink-0"
               disabled={disabled || !customValue.trim()}
             >
               Add
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => setShowCustomInput(false)}
               className="h-8 px-2 flex-shrink-0"
               disabled={disabled}

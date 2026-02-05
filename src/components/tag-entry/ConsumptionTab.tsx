@@ -104,7 +104,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     dispatchDate: '',
     validationResult: '',
   });
-  
+
   // Debug effect to log form data changes
   useEffect(() => {
     console.log('Form data changed:', formData);
@@ -120,7 +120,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   // Workflow state
   const [isPcbFound, setIsPcbFound] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  
+
   // Debug effect to log state changes
   useEffect(() => {
     console.log('isPcbFound changed to:', isPcbFound);
@@ -150,7 +150,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
   }, [partCode]);
 
-  
+
 
   // Function to load data from database - only load tag entry data, not consumption
   const loadAllData = async () => {
@@ -161,7 +161,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
       if (result.success) {
         const dbEntries = result.data || [];
-        
+
         // Convert database entries to TableRow format for the table
         const tableRows: TableRow[] = dbEntries.map((entry: any) => ({
           id: entry.id,
@@ -193,7 +193,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           consumptionEntryBy: entry.consumption_entry_by || '',
           dispatchEntryBy: entry.dispatch_entry_by || '',
         }));
-        
+
         setTableData(tableRows);
         console.log('Loaded table data - length:', tableRows.length);
         console.log('First few entries:', tableRows.slice(0, 3));
@@ -202,7 +202,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       console.error('Error loading data from database:', e);
     }
   };
-  
+
   // Load data from database on component mount
   useEffect(() => {
     loadAllData();
@@ -233,20 +233,20 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       const { searchConsolidatedDataEntriesByPcb } = await import('@/app/actions/consumption-actions');
       const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, pcbSrNo);
       console.log('Search result:', searchResult);
-      
+
       // Auto-populate form with fetched data
       if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
         console.log('Found existing entry, populating form');
         // If an existing entry is found, populate the form with its consumption data
         const existingEntry = searchResult.data[0];
         console.log('Existing entry data:', existingEntry);
-        
+
         // Find the corresponding entry in tableData to get the ID
         const tableEntry = tableData.find(entry => entry.pcbSrNo === existingEntry.pcb_sr_no);
         if (tableEntry) {
           console.log('Found matching table entry, selecting it');
           setSelectedEntryId(tableEntry.id || null);
-          
+
           // Populate form with the table entry data
           setFormData({
             repairDate: tableEntry.repairDate || '',
@@ -260,7 +260,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             dispatchDate: tableEntry.dispatchDate || '',
             validationResult: tableEntry.validationResult || '',
           });
-          
+
           // Also update the engineer name if it's different
           if (tableEntry.enggName && tableEntry.enggName !== engineerName) {
             onEngineerNameChange && onEngineerNameChange(tableEntry.enggName);
@@ -294,7 +294,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           validationResult: '',
         }));
       }
-  
+
       console.log('Setting isPcbFound to true');
       setIsPcbFound(true);
     } catch (error) {
@@ -328,7 +328,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           componentChangeValue = extractedValue;
         }
       }
-      
+
       // If analysis value is only spaces, clear componentChange
       if (!extractedValue.trim()) {
         setFormData(prev => ({
@@ -390,7 +390,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       if (result.success && result.data) {
         // Update validation result with BOM data and clean up the format
         let formattedResult = result.data.formattedComponents;
-        
+
         // Clean up the validation result to remove prefixes and format properly
         // Split by newlines and process each line
         const lines = formattedResult.split('\n');
@@ -400,15 +400,15 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             const parts = line.split('@');
             const component = parts[0].trim();
             const details = parts[1].trim();
-            
+
             // Skip lines with NA as details
             if (details.toUpperCase() === 'NA') {
               return null;
             }
-            
+
             // Format as component - details
             let formattedLine = `${component} - ${details}`;
-            
+
             // Remove part code prefix (like 971039) if present
             if (formattedLine.startsWith(partCode)) {
               formattedLine = formattedLine.substring(partCode.length).trim();
@@ -416,12 +416,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 formattedLine = formattedLine.substring(1).trim();
               }
             }
-            
 
-            
+
+
             return formattedLine;
           }
-          
+
           // For lines that don't contain @, remove part code prefix if present
           let cleanLine = line;
           if (cleanLine.startsWith(partCode)) {
@@ -430,14 +430,14 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               cleanLine = cleanLine.substring(1).trim();
             }
           }
-          
 
-          
+
+
           return cleanLine;
         }).filter(line => line !== null && line.trim() !== ''); // Remove null entries and empty lines
-        
+
         const cleanedResult = cleanedLines.join('\n');
-        
+
         // Update validation result state
         setValidationResult(cleanedResult);
       } else {
@@ -476,11 +476,11 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       console.log('handleConsume - Selected entry ID:', selectedEntryId);
       console.log('handleConsume - Table data length:', tableData.length);
       console.log('handleConsume - First few table entries IDs:', tableData.slice(0, 3).map(e => e.id));
-      
+
       // Find the selected entry to get the correct product serial number
       const selectedEntry = tableData.find(entry => entry.id === selectedEntryId);
       console.log('handleConsume - Found selected entry:', selectedEntry);
-      
+
       if (!selectedEntry || !selectedEntry.productSrNo) {
         console.error('Could not find selected entry or product serial number');
         console.error('Selected entry ID:', selectedEntryId);
@@ -521,7 +521,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         tagEntryBy: selectedEntry.tagEntryBy || user?.name || user?.email || '',
         validationResult: validationResult,
       });
-      
+
       const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(selectedEntry.productSrNo, {
         // Preserve all existing tag entry fields from the selected entry
         srNo: selectedEntry.srNo,
@@ -551,18 +551,18 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         tagEntryBy: selectedEntry.tagEntryBy || user?.name || user?.email || '',
         validationResult: validationResult,
       });
-      
+
       console.log('handleConsume - Update result:', updateResult);
-      
+
       if (!updateResult.success) {
         console.error('Failed to save consumption data to database:', updateResult.error);
         alert('Error: Could not save consumption data to database');
         return;
       }
-      
+
       // Refresh the data to show updated consumption data
       await loadAllData();
-      
+
       alert('Data consumed successfully! Consumption data saved to database.');
     } catch (error) {
       console.error('Error during consume operation:', error);
@@ -623,16 +623,16 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         tagEntryBy: selectedEntry.tagEntryBy || '',
         validationResult: validationResult,
       });
-      
+
       if (!updateResult.success) {
         console.error('Failed to update consumption data to database:', updateResult.error);
         alert('Error: Could not update consumption data to database');
         return;
       }
-      
+
       // Refresh the data to show updated consumption data
       await loadAllData();
-      
+
       alert('Consumption entry updated successfully!');
     } catch (error) {
       console.error('Error during update operation:', error);
@@ -661,7 +661,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     try {
       // Find the entry to delete to get its product serial number
       const entryToDelete = tableData.find(entry => entry.id === selectedEntryId);
-      
+
       if (entryToDelete && entryToDelete.productSrNo) {
         // Update the consolidated data entry to clear consumption fields
         const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(entryToDelete.productSrNo, {
@@ -692,19 +692,19 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           consumptionEntryBy: null,
           tagEntryBy: null,
         });
-        
+
         if (!updateResult.success) {
           console.error('Failed to delete consumption data from database:', updateResult.error);
           alert('Error: Could not delete consumption data from database');
           return;
         }
       }
-      
+
       // Update local state
       setTableData(prev => prev.filter(entry => entry.id !== selectedEntryId));
       setSelectedEntryId(null);
       handleClearForm();
-      
+
       alert('Consumption entry deleted successfully!');
     } catch (error) {
       console.error('Error deleting consumption entry:', error);
@@ -872,7 +872,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 {dcNumbers.flatMap(dc => dcPartCodes[dc] || [])
                   .filter((code, index, self) => code && code !== '' && self.indexOf(code) === index) // unique codes
                   .map((code, index) => (
-                    <option key={`${code}-${index}`} value={code}>{code}</option>
+                    <option key={`part-opt-${code}-${index}`} value={code}>{code}</option>
                   ))}
               </select>
             </div>
@@ -1032,7 +1032,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 disabled={!isPcbFound}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Validation Result:</label>
               <textarea
@@ -1103,7 +1103,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               <tbody className="bg-white divide-y divide-gray-200">
                 {tableData.map((entry, index) => (
                   <tr
-                    key={entry.id || `entry-${index}`}
+                    key={entry.id ? `row-${entry.id}` : `row-idx-${index}`}
                     className={`cursor-pointer ${selectedEntryId === entry.id ? 'bg-blue-100' : 'hover:bg-gray-50'}`}
                     onClick={() => {
                       console.log('Table row clicked - entry ID:', entry.id);
@@ -1115,7 +1115,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                         failure: entry.failure || '',
                         status: entry.status || '',
                         pcbSrNo: entry.pcbSrNo || '',
-                                            
+
                         analysis: entry.analysis || '',
                         componentChange: entry.componentChange || '',
                         enggName: entry.enggName || '',

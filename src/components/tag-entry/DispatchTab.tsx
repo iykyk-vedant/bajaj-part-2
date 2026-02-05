@@ -77,17 +77,59 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
 
     setIsSearching(true);
 
+    // Local helper for debugging to rule out import issues
+    const generatePcbLocal = (pCode: string, sNo: string, dateStr: string) => {
+      try {
+        const cleanPartCode = pCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const partCodeSegment = cleanPartCode.substring(0, 7).padEnd(7, '0');
+
+        let monthCode = 'A';
+        let year = '26'; // Default to current year if fails
+
+        if (dateStr) {
+          let dateObj: Date | null = null;
+          if (dateStr.includes('/')) {
+            const [month, yearStr] = dateStr.split('/');
+            dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
+          } else if (dateStr.includes('-')) {
+            const [yearStr, month] = dateStr.split('-');
+            dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
+          }
+
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            const codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+            monthCode = codes[dateObj.getMonth()] ?? 'A';
+            year = String(dateObj.getFullYear()).slice(-2);
+          }
+        }
+
+        const srNum = parseInt(sNo, 10);
+        const identifier = isNaN(srNum) ? '00001' : String(srNum).padStart(5, '0');
+
+        return `ES${partCodeSegment}${monthCode}${year}${identifier}`;
+      } catch (e) {
+        console.error('Local gen error:', e);
+        return 'ERROR';
+      }
+    };
+
     try {
-      // Generate the same PCB number that would be generated in TagEntryForm
-      const { getPcbNumberForDc } = await import('@/lib/pcb-utils');
-      const pcbSrNo = getPcbNumberForDc(partCode, srNo, mfgMonthYear);
-      
+      // Use local generation to be 100% sure of logic
+      const pcbSrNo = generatePcbLocal(partCode, srNo, mfgMonthYear);
+
+      // DEBUG: Show what we are searching for
+      console.log('Searching for PCB (Local):', pcbSrNo, 'Params:', { partCode, srNo, mfgMonthYear });
+      toast({
+        title: `Debug: ${mfgMonthYear} -> ${pcbSrNo}`,
+        description: `Params: Code=${partCode}, Sr=${srNo}, Date=${mfgMonthYear}`
+      });
+
       // Use searchConsolidatedDataEntriesByPcb to search by PCB serial number
       const result = await searchConsolidatedDataEntriesByPcb('', partCode, pcbSrNo);
-      
+
       if (result.success) {
         const entries = result.data || [];
-        
+
         if (entries.length === 0) {
           toast({
             variant: 'destructive',
@@ -128,11 +170,11 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
             dispatchDate: entry.dispatch_date ? (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : (entry.dispatch_date && typeof entry.dispatch_date === 'object' && 'toISOString' in entry.dispatch_date ? (entry.dispatch_date as Date).toISOString().split('T')[0] : new Date(entry.dispatch_date).toISOString().split('T')[0])) : '',
             dispatchEntryBy: user?.name || user?.email || '',
           };
-          
+
           setSelectedEntry(formData);
           setIsPcbFound(true);
           setSearchResults(entries);
-          
+
           toast({
             title: 'PCB Found',
             description: 'PCB information loaded successfully.'
@@ -142,7 +184,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
           setSearchResults(entries);
           setIsPcbFound(false);
           setSelectedEntry(null);
-          
+
           toast({
             title: 'Multiple Results Found',
             description: `Found ${entries.length} PCBs matching your criteria.`
@@ -188,7 +230,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
       // For dispatch, we'll update the existing entry by product_sr_no to preserve all previous data and add dispatch data
       // Import the update function by product_sr_no
       const { updateConsolidatedDataEntryByProductSrNoAction } = await import('@/app/actions/consumption-actions');
-      
+
       // Update the entry by product_sr_no to preserve all previous data and add dispatch data
       const result = await updateConsolidatedDataEntryByProductSrNoAction(updatedEntry.productSrNo, updatedEntry);
 
@@ -243,7 +285,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
       dispatchDate: entry.dispatch_date ? (typeof entry.dispatch_date === 'string' ? entry.dispatch_date : (entry.dispatch_date && typeof entry.dispatch_date === 'object' && 'toISOString' in entry.dispatch_date ? (entry.dispatch_date as Date).toISOString().split('T')[0] : new Date(entry.dispatch_date).toISOString().split('T')[0])) : '',
       dispatchEntryBy: user?.name || user?.email || '',
     };
-    
+
     setSelectedEntry(formData);
     setIsPcbFound(true);
     setSearchResults([entry]);
@@ -251,13 +293,13 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     if (selectedEntry) {
       setSelectedEntry({
         ...selectedEntry,
         [name]: value
       });
-      
+
       // Update dispatchDate state if dispatchDate field is changed
       if (name === 'dispatchDate') {
         setDispatchDate(value);
@@ -273,7 +315,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
       setSearchResults([]);
     }
   }, [partCode, mfgMonthYear, srNo]);
-  
+
   const handleSrNoIncrement = () => {
     const currentSrNo = parseInt(srNo || '0');
     if (!isNaN(currentSrNo)) {
@@ -281,7 +323,7 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
       setSrNo(String(newSrNo).padStart(3, '0'));
     }
   };
-  
+
   const handleSrNoDecrement = () => {
     const currentSrNo = parseInt(srNo || '0');
     if (!isNaN(currentSrNo) && currentSrNo > 1) { // Prevent going below 1
@@ -304,11 +346,11 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
             {dcNumbers
               .filter(dc => dc != null && dc !== '')
               .map((dc, index) => (
-              <option key={`export-${dc}-${index}`} value={dc}>{dc}</option>
-            ))}
+                <option key={`export-${dc}-${index}`} value={dc}>{dc}</option>
+              ))}
           </select>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => {
               if (onExportExcel) {
@@ -420,16 +462,16 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
               disabled={isPcbFound}
             />
           </div>
-        <div className="mt-4 flex justify-center">
-          <Button
-            onClick={handleFind}
-            disabled={isSearching || isPcbFound}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded text-sm"
+          <div className="mt-4 flex justify-center">
+            <Button
+              onClick={handleFind}
+              disabled={isSearching || isPcbFound}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded text-sm"
             >
-            {isSearching ? 'Searching...' : 'Find PCB'}
-          </Button>
+              {isSearching ? 'Searching...' : 'Find PCB'}
+            </Button>
+          </div>
         </div>
-            </div>
       </div>
 
       {/* Search Results */}
@@ -438,8 +480,8 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
           <h3 className="font-medium text-gray-800 mb-2">Search Results ({searchResults.length})</h3>
           <div className="max-h-40 overflow-y-auto">
             {searchResults.map((entry, index) => (
-              <div 
-                key={entry.id || index} 
+              <div
+                key={entry.id || index}
                 className="p-2 border-b border-gray-200 hover:bg-blue-50 cursor-pointer"
                 onClick={() => handleSelectResult(entry)}
               >

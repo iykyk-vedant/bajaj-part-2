@@ -94,7 +94,7 @@ export async function saveConsolidatedData(data: any, sessionDcNumber?: string, 
     console.log('=== SAVE CONSOLIDATED DATA CALLED ===');
     console.log('Data received:', data);
     console.log('Session data - DC Number:', sessionDcNumber, 'Partcode:', sessionPartcode);
-    
+
     // Don't save consumption-specific data to database for new entries
     const dataWithoutConsumption = {
       ...data,
@@ -109,14 +109,14 @@ export async function saveConsolidatedData(data: any, sessionDcNumber?: string, 
       rfObservation: data.rfObservation || null,
       validationResult: data.validationResult || null
     };
-    
+
     console.log('Data to save:', dataWithoutConsumption);
-    
+
     const { saveConsolidatedDataEntry } = await import('@/lib/pg-db');
     const result = await saveConsolidatedDataEntry(dataWithoutConsumption, sessionDcNumber, sessionPartcode);
-    
+
     console.log('Database save result:', result);
-    
+
     if (result === true) {
       return {
         success: true,
@@ -204,6 +204,25 @@ export async function updateConsolidatedDataEntryAction(id: string, entry: any) 
     };
   } catch (error) {
     console.error('Error updating consolidated data entry:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
+
+// Server action to find consolidated data entry by part_code and sr_no
+export async function findConsolidatedDataEntryByPartCodeAndSrNoAction(partCode: string, srNo: string) {
+  try {
+    const { findConsolidatedDataEntryByPartCodeAndSrNo } = await import('@/lib/pg-db');
+    const entry = await findConsolidatedDataEntryByPartCodeAndSrNo(partCode, srNo);
+    return {
+      success: true,
+      data: entry
+    };
+  } catch (error) {
+    console.error('Error finding consolidated data entry by part_code and sr_no:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unknown error occurred'

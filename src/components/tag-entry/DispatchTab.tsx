@@ -66,7 +66,9 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
   // Removed srNo increment/decrement functions since we're not using srNo for search
 
   const handleFind = async () => {
-    if (!partCode || !mfgMonthYear || !srNo) {
+    const isFullPcbSrNo = srNo.trim().toUpperCase().startsWith('ES');
+
+    if (!isFullPcbSrNo && (!partCode || !mfgMonthYear || !srNo)) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
@@ -77,55 +79,30 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
 
     setIsSearching(true);
 
-    // Local helper for debugging to rule out import issues
-    const generatePcbLocal = (pCode: string, sNo: string, dateStr: string) => {
-      try {
-        const cleanPartCode = pCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-        const partCodeSegment = cleanPartCode.substring(0, 7).padEnd(7, '0');
 
-        let monthCode = 'A';
-        let year = '26'; // Default to current year if fails
-
-        if (dateStr) {
-          let dateObj: Date | null = null;
-          if (dateStr.includes('/')) {
-            const [month, yearStr] = dateStr.split('/');
-            dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
-          } else if (dateStr.includes('-')) {
-            const [yearStr, month] = dateStr.split('-');
-            dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
-          }
-
-          if (dateObj && !isNaN(dateObj.getTime())) {
-            const codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-            monthCode = codes[dateObj.getMonth()] ?? 'A';
-            year = String(dateObj.getFullYear()).slice(-2);
-          }
-        }
-
-        const srNum = parseInt(sNo, 10);
-        const identifier = isNaN(srNum) ? '00001' : String(srNum).padStart(5, '0');
-
-        return `ES${partCodeSegment}${monthCode}${year}${identifier}`;
-      } catch (e) {
-        console.error('Local gen error:', e);
-        return 'ERROR';
-      }
-    };
 
     try {
-      // Use local generation to be 100% sure of logic
-      const pcbSrNo = generatePcbLocal(partCode, srNo, mfgMonthYear);
+      let pcbSrNo = '';
+
+      if (isFullPcbSrNo) {
+        pcbSrNo = srNo.trim().toUpperCase();
+      } else {
+        // Use local generation to be 100% sure of logic
+        pcbSrNo = generatePcbLocal(partCode, srNo, mfgMonthYear);
+      }
 
       // DEBUG: Show what we are searching for
       console.log('Searching for PCB (Local):', pcbSrNo, 'Params:', { partCode, srNo, mfgMonthYear });
-      toast({
-        title: `Debug: ${mfgMonthYear} -> ${pcbSrNo}`,
-        description: `Params: Code=${partCode}, Sr=${srNo}, Date=${mfgMonthYear}`
-      });
+      if (!isFullPcbSrNo) {
+        toast({
+          title: `Debug: ${mfgMonthYear} -> ${pcbSrNo}`,
+          description: `Params: Code=${partCode}, Sr=${srNo}, Date=${mfgMonthYear}`
+        });
+      }
 
       // Use searchConsolidatedDataEntriesByPcb to search by PCB serial number
-      const result = await searchConsolidatedDataEntriesByPcb('', partCode, pcbSrNo);
+      // If we have a full PCB Sr No, we ignore the partCode selection to avoid mismatch if user selected wrong part code
+      const result = await searchConsolidatedDataEntriesByPcb('', isFullPcbSrNo ? '' : partCode, pcbSrNo);
 
       if (result.success) {
         const entries = result.data || [];
@@ -239,6 +216,13 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
           title: 'Dispatch Saved',
           description: 'Dispatch information saved successfully.'
         });
+
+        // Clear fields except DC No and Part Code for next entry
+        setMfgMonthYear('');
+        setSrNo('');
+        setIsPcbFound(false);
+        setSearchResults([]);
+        setSelectedEntry(null);
       } else {
         toast({
           variant: 'destructive',
@@ -774,3 +758,39 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
     </div>
   );
 }
+
+// Local helper for debugging to rule out import issues
+const generatePcbLocal = (pCode: string, sNo: string, dateStr: string) => {
+  try {
+    const cleanPartCode = pCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const partCodeSegment = cleanPartCode.substring(0, 7).padEnd(7, '0');
+
+    let monthCode = 'A';
+    let year = '26'; // Default to current year if fails
+
+    if (dateStr) {
+      let dateObj: Date | null = null;
+      if (dateStr.includes('/')) {
+        const [month, yearStr] = dateStr.split('/');
+        dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
+      } else if (dateStr.includes('-')) {
+        const [yearStr, month] = dateStr.split('-');
+        dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
+      }
+
+      if (dateObj && !isNaN(dateObj.getTime())) {
+        const codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+        monthCode = codes[dateObj.getMonth()] ?? 'A';
+        year = String(dateObj.getFullYear()).slice(-2);
+      }
+    }
+
+    const srNum = parseInt(sNo, 10);
+    const identifier = isNaN(srNum) ? '00001' : String(srNum).padStart(5, '0');
+
+    return `ES${partCodeSegment}${monthCode}${year}${identifier}`;
+  } catch (e) {
+    console.error('Local gen error:', e);
+    return 'ERROR';
+  }
+};

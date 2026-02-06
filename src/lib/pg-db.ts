@@ -344,15 +344,7 @@ export async function updateConsolidatedDataEntryByProductSrNo(productSrNo: stri
       values.push(entry.status);
       paramCount++;
     }
-    if (entry.rfObservation !== undefined && entry.rfObservation !== null) {
-      updates.push(`rf_observation = $${paramCount}`);
-      values.push(entry.rfObservation);
-      paramCount++;
-    } else if (entry.rf_observation !== undefined && entry.rf_observation !== null) {
-      updates.push(`rf_observation = $${paramCount}`);
-      values.push(entry.rf_observation);
-      paramCount++;
-    }
+
     if (entry.analysis !== undefined && entry.analysis !== null) {
       updates.push(`analysis = $${paramCount}`);
       values.push(entry.analysis);
@@ -898,15 +890,7 @@ export async function updateConsolidatedDataEntry(id: string, entry: any): Promi
       values.push(entry.status);
       paramCount++;
     }
-    if (entry.rfObservation !== undefined && entry.rfObservation !== null) {
-      updates.push(`rf_observation = $${paramCount}`);
-      values.push(entry.rfObservation);
-      paramCount++;
-    } else if (entry.rf_observation !== undefined && entry.rf_observation !== null) {
-      updates.push(`rf_observation = $${paramCount}`);
-      values.push(entry.rf_observation);
-      paramCount++;
-    }
+
     if (entry.analysis !== undefined && entry.analysis !== null) {
       updates.push(`analysis = $${paramCount}`);
       values.push(entry.analysis);

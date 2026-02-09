@@ -72,7 +72,7 @@ export async function initializeDatabase() {
         branch VARCHAR(255),
         bccd_name VARCHAR(255),
         product_description TEXT,
-        product_sr_no VARCHAR(255) UNIQUE,
+        product_sr_no VARCHAR(255),
         date_of_purchase DATE,
         complaint_no VARCHAR(255),
         part_code VARCHAR(255),
@@ -95,6 +95,17 @@ export async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Remove UNIQUE constraint on product_sr_no if it exists (to allow any Product Sr No to be saved)
+    try {
+      await pool.query(`
+        ALTER TABLE consolidated_data DROP CONSTRAINT IF EXISTS consolidated_data_product_sr_no_key;
+      `);
+      console.log('Removed UNIQUE constraint on product_sr_no column');
+    } catch (error) {
+      // Constraint might not exist or already removed
+      console.log('Attempted to remove UNIQUE constraint on product_sr_no - may not have existed');
+    }
 
     // Create users table for Supabase user synchronization
     // Enable the pgcrypto extension for gen_random_uuid() if not already enabled
@@ -684,7 +695,7 @@ export async function saveConsolidatedDataEntry(entry: any, sessionDcNumber?: st
     console.log('Session data - DC Number:', sessionDcNumber, 'Partcode:', sessionPartcode);
 
     // Validate required fields
-    const requiredFields = ['srNo', 'dcNo', 'productSrNo', 'complaintNo'];
+    const requiredFields = ['srNo', 'dcNo', 'complaintNo'];
     const missingFields = requiredFields.filter(field => !entry[field]);
 
     if (missingFields.length > 0) {

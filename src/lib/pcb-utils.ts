@@ -16,39 +16,10 @@ export const generatePcbNumber = (partCode: string, srNo?: string, mfgMonthYear?
   const cleanPartCode = partCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   const partCodeSegment = cleanPartCode.substring(0, 7).padEnd(7, '0');
 
-  // Determine month code and year
-  let monthCode: string;
-  let year: string;
-
-  if (mfgMonthYear) {
-    // Try to parse MM/YYYY or YYYY-MM
-    let dateObj: Date | null = null;
-
-    if (mfgMonthYear.includes('/')) {
-      const [month, yearStr] = mfgMonthYear.split('/');
-      // Create date using 1st of the month
-      dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
-    } else if (mfgMonthYear.includes('-')) {
-      // Assume YYYY-MM
-      const [yearStr, month] = mfgMonthYear.split('-');
-      dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
-    }
-
-    if (dateObj && !isNaN(dateObj.getTime())) {
-      monthCode = getMonthCode(dateObj.getMonth());
-      year = String(dateObj.getFullYear()).slice(-2);
-    } else {
-      // Fallback to current date if parse fails
-      const now = new Date();
-      monthCode = getMonthCode(now.getMonth());
-      year = String(now.getFullYear()).slice(-2);
-    }
-  } else {
-    // Use current date if no mfgMonthYear provided
-    const now = new Date();
-    monthCode = getMonthCode(now.getMonth());
-    year = String(now.getFullYear()).slice(-2);
-  }
+  // Always use current date and month (ignore mfgMonthYear parameter)
+  const now = new Date();
+  const monthCode = getMonthCode(now.getMonth());
+  const year = String(now.getFullYear()).slice(-2);
 
   // Use SR number if provided, otherwise use counter
   let identifier;
@@ -71,6 +42,14 @@ export const generatePcbNumber = (partCode: string, srNo?: string, mfgMonthYear?
   return `ES${partCodeSegment}${monthCode}${year}${identifier}`;
 };
 
+// Get current date in MM/YYYY format for display purposes
+export const getCurrentDateFormatted = () => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  return `${month}/${year}`;
+};
+
 // Get the PCB number that would be generated for a specific Part Code without incrementing the counter
 export const getPcbNumberForDc = (partCode: string, srNo?: string, mfgMonthYear?: string) => {
   if (!partCode) throw new Error('Please provide a Part Code.');
@@ -79,39 +58,10 @@ export const getPcbNumberForDc = (partCode: string, srNo?: string, mfgMonthYear?
   const cleanPartCode = partCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   const partCodeSegment = cleanPartCode.substring(0, 7).padEnd(7, '0');
 
-  // Determine month code and year
-  let monthCode: string;
-  let year: string;
-
-  if (mfgMonthYear) {
-    // Try to parse MM/YYYY or YYYY-MM
-    let dateObj: Date | null = null;
-
-    if (mfgMonthYear.includes('/')) {
-      const [month, yearStr] = mfgMonthYear.split('/');
-      // Create date using 1st of the month
-      dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
-    } else if (mfgMonthYear.includes('-')) {
-      // Assume YYYY-MM
-      const [yearStr, month] = mfgMonthYear.split('-');
-      dateObj = new Date(parseInt(yearStr), parseInt(month) - 1, 1);
-    }
-
-    if (dateObj && !isNaN(dateObj.getTime())) {
-      monthCode = getMonthCode(dateObj.getMonth());
-      year = String(dateObj.getFullYear()).slice(-2);
-    } else {
-      // Fallback to current date if parse fails
-      const now = new Date();
-      monthCode = getMonthCode(now.getMonth());
-      year = String(now.getFullYear()).slice(-2);
-    }
-  } else {
-    // Use current date if no mfgMonthYear provided
-    const now = new Date();
-    monthCode = getMonthCode(now.getMonth());
-    year = String(now.getFullYear()).slice(-2);
-  }
+  // Always use current date and month (ignore mfgMonthYear parameter)
+  const now = new Date();
+  const monthCode = getMonthCode(now.getMonth());
+  const year = String(now.getFullYear()).slice(-2);
 
   // Use SR number if provided, otherwise use counter
   let identifier;

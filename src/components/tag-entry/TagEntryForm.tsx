@@ -476,7 +476,6 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     // Check if all required fields are present
     const requiredFields = {
       dcNo: formData.dcNo,
-      productSrNo: formData.productSrNo,
       complaintNo: formData.complaintNo
     };
     

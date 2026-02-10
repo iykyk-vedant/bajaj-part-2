@@ -105,6 +105,23 @@ export async function initializeDatabase() {
     } catch (error) {
       // Constraint might not exist or already removed
       console.log('Attempted to remove UNIQUE constraint on product_sr_no - may not have existed');
+      console.log('Error details:', error);
+    }
+
+    // Also ensure indexes are created for better query performance
+    try {
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_consolidated_data_dc_no ON consolidated_data(dc_no);
+        CREATE INDEX IF NOT EXISTS idx_consolidated_data_part_code ON consolidated_data(part_code);
+        CREATE INDEX IF NOT EXISTS idx_consolidated_data_product_sr_no ON consolidated_data(product_sr_no);
+        CREATE INDEX IF NOT EXISTS idx_consolidated_data_pcb_sr_no ON consolidated_data(pcb_sr_no);
+        CREATE INDEX IF NOT EXISTS idx_consolidated_data_created_at ON consolidated_data(created_at);
+      `);
+      console.log('Created indexes for consolidated_data table');
+    } catch (error) {
+      // Indexes might already exist, which is fine
+      console.log('Indexes creation attempted - may already exist');
+      console.log('Error details:', error);
     }
 
     // Create users table for Supabase user synchronization

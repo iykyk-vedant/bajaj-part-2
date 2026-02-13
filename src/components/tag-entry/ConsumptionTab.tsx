@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLockStore } from '@/store/lockStore';
-import { LockButton } from './LockButton';
-import { validateBomComponents, saveConsolidatedData, searchConsolidatedDataEntries, updateConsolidatedDataEntryByProductSrNoAction } from '@/app/actions/consumption-actions';
+import { validateBomComponents, updateConsolidatedDataEntryByProductSrNoAction } from '@/app/actions/consumption-actions';
 import { getPcbNumberForDc } from '@/lib/pcb-utils';
 import { EngineerName } from '@/components/ui/engineer-name-db';
 import { useAuth } from '@/contexts/AuthContext';
+
 
 interface ConsumptionTabProps {
   dcNumbers?: string[];
@@ -32,6 +32,7 @@ interface ConsumptionEntry {
   consumptionEntryBy?: string;
   dispatchDate: string;
   validationResult?: string;
+  remarks?: string;
 }
 
 interface TagEntry {
@@ -79,7 +80,54 @@ interface TableRow {
   tagEntryBy?: string;
   consumptionEntryBy?: string;
   dispatchEntryBy?: string;
+  remarks?: string;
 }
+
+const TableRowComponent = memo(({
+  entry,
+  isSelected,
+  onClick
+}: {
+  entry: TableRow,
+  isSelected: boolean,
+  onClick: (entry: TableRow) => void
+}) => {
+  return (
+    <tr
+      className={`cursor-pointer ${isSelected ? 'bg-blue-100' : 'hover:bg-gray-50'}`}
+      onClick={() => onClick(entry)}
+    >
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 font-medium">{entry.srNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dcNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dcDate}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.branch}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.bccdName}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.productDescription}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.productSrNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dateOfPurchase}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.complaintNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.partCode}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.visitingTechName}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.mfgMonthYear}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.repairDate}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.testing}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.failure}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.status}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.pcbSrNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.analysis}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.componentChange}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.remarks}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.enggName}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dispatchDate}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.validationResult}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.tagEntryBy}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.consumptionEntryBy}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dispatchEntryBy}</td>
+    </tr>
+  );
+});
+
+TableRowComponent.displayName = 'TableRowComponent';
 
 export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {}, engineerName = '', onEngineerNameChange }: ConsumptionTabProps) {
   const { isDcLocked } = useLockStore();
@@ -103,6 +151,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     enggName: engineerName || '',
     dispatchDate: '',
     validationResult: '',
+    remarks: '',
   });
 
   // Debug effect to log form data changes
@@ -116,6 +165,12 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   // Unified table data state
   const [tableData, setTableData] = useState<TableRow[]>([]);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const ITEMS_PER_PAGE = 50;
 
   // Workflow state
   const [isPcbFound, setIsPcbFound] = useState(false);
@@ -152,15 +207,19 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
 
 
-  // Function to load data from database - only load tag entry data, not consumption
-  const loadAllData = async () => {
+  // Function to load data from database in chunks
+  const loadDataChunks = async (pageNum: number, isInitial: boolean = false) => {
+    if (isLoadingMore || (!hasMore && !isInitial)) return;
+
+    setIsLoadingMore(true);
     try {
-      // Load consolidated data entries from database
+      // Load consolidated data entries from database with pagination
       const { getConsolidatedDataEntries } = await import('@/app/actions/consumption-actions');
-      const result = await getConsolidatedDataEntries();
+      const result = await getConsolidatedDataEntries(pageNum, ITEMS_PER_PAGE);
 
       if (result.success) {
         const dbEntries = result.data || [];
+        const pagination = result.pagination;
 
         // Convert database entries to TableRow format for the table
         const tableRows: TableRow[] = dbEntries.map((entry: any) => ({
@@ -175,10 +234,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           dateOfPurchase: entry.date_of_purchase ? (typeof entry.date_of_purchase === 'string' ? entry.date_of_purchase : new Date(entry.date_of_purchase).toISOString().split('T')[0]) : '',
           complaintNo: entry.complaint_no || '',
           partCode: entry.part_code || '',
-          defect: entry.nature_of_defect || '', // Fixed field name
+          defect: entry.nature_of_defect || '',
           visitingTechName: entry.visiting_tech_name || '',
           mfgMonthYear: entry.mfg_month_year ? (typeof entry.mfg_month_year === 'string' ? entry.mfg_month_year : new Date(entry.mfg_month_year).toISOString().split('T')[0]) : '',
-          // Consumption-specific fields - now loaded from database
           repairDate: entry.repair_date ? (typeof entry.repair_date === 'string' ? entry.repair_date : new Date(entry.repair_date).toISOString().split('T')[0]) : '',
           testing: entry.testing || '',
           failure: entry.failure || '',
@@ -194,18 +252,32 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           dispatchEntryBy: entry.dispatch_entry_by || '',
         }));
 
-        setTableData(tableRows);
-        console.log('Loaded table data - length:', tableRows.length);
-        console.log('First few entries:', tableRows.slice(0, 3));
+        if (isInitial) {
+          setTableData(tableRows);
+        } else {
+          setTableData(prev => [...prev, ...tableRows]);
+        }
+
+        setHasMore(pagination?.hasMore ?? false);
+        setPage(pageNum);
       }
     } catch (e) {
       console.error('Error loading data from database:', e);
+    } finally {
+      setIsLoadingMore(false);
     }
+  };
+
+  // Re-load all data (reset pagination)
+  const refreshData = async () => {
+    setPage(1);
+    setHasMore(true);
+    await loadDataChunks(1, true);
   };
 
   // Load data from database on component mount
   useEffect(() => {
-    loadAllData();
+    loadDataChunks(1, true);
   }, []);
 
   // This useEffect is no longer needed as data loading is handled by loadAllData function
@@ -220,8 +292,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
     setIsSearching(true);
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
       // Generate the same PCB number that would be generated in TagEntryForm
@@ -231,13 +301,13 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
       // First, search for existing entries by pcbSrNo
       const { searchConsolidatedDataEntriesByPcb } = await import('@/app/actions/consumption-actions');
-      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, pcbSrNo);
+      // Pass mfgMonthYear and srNo to use the optimized search
+      const searchResult = await searchConsolidatedDataEntriesByPcb('', partCode, pcbSrNo, mfgMonthYear, srNo);
       console.log('Search result:', searchResult);
 
       // Auto-populate form with fetched data
       if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
         console.log('Found existing entry, populating form');
-        // If an existing entry is found, populate the form with its consumption data
         const existingEntry = searchResult.data[0];
         console.log('Existing entry data:', existingEntry);
 
@@ -247,21 +317,23 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           console.log('Found matching table entry, selecting it');
           setSelectedEntryId(tableEntry.id || null);
 
-          // Populate form with the table entry data
-          setFormData({
-            repairDate: tableEntry.repairDate || '',
-            testing: tableEntry.testing || '',
-            failure: tableEntry.failure || '',
-            status: tableEntry.status || '',
+          // Populate form with the table entry data, preserving current form values if table entry fields are empty
+          setFormData(prev => ({
+            ...prev,
+            repairDate: tableEntry.repairDate || prev.repairDate || '',
+            testing: tableEntry.testing || prev.testing || '',
+            failure: tableEntry.failure || prev.failure || '',
+            status: tableEntry.status || prev.status || '',
             pcbSrNo: tableEntry.pcbSrNo || '',
-            analysis: tableEntry.analysis || '',
-            componentChange: tableEntry.componentChange || '',
-            enggName: tableEntry.enggName || engineerName || '',
-            dispatchDate: tableEntry.dispatchDate || '',
-            validationResult: tableEntry.validationResult || '',
-          });
+            analysis: tableEntry.analysis || prev.analysis || '',
+            componentChange: tableEntry.componentChange || prev.componentChange || '',
+            enggName: tableEntry.enggName || prev.enggName || engineerName || '',
+            dispatchDate: tableEntry.dispatchDate || prev.dispatchDate || '',
+            validationResult: tableEntry.validationResult || prev.validationResult || '',
+            remarks: tableEntry.remarks || prev.remarks || '',
+          }));
 
-          // Also update the engineer name if it's different
+          // Also update the engineer name if it's different and exists in DB
           if (tableEntry.enggName && tableEntry.enggName !== engineerName) {
             onEngineerNameChange && onEngineerNameChange(tableEntry.enggName);
           }
@@ -270,28 +342,28 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           // Fallback to using search result data
           setFormData(prev => ({
             ...prev,
-            pcbSrNo, // Use the same PCB serial number format as TagEntryForm
-            repairDate: existingEntry.repair_date || new Date().toISOString().split('T')[0],
-            testing: existingEntry.testing || 'PASS',
-            failure: existingEntry.failure || '',
-            status: existingEntry.status || 'OK',
-            analysis: existingEntry.analysis || '',
-            componentChange: existingEntry.component_change || '',
-            enggName: existingEntry.engg_name || engineerName || '',
-            dispatchDate: existingEntry.dispatch_date || '',
-            validationResult: existingEntry.validation_result || '',
+            pcbSrNo,
+            repairDate: existingEntry.repair_date || prev.repairDate || new Date().toISOString().split('T')[0],
+            testing: existingEntry.testing || prev.testing || 'PASS',
+            failure: existingEntry.failure || prev.failure || '',
+            status: existingEntry.status || prev.status || 'OK',
+            analysis: existingEntry.analysis || prev.analysis || '',
+            componentChange: existingEntry.component_change || prev.componentChange || '',
+            enggName: existingEntry.engg_name || prev.enggName || engineerName || '',
+            dispatchDate: existingEntry.dispatch_date || prev.dispatchDate || '',
+            validationResult: existingEntry.validation_result || prev.validationResult || '',
+            remarks: existingEntry.remarks || prev.remarks || '',
           }));
         }
       } else {
-        console.log('No existing entry found, using default values');
-        // If no existing entry is found, use default values
+        console.log('No existing entry found, using default values and preserving existing ones');
+        // If no existing entry is found, keep current form values for efficiency in bulk entry
         setFormData(prev => ({
           ...prev,
-          pcbSrNo, // Use the same PCB serial number format as TagEntryForm
-          repairDate: new Date().toISOString().split('T')[0], // Today's date
-          testing: 'PASS', // Default value
-          status: 'OK', // Default value
-          validationResult: '',
+          pcbSrNo,
+          repairDate: prev.repairDate || new Date().toISOString().split('T')[0],
+          testing: prev.testing || 'PASS',
+          status: prev.status || 'OK',
         }));
       }
 
@@ -394,7 +466,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         // Clean up the validation result to remove prefixes and format properly
         // Split by newlines and process each line
         const lines = formattedResult.split('\n');
-        const cleanedLines = lines.map(line => {
+        const cleanedLines = lines.map((line: string) => {
           // If the line contains @, split and reformat
           if (line.includes('@')) {
             const parts = line.split('@');
@@ -434,7 +506,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
 
           return cleanLine;
-        }).filter(line => line !== null && line.trim() !== ''); // Remove null entries and empty lines
+        }).filter((line: string | null) => line !== null && line.trim() !== ''); // Remove null entries and empty lines
 
         const cleanedResult = cleanedLines.join('\n');
 
@@ -561,9 +633,18 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       }
 
       // Refresh the data to show updated consumption data
-      await loadAllData();
+      await refreshData();
 
       alert('Data consumed successfully! Consumption data saved to database.');
+
+      // Unlock search fields automatically to allow next entry search
+      setIsPcbFound(false);
+
+      // Auto-increment SR No for easier batch processing
+      handleSrNoIncrement();
+
+      // Keep the current form data but reset selection so user can find the next one
+      setSelectedEntryId(null);
     } catch (error) {
       console.error('Error during consume operation:', error);
       alert('There was an error processing the consumption data.');
@@ -631,7 +712,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       }
 
       // Refresh the data to show updated consumption data
-      await loadAllData();
+      await refreshData();
 
       alert('Consumption entry updated successfully!');
     } catch (error) {
@@ -750,8 +831,8 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
       // For now, we'll just export consumption entries
       // In a real implementation, we would fetch tag entries from the database
       const exportData = {
-        consumptionEntries,
-        tagEntries: [] // Tag entries will be fetched from database in a real implementation
+        consumptionEntries: tableData,
+        tagEntries: []
       };
 
       // Call API endpoint with POST request
@@ -788,25 +869,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
   };
 
-  const selectEntry = (entry: ConsumptionEntry) => {
-    setFormData({
-      repairDate: entry.repairDate,
-      testing: entry.testing,
-      failure: entry.failure,
-      status: entry.status,
-      pcbSrNo: entry.pcbSrNo,
-
-      analysis: entry.analysis,
-      componentChange: entry.componentChange,
-      enggName: entry.enggName || engineerName || '',
-      dispatchDate: entry.dispatchDate,
-      validationResult: entry.validationResult || '',
-    });
-    setSelectedEntryId(entry.id || null);
-    // Set the search fields if they exist in the entry
-    if (entry.srNo) setSrNo(entry.srNo);
-    if (entry.partCode) setPartCode(entry.partCode);
-  };
 
   // Keyboard shortcut handler for Consumption form
   const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
@@ -854,18 +916,49 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     }
   }, [handleKeyboardShortcut]);
 
+  const handleRowClick = useCallback((entry: TableRow) => {
+    console.log('Table row clicked - entry ID:', entry.id);
+    console.log('Entry data:', entry);
+    // Populate form with selected entry data
+    setFormData({
+      repairDate: entry.repairDate || '',
+      testing: entry.testing || '',
+      failure: entry.failure || '',
+      status: entry.status || '',
+      pcbSrNo: entry.pcbSrNo || '',
+      analysis: entry.analysis || '',
+      componentChange: entry.componentChange || '',
+      enggName: entry.enggName || '',
+      dispatchDate: entry.dispatchDate || '',
+      validationResult: entry.validationResult || '',
+    });
+    setSelectedEntryId(entry.id || null);
+    console.log('Set selectedEntryId to:', entry.id);
+  }, []);
+
+  const memoizedTableBody = useMemo(() => {
+    return tableData.map((entry, index) => (
+      <TableRowComponent
+        key={entry.id ? `row-${entry.id}` : `row-idx-${index}`}
+        entry={entry}
+        isSelected={selectedEntryId === entry.id}
+        onClick={handleRowClick}
+      />
+    ));
+  }, [tableData, selectedEntryId, handleRowClick]);
+
   return (
-    <div className="bg-white w-full flex flex-col flex-1 min-h-0">
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Find Section - Moved to the top */}
-        <div className="bg-white rounded-md shadow-sm ">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
+    <div className="bg-white w-full flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden ">
+        {/* Find Section - Improved Spacing */}
+        <div className="bg-white rounded-lg shadow-sm mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Part Code</label>
               <select
                 value={partCode}
                 onChange={(e) => setPartCode(e.target.value)}
-                className={`w-full p-1 text-sm border border-gray-300 rounded ${isPcbFound ? 'bg-gray-100' : ''} h-8`}
+                className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${isPcbFound ? 'bg-gray-100' : 'bg-white'} h-9`}
                 disabled={isPcbFound}
               >
                 <option value="">Select Part</option>
@@ -876,112 +969,103 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                   ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mfg Month/Year (MM/YYYY)</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Mfg Month/Year</label>
               <input
                 type="text"
                 value={mfgMonthYear}
                 onChange={(e) => setMfgMonthYear(e.target.value)}
-                className={`w-full p-1 text-sm border border-gray-300 rounded h-8 ${isPcbFound ? 'bg-gray-100' : ''}`}
+                className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all h-9 ${isPcbFound ? 'bg-gray-100' : 'bg-white'}`}
                 placeholder="MM/YYYY"
                 disabled={isPcbFound}
               />
             </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-sm font-medium text-gray-700">Serial No.</label>
-                <div className="flex space-x-1">
-                  {/* <button
-                    type="button"
-                    onClick={() => handleSrNoIncrement()}
-                    className="text-gray-700 hover:text-gray-900 px-1"
-                    disabled={isPcbFound}
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSrNoDecrement()}
-                    className="text-gray-700 hover:text-gray-900 px-1"
-                    disabled={isPcbFound}
-                  >
-                    -
-                  </button> */}
-                </div>
-              </div>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Serial No.</label>
               <input
                 type="text"
                 value={srNo}
                 onChange={(e) => setSrNo(e.target.value)}
-                className={`w-full p-1 text-sm border border-gray-300 rounded ${isPcbFound ? 'bg-gray-100' : ''} h-8`}
+                className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${isPcbFound ? 'bg-gray-100' : 'bg-white'} h-9`}
                 placeholder="Enter Serial No."
                 disabled={isPcbFound}
               />
             </div>
-            <div className="mt-2 flex justify-center items-center">
+
+            <div className="flex gap-2">
               <button
                 onClick={handleFind}
                 disabled={isSearching || isPcbFound}
-                className={`px-3 py-1 text-sm rounded ${isSearching || isPcbFound
-                  ? 'bg-gray-400 cursor-not-allowed text-gray-200'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                className={`flex-1 px-4 py-1.5 text-xs font-semibold rounded-md shadow-sm h-9 transition-all ${isSearching || isPcbFound
+                  ? 'bg-gray-200 cursor-not-allowed text-gray-400'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
                   }`}
               >
                 {isSearching ? 'Finding...' : 'Find PCB'}
               </button>
             </div>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">PCB S/N (Locked)</label>
+              <input
+                type="text"
+                value={formData.pcbSrNo}
+                readOnly
+                className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9 font-mono"
+              />
+            </div>
           </div>
-
         </div>
 
-        {/* Consumption Form */}
-        <form onSubmit={handleConsume} className="bg-white rounded-md shadow-sm mb-2 flex-1 flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2 p-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Repair Date:</label>
+        {/* Consumption Form - Redesigned for Clarity */}
+        <form onSubmit={handleConsume} className="bg-white rounded-lg shadow-sm mb-3 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Repair Date</label>
               <input
                 type="date"
                 name="repairDate"
                 value={formData.repairDate}
                 onChange={handleChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
-                disabled={!isPcbFound}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 h-9 transition-all"
+                disabled={isSearching}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Testing:</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Testing</label>
               <select
                 name="testing"
                 value={formData.testing}
                 onChange={handleChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
-                disabled={!isPcbFound}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 h-9 transition-all"
+                disabled={isSearching}
               >
                 <option value="">Select</option>
                 <option value="PASS">PASS</option>
                 <option value="FAIL">FAIL</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Failure:</label>
-              <input
-                type="text"
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Failure</label>
+              <select
                 name="failure"
                 value={formData.failure}
                 onChange={handleChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
-                placeholder="Enter failure details"
-                disabled={!isPcbFound}
-              />
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 h-9 transition-all"
+                disabled={isSearching}
+              >
+                <option value="">Select</option>
+                <option value="Component">Component</option>
+                <option value="Soldering">Soldering</option>
+              </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status:</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Status</label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
-                disabled={!isPcbFound}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 h-9 transition-all"
+                disabled={isSearching}
               >
                 <option value="">Select</option>
                 <option value="OK">OK</option>
@@ -989,89 +1073,121 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 <option value="SCRAP">SCRAP</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Engineer:</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Engineer</label>
               <EngineerName
                 value={engineerName}
                 onChange={(value) => onEngineerNameChange && onEngineerNameChange(value)}
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8"
+                className="w-full h-9"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Consumption Entry By:</label>
-              <input
-                type="text"
-                value={user?.name || user?.email || ''}
-                readOnly
-                className="w-full p-1 text-sm border border-gray-300 rounded h-8 bg-gray-100"
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Remarks</label>
+              <textarea
+                name="remarks"
+                value={formData.remarks}
+                onChange={handleChange}
+                rows={2}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                disabled={isSearching}
               />
             </div>
 
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Analysis:</label>
+
+
+
+
+
+            {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4"> */}
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Analysis</label>
               <textarea
                 name="analysis"
-                value={formData.analysis} // Keep original text with / characters
+                value={formData.analysis}
                 onChange={handleChange}
-                rows={3}
-                className="w-full p-1 text-sm border border-gray-300 rounded"
-                disabled={!isPcbFound}
+                rows={2}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all min-h-[60px]"
+                disabled={isSearching}
+                placeholder="Enter technical analysis..."
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Component Change:</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Component Change</label>
               <textarea
                 name="componentChange"
                 value={formData.componentChange}
-                onChange={handleChange}
-                rows={3}
-                className="w-full p-1 text-sm border border-gray-300 rounded"
-                disabled={!isPcbFound}
+                readOnly
+                rows={2}
+                className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-600 italic font-mono"
+                disabled={isSearching}
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Validation Result:</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Validation Result</label>
               <textarea
                 name="validationResult"
                 value={validationResult}
                 readOnly
-                rows={3}
-                className="w-full p-1 text-sm border border-gray-300 rounded bg-gray-100"
+                rows={2}
+                className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-600 italic font-mono"
               />
             </div>
-          </div>
+            <div className="flex gap-2 items-center md:col-span-4 justify-end">
+              <button
+                type="submit"
+                disabled={!isPcbFound}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md shadow-sm h-9 transition-all whitespace-nowrap ${isPcbFound
+                  ? 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  }`}
+              >
+                {selectedEntryId ? 'Update Consumption' : 'Confirm Consumption'}
+              </button>
 
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={!selectedEntryId}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-red-600 rounded-md hover:bg-red-700 shadow-sm h-9 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                Delete
+              </button>
 
-          <div className="flex justify-end space-x-2 mt-auto">
-            <button
-              type="button"
-              onClick={handleClear}
-              className="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded"
-            >
-              Clear
-            </button>
-            <button
-              type="submit"
-              disabled={!isPcbFound}
-              className={`px-3 py-1 text-sm rounded ${isPcbFound
-                ? 'bg-green-500 hover:bg-green-600 text-white'
-                : 'bg-gray-400 cursor-not-allowed text-gray-200'
-                }`}
-            >
-              Consume
-            </button>
+              <button
+                type="button"
+                onClick={handleClearForm}
+                className="px-4 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm h-9 transition-all whitespace-nowrap"
+              >
+                Clear
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-green-700 rounded-md hover:bg-green-800 shadow-sm h-9 transition-all whitespace-nowrap"
+              >
+                Export Excel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-gray-600 rounded-md hover:bg-gray-700 shadow-sm h-9 transition-all whitespace-nowrap"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </form>
 
         {/* Excel-like Grid */}
         <div className="bg-white rounded-md shadow-sm mb-2 flex-1 overflow-hidden flex flex-col">
-          <div className="overflow-x-auto flex-1 p-2">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto flex-1 p-1">
+            <table className="min-w-full divide-y divide-gray-200 text-xs">
+              <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Sr No</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">DC No</th>
@@ -1095,64 +1211,14 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Engg Name</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Dispatch Date</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Validation Result</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Tag Entry By</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Consumption Entry By</th>
                   <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Dispatch Entry By</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {tableData.map((entry, index) => (
-                  <tr
-                    key={entry.id ? `row-${entry.id}` : `row-idx-${index}`}
-                    className={`cursor-pointer ${selectedEntryId === entry.id ? 'bg-blue-100' : 'hover:bg-gray-50'}`}
-                    onClick={() => {
-                      console.log('Table row clicked - entry ID:', entry.id);
-                      console.log('Entry data:', entry);
-                      // Populate form with selected entry data
-                      setFormData({
-                        repairDate: entry.repairDate || '',
-                        testing: entry.testing || '',
-                        failure: entry.failure || '',
-                        status: entry.status || '',
-                        pcbSrNo: entry.pcbSrNo || '',
-
-                        analysis: entry.analysis || '',
-                        componentChange: entry.componentChange || '',
-                        enggName: entry.enggName || '',
-                        dispatchDate: entry.dispatchDate || '',
-                        validationResult: entry.validationResult || '',
-                      });
-                      setSelectedEntryId(entry.id || null);
-                      console.log('Set selectedEntryId to:', entry.id);
-                    }}
-                  >
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 font-medium">{entry.srNo}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dcNo}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dcDate}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.branch}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.bccdName}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.productDescription}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.productSrNo}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dateOfPurchase}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.complaintNo}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.partCode}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.visitingTechName}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.mfgMonthYear}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.repairDate}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.testing}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.failure}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.status}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.pcbSrNo}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.analysis}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.componentChange}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.enggName}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dispatchDate}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.validationResult}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.tagEntryBy}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.consumptionEntryBy}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dispatchEntryBy}</td>
-                  </tr>
-                ))}
+                {memoizedTableBody}
                 {tableData.length === 0 && (
                   <tr>
                     <td colSpan={26} className="px-2 py-1 text-center text-sm text-gray-500">
@@ -1162,11 +1228,31 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
                 )}
               </tbody>
             </table>
+            {(isLoadingMore || hasMore) && (
+              <div
+                ref={(el) => {
+                  if (el) {
+                    const observer = new IntersectionObserver(
+                      (entries) => {
+                        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+                          loadDataChunks(page + 1);
+                        }
+                      },
+                      { threshold: 1.0 }
+                    );
+                    observer.observe(el);
+                  }
+                }}
+                className="py-4 text-center text-gray-500 italic"
+              >
+                {isLoadingMore ? 'Loading more records...' : 'Scroll for more'}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Bottom Action Buttons */}
-        <div className="flex justify-between items-center mb-2 p-2">
+        <div className="flex justify-between items-center p-1 border-t border-gray-200">
           <div className="flex space-x-2">
             {/* <button
               onClick={handleUpdate}
@@ -1195,17 +1281,6 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
             >
               Clear
-            </button>
-            <button
-              onClick={async () => {
-                // Call server action instead of importing pg-db directly
-                const result = await fetch('/api/test-db', { method: 'POST' });
-                const data = await result.json();
-                alert(`Database test ${data.success ? 'PASSED' : 'FAILED'} - Check console for details`);
-              }}
-              className="px-3 py-1 text-sm bg-orange-500 text-white rounded hover:bg-orange-600"
-            >
-              Test DB
             </button>
             <button
               onClick={handleExportExcel}

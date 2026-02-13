@@ -36,22 +36,22 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
 
   const handleAddUser = () => {
     // Implementation for adding user
-    
+
   };
 
   const handleAddEngineer = () => {
     // Implementation for adding engineer
-    
+
   };
 
   const handleCreateTable = () => {
     // Implementation for creating table
-    
+
   };
 
   const handleExport = () => {
     // Implementation for exporting data
-    
+
   };
 
   const handleResetPcbCounter = () => {
@@ -74,7 +74,7 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
   const handleKeyboardShortcut = useCallback((e: KeyboardEvent) => {
     // Only handle Alt key combinations
     if (!e.altKey) return;
-    
+
     // Prevent browser default behavior for these shortcuts
     switch (e.key.toLowerCase()) {
       case 's':
@@ -101,40 +101,40 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
   }, [handleKeyboardShortcut]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Create New DC */}
-        <div className="border border-gray-200 rounded-lg p-4">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Create New DC</h3>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <h3 className="text-[12px] font-bold text-blue-600 uppercase tracking-widest mb-4 border-b pb-1">Create New DC</h3>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">DC No.</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={isDcLocked ? useLockStore.getState().lockedDcNo : dcNo}
                   onChange={(e) => setDcNo(e.target.value)}
                   disabled={isDcLocked}
-                  className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                  className={`flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all ${isDcLocked ? 'bg-gray-50 text-gray-500 border-gray-200' : 'bg-white'}`}
                   placeholder="Enter DC No."
                 />
                 <LockButton dcNo={dcNo} partCode={partCode} />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Part Code</label>
               <input
                 type="text"
                 value={isDcLocked ? useLockStore.getState().lockedPartCode : partCode}
                 onChange={(e) => setPartCode(e.target.value)}
                 disabled={isDcLocked}
-                className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all ${isDcLocked ? 'bg-gray-50 text-gray-500 border-gray-200' : 'bg-white'}`}
                 placeholder="Enter Part Code"
               />
             </div>
             <button
               onClick={handleCreateDC}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md text-xs font-bold uppercase tracking-widest transition-all shadow-sm active:scale-95"
             >
               Create DC
             </button>
@@ -142,35 +142,35 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
         </div>
 
         {/* Add New User */}
-        <div className="border border-gray-200 rounded-lg p-4">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Add New User</h3>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <h3 className="text-[12px] font-bold text-green-600 uppercase tracking-widest mb-4 border-b pb-1">Add New User</h3>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">User ID</label>
               <input
                 type="text"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                 placeholder="Enter User ID"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                 placeholder="Enter Password"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Status</label>
               <select
                 value={userStatus}
                 onChange={(e) => setUserStatus(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -178,7 +178,7 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
             </div>
             <button
               onClick={handleAddUser}
-              className="w-full bg-green-500 hover:bg-green-600 text-white p-2 rounded"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md text-xs font-bold uppercase tracking-widest transition-all shadow-sm active:scale-95"
             >
               Add User
             </button>
@@ -186,22 +186,22 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
         </div>
 
         {/* Add Engineers */}
-        <div className="border border-gray-200 rounded-lg p-4">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Add Engineers</h3>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <h3 className="text-[12px] font-bold text-purple-600 uppercase tracking-widest mb-4 border-b pb-1">Add Engineers</h3>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Enter Engineer Name</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Engineer Name</label>
               <input
                 type="text"
                 value={engineerName}
                 onChange={(e) => setEngineerName(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                 placeholder="Enter Engineer Name"
               />
             </div>
             <button
               onClick={handleAddEngineer}
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white p-2 rounded"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-md text-xs font-bold uppercase tracking-widest transition-all shadow-sm active:scale-95"
             >
               Add Engineer
             </button>
@@ -209,30 +209,30 @@ export function SettingsTab({ dcNumbers, onAddDcNumber }: SettingsTabProps) {
         </div>
 
         {/* Controls */}
-        <div className="border border-gray-200 rounded-lg p-4">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Controls</h3>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <h3 className="text-[12px] font-bold text-gray-600 uppercase tracking-widest mb-4 border-b pb-1">System Controls</h3>
           <div className="space-y-3">
             <button
               onClick={handleCreateTable}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded"
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95"
             >
               CreateTable (Alt+S)
             </button>
             <button
               onClick={handleExport}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white p-2 rounded"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95"
             >
               Export (Alt+E)
             </button>
             <button
               onClick={handleResetPcbCounter}
-              className="w-full bg-slate-600 hover:bg-slate-700 text-white p-2 rounded"
+              className="w-full bg-slate-600 hover:bg-slate-700 text-white py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95"
             >
               Reset PCB Serial Counter
             </button>
             <button
               onClick={handleClearLocalStorage}
-              className="w-full bg-red-600 hover:bg-red-700 text-white p-2 rounded"
+              className="w-full bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95"
             >
               Clear Local Storage
             </button>

@@ -1,327 +1,190 @@
 'use server';
 
 import {
-  validateConsumption as validateConsumptionService,
-  formatValidatedComponents,
-  formatComponentConsumption
-} from '@/lib/consumption-validation-service';
+    getConsolidatedDataEntries as getEntries,
+    saveConsolidatedDataEntry,
+    updateConsolidatedDataEntry,
+    updateConsolidatedDataEntryByProductSrNo,
+    deleteConsolidatedDataEntry,
+    getNextSrNoForPartcode,
+    searchConsolidatedDataEntriesByPcb as searchByPcb
+} from '@/lib/pg-db';
+import { validateConsumption, formatValidatedComponents } from '@/lib/consumption-validation-service';
 
-// Server action to validate consumption
-export async function validateConsumption(analysisText: string, partCode?: string) {
-  try {
-    const result = await validateConsumptionService(analysisText, partCode);
-    return {
-      success: true,
-      data: {
-        validatedComponents: result.validatedComponents,
-        isValid: result.isValid,
-        errorMessage: result.errorMessage,
-        formattedComponents: formatValidatedComponents(result.validatedComponents),
-        componentConsumption: formatComponentConsumption(result.validatedComponents)
-      }
-    };
-  } catch (error) {
-    console.error('Error validating consumption:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
-
-// Server action to validate BOM components
-export async function validateBomComponents(analysisText: string, partCode?: string) {
-  try {
-    const result = await validateConsumptionService(analysisText, partCode);
-    return {
-      success: true,
-      data: {
-        validatedComponents: result.validatedComponents,
-        isValid: result.isValid,
-        errorMessage: result.errorMessage,
-        formattedComponents: formatValidatedComponents(result.validatedComponents),
-        componentConsumption: formatComponentConsumption(result.validatedComponents)
-      }
-    };
-  } catch (error) {
-    console.error('Error validating BOM components:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
-
-// Server action to save consumption entry
-export async function saveConsumptionEntry(entry: any) {
-  try {
-    // Consumption entries table has been removed, so we don't save to database anymore
-    console.log('Consumption entries table has been removed. Skipping database save.');
-    return {
-      success: true,
-      data: true
-    };
-  } catch (error) {
-    console.error('Error in saveConsumptionEntry:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
-
-// Server action to get consumption entries
-export async function getConsumptionEntries() {
-  try {
-    // Consumption entries table has been removed, so return empty array
-    console.log('Consumption entries table has been removed. Returning empty array.');
-    return {
-      success: true,
-      data: []
-    };
-  } catch (error) {
-    console.error('Error fetching consumption entries:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
-
-// Server action to save consolidated data entry
-export async function saveConsolidatedData(data: any, sessionDcNumber?: string, sessionPartcode?: string) {
-  try {
-    console.log('=== SAVE CONSOLIDATED DATA CALLED ===');
-    console.log('Data received:', data);
-    console.log('Session data - DC Number:', sessionDcNumber, 'Partcode:', sessionPartcode);
-
-    // Don't save consumption-specific data to database for new entries
-    const dataWithoutConsumption = {
-      ...data,
-      repairDate: data.repairDate || null,
-      testing: data.testing || null,
-      failure: data.failure || null,
-      status: data.status || null,
-      analysis: data.analysis || null,
-      componentChange: data.componentChange || null,
-      enggName: data.enggName || null,
-      dispatchDate: data.dispatchDate || null,
-      rfObservation: data.rfObservation || null,
-      validationResult: data.validationResult || null
-    };
-
-    console.log('Data to save:', dataWithoutConsumption);
-
-    const { saveConsolidatedDataEntry } = await import('@/lib/pg-db');
-    const result = await saveConsolidatedDataEntry(dataWithoutConsumption, sessionDcNumber, sessionPartcode);
-
-    console.log('Database save result:', result);
-
-    if (result === true) {
-      return {
-        success: true,
-        data: true
-      };
-    } else {
-      return {
-        success: false,
-        error: 'Failed to save data to database'
-      };
+function formatDateForDb(dateString: string | undefined | null): string | null {
+    if (!dateString) return null;
+    
+    // Check if date is in DD/MM/YYYY format
+    const ddMmYyyyMatch = dateString.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (ddMmYyyyMatch) {
+        const [_, day, month, year] = ddMmYyyyMatch;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     }
-
-  } catch (error) {
-    console.error('Error saving consolidated data:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
+    
+    return dateString;
 }
 
-// Server action to get consolidated data entries
-export async function getConsolidatedDataEntries() {
-  try {
-    const { getAllConsolidatedDataEntries } = await import('@/lib/pg-db');
-    const entries = await getAllConsolidatedDataEntries();
-    return {
-      success: true,
-      data: entries
-    };
-  } catch (error) {
-    console.error('Error fetching consolidated data entries:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
+export async function validateBomComponents(analysisText: string, partCode?: string) {
+    try {
+        const result = await validateConsumption(analysisText, partCode);
+        return {
+            success: true,
+            data: {
+                isValid: result.isValid,
+                formattedComponents: formatValidatedComponents(result.validatedComponents),
+                errorMessage: result.errorMessage
+            }
+        };
+    } catch (error) {
+        console.error('Error validating BOM components:', error);
+        return { success: false, error: 'Failed to validate components' };
+    }
 }
 
-// Server action to search consolidated data entries by product serial number
-export async function searchConsolidatedDataEntries(dcNo?: string, partCode?: string, productSrNo?: string) {
-  try {
-    const { searchConsolidatedDataEntries: searchFunction } = await import('@/lib/pg-db');
-    const entries = await searchFunction(dcNo, partCode, productSrNo);
-    return {
-      success: true,
-      data: entries
-    };
-  } catch (error) {
-    console.error('Error searching consolidated data entries:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
+export async function getConsolidatedDataEntries(pageNum?: number, pageSize?: number) {
+    try {
+        const { rows, totalRows } = await getEntries(pageNum, pageSize);
+        return {
+            success: true,
+            data: rows,
+            pagination: pageNum && pageSize ? {
+                currentPage: pageNum,
+                pageSize,
+                totalRows,
+                hasMore: pageNum * pageSize < totalRows
+            } : undefined
+        };
+    } catch (error) {
+        console.error('Error fetching consolidated data:', error);
+        return { success: false, error: 'Failed to fetch entries' };
+    }
 }
 
-// Server action to search consolidated data entries by PCB serial number
-export async function searchConsolidatedDataEntriesByPcb(dcNo?: string, partCode?: string, pcbSrNo?: string) {
-  try {
-    const { searchConsolidatedDataEntriesByPcb: searchFunction } = await import('@/lib/pg-db');
-    const entries = await searchFunction(dcNo, partCode, pcbSrNo);
-    return {
-      success: true,
-      data: entries
-    };
-  } catch (error) {
-    console.error('Error searching consolidated data entries by PCB:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
+export async function saveConsolidatedData(data: any, sessionDc?: string, sessionPartCode?: string) {
+    try {
+        // Map camcelCase to snake_case if necessary, or assume pg-db handles it
+        // Based on usages, we might need to map keys
+        const dbData = {
+            sr_no: data.srNo,
+            dc_no: data.dcNo || sessionDc,
+            branch: data.branch,
+            bccd_name: data.bccdName,
+            product_description: data.productDescription,
+            product_sr_no: data.productSrNo,
+            date_of_purchase: formatDateForDb(data.dateOfPurchase),
+            complaint_no: data.complaintNo,
+            part_code: data.partCode || sessionPartCode,
+            nature_of_defect: data.natureOfDefect || data.defect,
+            visiting_tech_name: data.visitingTechName,
+            mfg_month_year: data.mfgMonthYear,
+            pcb_sr_no: data.pcbSrNo,
+            repair_date: formatDateForDb(data.repairDate),
+            testing: data.testing,
+            failure: data.failure,
+            status: data.status,
+            analysis: data.analysis,
+            component_change: data.componentChange,
+            engg_name: data.enggName,
+            dispatch_date: formatDateForDb(data.dispatchDate),
+            tag_entry_by: data.tagEntryBy,
+            consumption_entry_by: data.consumptionEntryBy,
+            validation_result: data.validationResult,
+            remarks: data.remarks
+        };
+
+        const entry = await saveConsolidatedDataEntry(dbData);
+        return { success: true, data: entry };
+    } catch (error) {
+        console.error('Error saving consolidated data:', error);
+        return { success: false, error: 'Failed to save entry' };
+    }
 }
 
-// Server action to update consolidated data entry
-export async function updateConsolidatedDataEntryAction(id: string, entry: any) {
-  try {
-    const { updateConsolidatedDataEntry } = await import('@/lib/pg-db');
-    // Pass entry directly as pg-db expects camelCase keys
-    const result = await updateConsolidatedDataEntry(id.toString(), entry);
-    return {
-      success: true,
-      data: result
-    };
-  } catch (error) {
-    console.error('Error updating consolidated data entry:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
+export async function updateConsolidatedDataEntryAction(id: string, data: any) {
+    try {
+        const dbData: any = {};
+        // Map keys to snake_case
+        if (data.srNo) dbData.sr_no = data.srNo;
+        if (data.dcNo) dbData.dc_no = data.dcNo;
+        if (data.branch) dbData.branch = data.branch;
+        if (data.bccdName) dbData.bccd_name = data.bccdName;
+        if (data.productDescription) dbData.product_description = data.productDescription;
+        if (data.productSrNo) dbData.product_sr_no = data.productSrNo;
+        if (data.dateOfPurchase) dbData.date_of_purchase = formatDateForDb(data.dateOfPurchase);
+        if (data.complaintNo) dbData.complaint_no = data.complaintNo;
+        if (data.partCode) dbData.part_code = data.partCode;
+        if (data.natureOfDefect || data.defect) dbData.nature_of_defect = data.natureOfDefect || data.defect;
+        if (data.visitingTechName) dbData.visiting_tech_name = data.visitingTechName;
+        if (data.mfgMonthYear) dbData.mfg_month_year = data.mfgMonthYear;
+        if (data.pcbSrNo) dbData.pcb_sr_no = data.pcbSrNo;
+        if (data.repairDate !== undefined) dbData.repair_date = formatDateForDb(data.repairDate);
+        if (data.testing !== undefined) dbData.testing = data.testing;
+        if (data.failure !== undefined) dbData.failure = data.failure;
+        if (data.status !== undefined) dbData.status = data.status;
+        if (data.analysis !== undefined) dbData.analysis = data.analysis;
+        if (data.componentChange !== undefined) dbData.component_change = data.componentChange;
+        if (data.enggName !== undefined) dbData.engg_name = data.enggName;
+        if (data.dispatchDate !== undefined) dbData.dispatch_date = formatDateForDb(data.dispatchDate);
+        if (data.validationResult !== undefined) dbData.validation_result = data.validationResult;
+        if (data.remarks !== undefined) dbData.remarks = data.remarks;
+
+        const entry = await updateConsolidatedDataEntry(id, dbData);
+        return { success: true, data: entry };
+    } catch (error) {
+        console.error('Error updating consolidated data:', error);
+        return { success: false, error: 'Failed to update entry' };
+    }
 }
 
+export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo: string, data: any) {
+    try {
+        const dbData: any = {};
+        if (data.repairDate !== undefined) dbData.repair_date = formatDateForDb(data.repairDate);
+        if (data.testing !== undefined) dbData.testing = data.testing;
+        if (data.failure !== undefined) dbData.failure = data.failure;
+        if (data.status !== undefined) dbData.status = data.status;
+        if (data.analysis !== undefined) dbData.analysis = data.analysis;
+        if (data.componentChange !== undefined) dbData.component_change = data.componentChange;
+        if (data.enggName !== undefined) dbData.engg_name = data.enggName;
+        if (data.dispatchDate !== undefined) dbData.dispatch_date = formatDateForDb(data.dispatchDate);
+        if (data.validationResult !== undefined) dbData.validation_result = data.validationResult;
+        if (data.remarks !== undefined) dbData.remarks = data.remarks;
+        if (data.consumptionEntryBy) dbData.consumption_entry_by = data.consumptionEntryBy;
 
-// Server action to find consolidated data entry by part_code and sr_no
-export async function findConsolidatedDataEntryByPartCodeAndSrNoAction(partCode: string, srNo: string) {
-  try {
-    const { findConsolidatedDataEntryByPartCodeAndSrNo } = await import('@/lib/pg-db');
-    const entry = await findConsolidatedDataEntryByPartCodeAndSrNo(partCode, srNo);
-    return {
-      success: true,
-      data: entry
-    };
-  } catch (error) {
-    console.error('Error finding consolidated data entry by part_code and sr_no:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
+        const entry = await updateConsolidatedDataEntryByProductSrNo(productSrNo, dbData);
+        return { success: true, data: entry };
+    } catch (error) {
+        console.error('Error updating consolidated data by product sr no:', error);
+        return { success: false, error: 'Failed to update entry' };
+    }
 }
 
-// Server action to find consolidated data entry by product_sr_no
-export async function findConsolidatedDataEntryByProductSrNoAction(productSrNo: string) {
-  try {
-    const { findConsolidatedDataEntryByProductSrNo } = await import('@/lib/pg-db');
-    const entry = await findConsolidatedDataEntryByProductSrNo(productSrNo);
-    return {
-      success: true,
-      data: entry
-    };
-  } catch (error) {
-    console.error('Error finding consolidated data entry by product_sr_no:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
-
-// Server action to update consolidated data entry by product_sr_no
-export async function updateConsolidatedDataEntryByProductSrNoAction(productSrNo: string, entry: any) {
-  try {
-    console.log('Server action called with productSrNo:', productSrNo);
-    console.log('Server action entry data:', entry);
-
-    const { updateConsolidatedDataEntryByProductSrNo } = await import('@/lib/pg-db');
-    // Pass entry directly as pg-db expects camelCase keys
-    const result = await updateConsolidatedDataEntryByProductSrNo(productSrNo, entry);
-    return {
-      success: result,
-      data: result
-    };
-  } catch (error) {
-    console.error('Error updating consolidated data entry by product_sr_no:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
-
-// Server action to get consolidated data entries by DC number
-export async function getConsolidatedDataEntriesByDcNoAction(dcNo: string) {
-  try {
-    const { getConsolidatedDataEntriesByDcNo } = await import('@/lib/pg-db');
-    const entries = await getConsolidatedDataEntriesByDcNo(dcNo);
-    return {
-      success: true,
-      data: entries
-    };
-  } catch (error) {
-    console.error('Error getting consolidated data entries by DC number:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
-
-// Server action to get the next SR No for a given Partcode
-export async function getNextSrNoForPartcodeAction(partcode: string) {
-  try {
-    console.log('getNextSrNoForPartcodeAction called with Partcode:', partcode);
-    const { getNextSrNoForPartcode } = await import('@/lib/pg-db');
-    const nextSrNo = await getNextSrNoForPartcode(partcode);
-    console.log('getNextSrNoForPartcodeAction returning:', nextSrNo);
-    return {
-      success: true,
-      data: nextSrNo
-    };
-  } catch (error) {
-    console.error('Error getting next SR No for Partcode:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
-
-// Server action to delete consolidated data entry
 export async function deleteConsolidatedDataEntryAction(id: string) {
-  try {
-    const { deleteConsolidatedDataEntry } = await import('@/lib/pg-db');
-    const result = await deleteConsolidatedDataEntry(id);
-    return {
-      success: result,
-      data: result
-    };
-  } catch (error) {
-    console.error('Error deleting consolidated data entry:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
+    try {
+        await deleteConsolidatedDataEntry(id);
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting consolidated data:', error);
+        return { success: false, error: 'Failed to delete entry' };
+    }
+}
+
+export async function getNextSrNoForPartcodeAction(partCode: string) {
+    try {
+        const nextSrNo = await getNextSrNoForPartcode(partCode);
+        return { success: true, data: nextSrNo };
+    } catch (error) {
+        console.error('Error getting next SR No:', error);
+        return { success: false, error: 'Failed to generate next SR No' };
+    }
+}
+
+export async function searchConsolidatedDataEntriesByPcb(query: string, partCode: string, pcbSrNo: string, mfgMonthYear?: string, srNo?: string) {
+    try {
+        const entries = await searchByPcb(query, partCode, pcbSrNo, mfgMonthYear, srNo);
+        return { success: true, data: entries };
+    } catch (error) {
+        console.error('Error searching by PCB:', error);
+        return { success: false, error: 'Failed to search entries' };
+    }
 }

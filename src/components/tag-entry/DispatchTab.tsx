@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { searchConsolidatedDataEntries, searchConsolidatedDataEntriesByPcb } from '@/app/actions/consumption-actions';
+import { searchConsolidatedDataEntriesByPcb } from '@/app/actions/consumption-actions';
 import { exportTagEntriesToExcel } from '@/lib/tag-entry/export-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -350,69 +350,63 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
         </div>
       </div>
 
-      {/* Search Section */}
-      <div className="mb-3">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4"> {/* Changed from 4 to 3 columns */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">DC No.</label>
+      {/* Search Section - Standardized Grid */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">DC No.</label>
             <div className="flex gap-2">
-              <Select
+              <select
                 value={isDcLocked ? useLockStore.getState().lockedDcNo : dcNo}
-                onValueChange={setDcNo}
+                onChange={(e) => setDcNo(e.target.value)}
                 disabled={isDcLocked || isPcbFound}
+                className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 transition-all h-9 ${isDcLocked || isPcbFound ? 'bg-gray-50 text-gray-500' : 'bg-white'}`}
               >
-                <SelectTrigger className={`flex-1 ${isDcLocked || isPcbFound ? 'bg-gray-100' : ''}`}>
-                  <SelectValue placeholder="Select DC No." />
-                </SelectTrigger>
-                <SelectContent>
-                  {dcNumbers
-                    .filter(dc => dc != null && dc !== '')
-                    .map((dc, index) => (
-                      <SelectItem key={`${dc}-${index}`} value={dc}>{dc}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                <option value="">Select DC No.</option>
+                {dcNumbers
+                  .filter(dc => dc != null && dc !== '')
+                  .map((dc, index) => (
+                    <option key={`${dc}-${index}`} value={dc}>{dc}</option>
+                  ))}
+              </select>
               <LockButton dcNo={dcNo} partCode={partCode} />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Part Code</label>
-            <Select
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Part Code</label>
+            <select
               value={isDcLocked ? useLockStore.getState().lockedPartCode : partCode}
-              onValueChange={setPartCode}
+              onChange={(e) => setPartCode(e.target.value)}
               disabled={isDcLocked || isPcbFound}
+              className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 transition-all h-9 ${isDcLocked || isPcbFound ? 'bg-gray-50 text-gray-500' : 'bg-white'}`}
             >
-              <SelectTrigger className={`${isDcLocked || isPcbFound ? 'bg-gray-100' : ''}`}>
-                <SelectValue placeholder="Select Part Code" />
-              </SelectTrigger>
-              <SelectContent>
-                {(dcPartCodes[dcNo] || [])
-                  .filter(code => code != null && code !== '')
-                  .map((code, index) => (
-                    <SelectItem key={`${code}-${index}`} value={code}>{code}</SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+              <option value="">Select Part Code</option>
+              {(dcPartCodes[dcNo] || [])
+                .filter(code => code != null && code !== '')
+                .map((code, index) => (
+                  <option key={`${code}-${index}`} value={code}>{code}</option>
+                ))}
+            </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Mfg Month/Year (MM/YYYY)</label>
-            <Input
+          <div className="space-y-1">
+            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Mfg Month/Year</label>
+            <input
               type="text"
               value={mfgMonthYear}
               onChange={(e) => setMfgMonthYear(e.target.value)}
-              className="w-full"
+              className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 transition-all h-9 ${isPcbFound ? 'bg-gray-50 text-gray-500' : 'bg-white'}`}
               placeholder="MM/YYYY"
               disabled={isPcbFound}
             />
           </div>
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm font-medium text-gray-700">Serial No.</label>
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Serial No.</label>
               <div className="flex space-x-1">
                 <button
                   type="button"
                   onClick={() => handleSrNoIncrement()}
-                  className="text-gray-700 hover:text-gray-900 px-1"
+                  className="text-gray-400 hover:text-gray-600 px-1 text-xs"
                   disabled={isPcbFound}
                 >
                   +
@@ -420,40 +414,33 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
                 <button
                   type="button"
                   onClick={() => handleSrNoDecrement()}
-                  className="text-gray-700 hover:text-gray-900 px-1"
+                  className="text-gray-400 hover:text-gray-600 px-1 text-xs"
                   disabled={isPcbFound}
                 >
                   -
                 </button>
               </div>
             </div>
-            <Input
+            <input
               type="text"
               value={srNo}
               onChange={(e) => setSrNo(e.target.value)}
-              className="w-full"
+              className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 transition-all h-9 ${isPcbFound ? 'bg-gray-50 text-gray-500' : 'bg-white'}`}
               placeholder="Enter Serial No."
               disabled={isPcbFound}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Dispatch Date:</label>
-            <Input
-              type="date"
-              value={dispatchDate}
-              onChange={(e) => setDispatchDate(e.target.value)}
-              className="w-full"
-              disabled={isPcbFound}
-            />
-          </div>
-          <div className="mt-4 flex justify-center">
-            <Button
+          <div className="flex gap-2">
+            <button
               onClick={handleFind}
               disabled={isSearching || isPcbFound}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded text-sm"
+              className={`flex-1 px-4 py-1.5 text-xs font-semibold rounded-md shadow-sm h-9 transition-all ${isSearching || isPcbFound
+                ? 'bg-gray-200 cursor-not-allowed text-gray-400'
+                : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
+                }`}
             >
-              {isSearching ? 'Searching...' : 'Find PCB'}
-            </Button>
+              {isSearching ? 'Finding...' : 'Find PCB'}
+            </button>
           </div>
         </div>
       </div>
@@ -481,220 +468,166 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
 
       {/* PCB Information Form - Show only if a PCB is found */}
       {isPcbFound && selectedEntry && (
-        <div className="flex-1 flex flex-col text-sm">
-          <div className="bg-blue-50 p-4 rounded-md mb-4">
-            {/* <h3 className="font-bold text-blue-800 mb-3">PCB Information</h3> */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-4">
             {/* Tag Entry Section */}
-            <div className="mb-6 border-b">
-              <h4 className="font-semibold text-gray-700 mb-2">Tag Entry Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Sr No</Label>
-                  <Input
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+              <h4 className="text-[12px] font-bold text-blue-600 uppercase tracking-widest mb-4 border-b pb-1">Tag Entry Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Sr No</label>
+                  <input
                     name="srNo"
                     value={selectedEntry.srNo}
-                    onChange={handleChange}
-                    className="mt-1"
                     readOnly
+                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9 font-mono"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">DC No</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">DC No</label>
+                  <input
                     name="dcNo"
                     value={selectedEntry.dcNo}
-                    onChange={handleChange}
-                    className="mt-1"
                     readOnly
+                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9 font-mono"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Branch</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Branch</label>
+                  <input
                     name="branch"
                     value={selectedEntry.branch}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">BCCD Name</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">BCCD Name</label>
+                  <input
                     name="bccdName"
                     value={selectedEntry.bccdName}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Product Description</Label>
-                  <Input
+                <div className="md:col-span-2 space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Product Description</label>
+                  <input
                     name="productDescription"
                     value={selectedEntry.productDescription}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Product Sr No</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Product Sr No</label>
+                  <input
                     name="productSrNo"
                     value={selectedEntry.productSrNo}
-                    onChange={handleChange}
-                    className="mt-1"
                     readOnly
+                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9 font-mono"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Date of Purchase</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Date of Purchase</label>
+                  <input
                     name="dateOfPurchase"
                     type="date"
                     value={selectedEntry.dateOfPurchase}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Complaint No</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Complaint No</label>
+                  <input
                     name="complaintNo"
                     value={selectedEntry.complaintNo}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Part Code</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Part Code</label>
+                  <input
                     name="partCode"
                     value={selectedEntry.partCode}
-                    onChange={handleChange}
-                    className="mt-1"
                     readOnly
+                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9 font-mono"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Nature of Defect</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Nature of Defect</label>
+                  <input
                     name="natureOfDefect"
                     value={selectedEntry.natureOfDefect}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Visiting Tech Name</Label>
-                  <Input
-                    name="visitingTechName"
-                    value={selectedEntry.visitingTechName}
-                    onChange={handleChange}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Mfg Month/Year</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Mfg Month/Year</label>
+                  <input
                     name="mfgMonthYear"
                     value={selectedEntry.mfgMonthYear}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
               </div>
             </div>
             {/* Consumption Section */}
-            <div className="mb-6 border-b pb-4">
-              <h4 className="font-semibold text-gray-700 mb-2">Consumption Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Repair Date</Label>
-                  <Input
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+              <h4 className="text-[12px] font-bold text-green-600 uppercase tracking-widest mb-4 border-b pb-1">Consumption Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Repair Date</label>
+                  <input
                     name="repairDate"
                     type="date"
                     value={selectedEntry.repairDate}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Testing</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Testing</label>
+                  <input
                     name="testing"
                     value={selectedEntry.testing}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Failure</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Failure</label>
+                  <input
                     name="failure"
                     value={selectedEntry.failure}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Status</Label>
-                  <Input
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Status</label>
+                  <input
                     name="status"
                     value={selectedEntry.status}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all bg-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">PCB Sr No</Label>
-                  <Input
+                <div className="md:col-span-2 space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">PCB Sr No</label>
+                  <input
                     name="pcbSrNo"
                     value={selectedEntry.pcbSrNo}
-                    onChange={handleChange}
-                    className="mt-1"
                     readOnly
+                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9 font-mono"
                   />
                 </div>
-                {/* <div>
-                  <Label className="text-sm font-medium text-gray-700">RF Observation</Label>
-                  <Input
-                    name="rfObservation"
-                    value={selectedEntry.rfObservation}
-                    onChange={handleChange}
-                    className="mt-1"
-                  />
-                </div> */}
-                {/* <div>
-                  <Label className="text-sm font-medium text-gray-700">Analysis</Label>
-                  <textarea
-                    name="analysis"
-                    value={selectedEntry.analysis}
-                    onChange={handleChange}
-                    className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
-                    rows={3}
-                  />
-                </div> */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Validation Result</Label>
-                  <textarea
-                    name="validationResult"
-                    value={selectedEntry.validationResult}
-                    onChange={handleChange}
-                    className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Component Change</Label>
-                  <textarea
-                    name="componentChange"
-                    value={selectedEntry.componentChange}
-                    onChange={handleChange}
-                    className="w-full p-2 border border-gray-300 rounded text-sm mt-1"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Engineer Name</Label>
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Engineer Name</label>
                   <EngineerName
                     value={selectedEntry.enggName}
                     onChange={(value) => {
@@ -705,46 +638,67 @@ export function DispatchTab({ dcNumbers = [], dcPartCodes = {}, onExportExcel }:
                         });
                       }
                     }}
-                    className="w-full mt-1"
+                    className="w-full"
                   />
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Dispatch Entry By</Label>
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Validation Result</label>
+                  <textarea
+                    name="validationResult"
+                    value={selectedEntry.validationResult}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 transition-all bg-white"
+                    rows={2}
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Component Change</label>
+                  <textarea
+                    name="componentChange"
+                    value={selectedEntry.componentChange}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 transition-all bg-white"
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Dispatch Entry By</label>
                   <input
                     type="text"
                     value={user?.name || user?.email || ''}
                     readOnly
-                    className="w-full mt-1 p-2 border border-gray-300 rounded bg-gray-100"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9"
                   />
                 </div>
               </div>
             </div>
+
             {/* Dispatch Section */}
-            {/* <div className="mb-6">
-              <h4 className="font-semibold text-gray-700 mb-2">Dispatch Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Dispatch Date</Label>
-                  <Input
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+              <h4 className="text-[12px] font-bold text-amber-600 uppercase tracking-widest mb-4 border-b pb-1">Dispatch Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Dispatch Date</label>
+                  <input
                     name="dispatchDate"
                     type="date"
-                    value={selectedEntry.dispatchDate}
+                    value={dispatchDate || selectedEntry.dispatchDate || ''}
                     onChange={handleChange}
-                    className="mt-1"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 h-9 transition-all bg-white"
                   />
                 </div>
               </div>
-            </div> */}
+            </div>
           </div>
 
           {/* Save Button */}
-          <div className="mt-auto flex justify-center">
-            <Button
+          <div className="mt-4 flex justify-center pb-2">
+            <button
               onClick={handleSave}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded text-sm"
+              className="px-10 py-2 text-sm font-bold bg-green-600 text-white rounded-md hover:bg-green-700 transition-all shadow-md active:scale-95"
             >
-              Save
-            </Button>
+              Update Dispatch Data
+            </button>
           </div>
         </div>
       )}

@@ -36,13 +36,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   console.log('=== TagEntryForm Component Mounted ===');
   console.log('Initial props - initialData:', initialData, 'dcNumbers length:', dcNumbers.length, 'dcPartCodes keys:', Object.keys(dcPartCodes));
   console.log('Session props - DC Number:', sessionDcNumber, 'Part Code:', sessionPartCode);
-  
+
   // BRUTE FORCE APPROACH - Direct localStorage access
   console.log('=== BRUTE FORCE CHECK ===');
   const directDcNumber = localStorage.getItem('selectedDcNumber');
   const directPartCode = localStorage.getItem('selectedPartCode');
   console.log('Direct localStorage access - DC Number:', directDcNumber, 'Part Code:', directPartCode);
-  
+
   const { isDcLocked } = useLockStore();
   const { user } = useAuth();
   const [savedEntries, setSavedEntries] = useState<TagEntry[]>([]);
@@ -61,15 +61,15 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   // BRUTE FORCE INITIALIZATION - Apply session data immediately
   useEffect(() => {
     console.log('=== BRUTE FORCE INITIALIZATION ===');
-    
+
     // Get data from multiple sources
     const dcNumber = sessionDcNumber || localStorage.getItem('selectedDcNumber');
     const partCode = sessionPartCode || localStorage.getItem('selectedPartCode');
-    
+
     console.log('Sources - sessionDcNumber:', sessionDcNumber, 'localStorage:', localStorage.getItem('selectedDcNumber'));
     console.log('Sources - sessionPartCode:', sessionPartCode, 'localStorage:', localStorage.getItem('selectedPartCode'));
     console.log('Final values - DC Number:', dcNumber, 'Part Code:', partCode);
-    
+
     // Apply immediately if we have data
     if (dcNumber || partCode) {
       console.log('APPLYING SESSION DATA TO FORM');
@@ -79,12 +79,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         partCode: partCode || prev.partCode
       }));
       setUserSelectedPartCode(true);
-      
+
       // ALSO UPDATE LOCK STORE
       console.log('UPDATING LOCK STORE WITH SESSION DATA');
       useLockStore.getState().setLockedValues(dcNumber || '', partCode || '');
       useLockStore.getState().lockDc(dcNumber || '', partCode || '');
-      
+
       console.log('FORM UPDATED WITH SESSION DATA');
     } else {
       console.log('NO SESSION DATA FOUND');
@@ -97,9 +97,9 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       if (e.key === 'selectedDcNumber' || e.key === 'selectedPartCode') {
         const newDcNumber = localStorage.getItem('selectedDcNumber');
         const newPartCode = localStorage.getItem('selectedPartCode');
-        
+
         console.log('External storage change detected - DC Number:', newDcNumber, 'Part Code:', newPartCode);
-        
+
         if (newDcNumber || newPartCode) {
           setFormData(prev => ({
             ...prev,
@@ -110,9 +110,9 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         }
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
@@ -173,7 +173,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
           }));
 
           setSavedEntries(tagEntries);
-          
+
           // Set initial SR No based on Partcode from database
           if (formData.partCode) {
             console.log('Loading SR No for Partcode:', formData.partCode);
@@ -347,7 +347,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         setUserSelectedPartCode(false);
       }
     });
-    
+
     return () => unsub();
   }, []);
 
@@ -367,17 +367,17 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-  
-  
+
+
     // Handle mfgMonthYear field specially to validate and format MM/YYYY
     if (name === 'mfgMonthYear') {
       // Allow only digits and forward slash
       if (!/^[0-9/]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-  
+
       let formattedValue = value;
-  
+
       // Auto-format as user types
       if (value.length === 2 && !value.includes('/')) {
         formattedValue = value + '/';
@@ -388,7 +388,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         // Limit to MM/YYYY format (7 characters max)
         formattedValue = value.substring(0, 7);
       }
-  
+
       setFormData(prev => ({
         ...prev,
         [name]: formattedValue
@@ -400,7 +400,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       if (!/^[0-9/-]*$/.test(value) && value !== '') {
         return; // Don't update if invalid characters
       }
-  
+
       setFormData(prev => ({
         ...prev,
         [name]: value
@@ -412,12 +412,12 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         // Don't update locked fields, keep the locked values
         return;
       }
-        
+
       setFormData(prev => ({
         ...prev,
         [name]: value
       }));
-        
+
       // If SR No is changed, update PCB Sr No accordingly
       if (name === 'srNo') {
         if (formData.partCode) {  // Changed condition from formData.dcNo to formData.partCode
@@ -472,29 +472,29 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     console.log('=== HANDLE SUBMIT CALLED ===');
     console.log('Form data:', formData);
     console.log('Session data:', { sessionDcNumber, sessionPartCode });
-    
+
     // Check if all required fields are present
     const requiredFields = {
       dcNo: formData.dcNo,
       complaintNo: formData.complaintNo
     };
-    
+
     console.log('Required fields check:', requiredFields);
     const missingFields = Object.entries(requiredFields)
       .filter(([key, value]) => !value)
       .map(([key]) => key);
-    
+
     if (missingFields.length > 0) {
       console.log('MISSING REQUIRED FIELDS:', missingFields);
       alert(`Missing required fields: ${missingFields.join(', ')}`);
       return;
     }
-    
+
     console.log('All required fields present');
-    
+
     // Skip all validation and use direct save approach
     console.log('Using direct save approach...');
-    
+
     const entryToSave = {
       srNo: formData.srNo || '001',
       dcNo: formData.dcNo || '',
@@ -512,17 +512,17 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
       enggName: formData.enggName || '',
       tagEntryBy: formData.tagEntryBy || user?.name || user?.email || '',
     };
-    
+
     console.log('Entry to save:', entryToSave);
-    
+
     try {
       console.log('Importing save function...');
       const { saveConsolidatedData } = await import('@/app/actions/consumption-actions');
       console.log('Calling save function with session data:', { sessionDcNumber, sessionPartCode });
       const result = await saveConsolidatedData(entryToSave, sessionDcNumber || undefined, sessionPartCode || undefined);
-      
+
       console.log('Save result:', result);
-      
+
       if (result.success) {
         console.log('SAVE SUCCESSFUL');
         alert('Entry saved successfully!');
@@ -600,7 +600,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
   const handleClear = () => {
     // Preserve the current SR No sequence, don't reset to '001'
     const currentSrNo = formData.srNo || '001';
-    
+
     setFormData({
       id: '',
       srNo: currentSrNo, // Keep current SR No
@@ -631,21 +631,21 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
         // Call the server action to add DC number to database
         const { addDcNumberAction } = await import('@/app/actions/db-actions');
         const result = await addDcNumberAction(newDcNo.trim(), newPartCode.trim(), dcNumbers, dcPartCodes);
-        
+
         if (result.success) {
           setNewDcNo('');
           setNewPartCode('');
           setIsDcModalOpen(false);
-          
+
           // Show success message
           alert(`DC Number "${newDcNo.trim()}" with Part Code "${newPartCode.trim()}" has been created successfully!`);
-          
+
           // Optionally, update the form to use the new DC number
           setFormData(prev => ({
             ...prev,
             dcNo: newDcNo.trim()
           }));
-          
+
           // Call the callback if provided
           if (onAddDcNumber) {
             try {
@@ -654,15 +654,15 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
               console.error('Error in onAddDcNumber callback:', callbackError);
             }
           }
-          
+
           // Reload DC numbers and part codes from the database to reflect the changes
           const { loadDcNumbersFromDb, loadDcPartCodesFromDb } = await import('@/lib/dc-data-sync');
           const updatedDcNumbers = await loadDcNumbersFromDb();
           const updatedDcPartCodes = await loadDcPartCodesFromDb();
-          
+
           // Update parent component's state by calling a callback if provided
-          window.dispatchEvent(new CustomEvent('refreshDcNumbers', { 
-            detail: { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes } 
+          window.dispatchEvent(new CustomEvent('refreshDcNumbers', {
+            detail: { dcNumbers: updatedDcNumbers, dcPartCodes: updatedDcPartCodes }
           }));
         } else {
           alert(`Error creating DC Number: ${result.error}`);
@@ -768,7 +768,7 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
     if (!e.altKey) return;
 
     console.log('Keyboard shortcut detected:', e.key);
-    
+
     // Prevent browser default behavior for these shortcuts
     switch (e.key.toLowerCase()) {
       case 's':
@@ -807,22 +807,22 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-md shadow-sm flex flex-col flex-1 min-h-0">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="space-y-1">
           <div className="flex justify-between items-center mb-1">
-            <label className="text-sm font-medium text-gray-700">Sr. No.:</label>
+            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Sr. No.</label>
             <div className="flex space-x-1">
               <button
                 type="button"
                 onClick={() => handleSrNoIncrement()}
-                className="text-gray-700 hover:text-gray-900 px-1"
+                className="text-gray-400 hover:text-gray-600 px-1 text-xs"
               >
                 +
               </button>
               <button
                 type="button"
                 onClick={() => handleSrNoDecrement()}
-                className="text-gray-700 hover:text-gray-900 px-1"
+                className="text-gray-400 hover:text-gray-600 px-1 text-xs"
               >
                 -
               </button>
@@ -833,19 +833,19 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
             name="srNo"
             value={formData.srNo || ''}
             onChange={handleChange}
-            className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all" />
         </div>
-        <div>
+        <div className="space-y-1">
           <div className="flex justify-between items-center mb-1">
-            <label className="text-sm font-medium text-gray-700">DC No:</label>
+            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">DC No</label>
             <div className="flex items-center gap-2">
               <Dialog open={isDcModalOpen} onOpenChange={setIsDcModalOpen}>
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    className="text-gray-700 hover:text-gray-900"
+                    className="text-blue-500 hover:text-blue-700 text-xs font-bold"
                   >
-                    +
+                    + NEW
                   </button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
@@ -853,34 +853,34 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
                     <DialogTitle>Create New DC</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">DC No.</label>
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">DC No.</label>
                       <div className="flex gap-2">
                         <input
                           type="text"
                           value={isDcLocked ? useLockStore.getState().lockedDcNo : newDcNo}
                           onChange={(e) => setNewDcNo(e.target.value)}
                           disabled={isDcLocked}
-                          className={`flex-1 p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                          className={`flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all ${isDcLocked ? 'bg-gray-100' : ''}`}
                           placeholder="Enter DC No." />
                         <LockButton dcNo={newDcNo} partCode={newPartCode} />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Part Code</label>
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Part Code</label>
                       <input
                         type="text"
                         value={isDcLocked ? useLockStore.getState().lockedPartCode : newPartCode}
                         onChange={(e) => setNewPartCode(e.target.value)}
                         disabled={isDcLocked}
-                        className={`w-full p-2 border border-gray-300 rounded ${isDcLocked ? 'bg-gray-100' : ''}`}
+                        className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 h-9 transition-all ${isDcLocked ? 'bg-gray-100' : ''}`}
                         placeholder="Enter Part Code" />
                     </div>
                   </div>
                   <DialogFooter>
                     <button
                       onClick={handleCreateDC}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-semibold transition-all shadow-sm"
                     >
                       Create DC
                     </button>
@@ -889,13 +889,13 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
               </Dialog>
               <button
                 type="button"
-                className="text-gray-700 hover:text-gray-900"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
                 onClick={() => {
                   if (formData.dcNo) {
                     navigator.clipboard.writeText(formData.dcNo);
                     alert('DC Number copied to clipboard!');
                   }
-                } }
+                }}
                 title="Copy DC Number"
               >
                 📋
@@ -903,186 +903,185 @@ export function TagEntryForm({ initialData, dcNumbers = [], dcPartCodes = {}, on
               <LockButton dcNo={formData.dcNo} partCode={formData.partCode} />
             </div>
           </div>
-        <select
-          name="dcNo"
-          value={isDcLocked ? useLockStore.getState().lockedDcNo : (formData.dcNo || '')}
-          onChange={handleChange}
-          disabled={isDcLocked || !!sessionDcNumber}
-          className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked || sessionDcNumber ? 'bg-gray-100' : ''} h-9`}
+          <select
+            name="dcNo"
+            value={isDcLocked ? useLockStore.getState().lockedDcNo : (formData.dcNo || '')}
+            onChange={handleChange}
+            disabled={isDcLocked || !!sessionDcNumber}
+            className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all ${isDcLocked || sessionDcNumber ? 'bg-gray-50 text-gray-500 border-gray-200' : 'bg-white'}`}
           >
-          <option value="">Select DC No.</option>
-          {dcNumbers
-            .filter(dc => dc != null && dc !== '')
-            .map((dc, index) => (
-              <option key={`${dc}-${index}`} value={dc}>{dc}</option>
-            ))}
-        </select>
+            <option value="">Select DC No.</option>
+            {dcNumbers
+              .filter(dc => dc != null && dc !== '')
+              .map((dc, index) => (
+                <option key={`${dc}-${index}`} value={dc}>{dc}</option>
+              ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Branch</label>
+          <input
+            type="text"
+            name="branch"
+            value={formData.branch || ''}
+            onChange={handleChange}
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all bg-white" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">BCCD Name</label>
+          <input
+            type="text"
+            name="bccdName"
+            value={formData.bccdName || ''}
+            onChange={handleChange}
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all bg-white" />
+        </div>
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Product Description</label>
+          <input
+            type="text"
+            name="productDescription"
+            value={formData.productDescription || ''}
+            onChange={handleChange}
+            className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all ${formData.partCode ? 'bg-gray-50 text-gray-500 border-gray-200' : 'bg-white'}`}
+            readOnly={!!formData.partCode} />
+        </div>
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Product Sr No</label>
+          <div className="flex shadow-sm rounded-md overflow-hidden">
+            <input
+              type="text"
+              name="productSrNo"
+              value={formData.productSrNo || ''}
+              onChange={handleChange}
+              className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded-l-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all bg-white" />
+            <div className="bg-gray-100 px-2 text-[10px] border border-l-0 border-gray-300 text-gray-500 flex items-center font-mono">
+              {(formData.productSrNo || '').length}/20
             </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Branch:</label>
-        <input
-          type="text"
-          name="branch"
-          value={formData.branch || ''}
-          onChange={handleChange}
-          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
-      </div>
-          </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">BCCD Name:</label>
-        <input
-          type="text"
-          name="bccdName"
-          value={formData.bccdName || ''}
-          onChange={handleChange}
-          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Product Description:</label>
-        <input
-          type="text"
-          name="productDescription"
-          value={formData.productDescription || ''}
-          onChange={handleChange}
-          className={`w-full p-2 text-sm border border-gray-300 rounded h-9 ${formData.partCode ? 'bg-gray-100' : ''}`}
-          readOnly={!!formData.partCode} />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Product Sr No:</label>
-        <div className="flex">
-          <input
-            type="text"
-            name="productSrNo"
-            value={formData.productSrNo || ''}
-            onChange={handleChange}
-            className="flex-1 p-2 text-sm border border-gray-300 rounded-l h-9" />
-          <div className="bg-gray-200 p-2 text-sm border border-l-0 border-gray-300 rounded-r flex items-center">
-            {(formData.productSrNo || '').length}/20
           </div>
         </div>
       </div>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Purchase:</label>
-        <input
-          type="text"
-          name="dateOfPurchase"
-          value={formData.dateOfPurchase || ''}
-          onChange={handleChange}
-          placeholder="DD/MM/YYYY or MM/DD/YYYY"
-          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Complaint No:</label>
-        <input
-          type="text"
-          name="complaintNo"
-          value={formData.complaintNo || ''}
-          onChange={handleChange}
-          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Part Code:</label>
-        <select
-          name="partCode"
-          value={isDcLocked ? useLockStore.getState().lockedPartCode : (formData.partCode || '')}
-          onChange={handleChange}
-          disabled={isDcLocked || !!sessionPartCode}
-          className={`w-full p-2 text-sm border border-gray-300 rounded ${isDcLocked || sessionPartCode ? 'bg-gray-100' : ''} h-9`}
-        >
-          <option value="">Select Part Code</option>
-          {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || [])
-            .filter(code => code != null && code !== '')
-            .map((code, index) => (
-              <option key={`${code}-${index}`} value={code}>{code}</option>
-            ))}
-        </select>
-      </div>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Nature of Defect:</label>
-        <input
-          type="text"
-          name="natureOfDefect"
-          value={formData.natureOfDefect || ''}
-          onChange={handleChange}
-          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Visiting Tech Name:</label>
-        <input
-          type="text"
-          name="visitingTechName"
-          value={formData.visitingTechName || ''}
-          onChange={handleChange}
-          className="w-full p-2 text-sm border border-gray-300 rounded h-9" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Mfg Month/Year:</label>
-        <input
-          type="text"
-          name="mfgMonthYear"
-          value={formData.mfgMonthYear || ''}
-          onChange={handleChange}
-          placeholder="MM/YYYY"
-          className="w-full p-2 text-sm border border-gray-300 rounded h-9"
-          maxLength={7} />
-      </div>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-      <div className="md:col-span-2">
-        <label className="block text-sm font-medium text-gray-700 mb-1">PCB Sr. No:</label>
-        <div className="flex">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Date of Purchase</label>
           <input
             type="text"
-            name="pcbSrNo"
-            value={formData.pcbSrNo || ''}
+            name="dateOfPurchase"
+            value={formData.dateOfPurchase || ''}
             onChange={handleChange}
-            className="flex-1 p-2 text-sm border border-gray-300 rounded h-9"
-            readOnly />
+            placeholder="DD/MM/YYYY"
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all bg-white" />
+        </div>
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Complaint No</label>
+          <input
+            type="text"
+            name="complaintNo"
+            value={formData.complaintNo || ''}
+            onChange={handleChange}
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all bg-white" />
+        </div>
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Part Code</label>
+          <select
+            name="partCode"
+            value={isDcLocked ? useLockStore.getState().lockedPartCode : (formData.partCode || '')}
+            onChange={handleChange}
+            disabled={isDcLocked || !!sessionPartCode}
+            className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all ${isDcLocked || sessionPartCode ? 'bg-gray-50 text-gray-500 border-gray-200' : 'bg-white'}`}
+          >
+            <option value="">Select Part Code</option>
+            {(dcPartCodes[isDcLocked ? useLockStore.getState().lockedDcNo : formData.dcNo] || [])
+              .filter(code => code != null && code !== '')
+              .map((code, index) => (
+                <option key={`${code}-${index}`} value={code}>{code}</option>
+              ))}
+          </select>
         </div>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Tag Entry By:</label>
-        <input
-          type="text"
-          value={user?.name || user?.email || ''}
-          readOnly
-          className="w-full p-2 text-sm border border-gray-300 rounded h-9 bg-gray-100"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Nature of Defect</label>
+          <input
+            type="text"
+            name="natureOfDefect"
+            value={formData.natureOfDefect || ''}
+            onChange={handleChange}
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all bg-white" />
+        </div>
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Visiting Tech Name</label>
+          <input
+            type="text"
+            name="visitingTechName"
+            value={formData.visitingTechName || ''}
+            onChange={handleChange}
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all bg-white" />
+        </div>
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Mfg Month/Year</label>
+          <input
+            type="text"
+            name="mfgMonthYear"
+            value={formData.mfgMonthYear || ''}
+            onChange={handleChange}
+            placeholder="MM/YYYY"
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9 transition-all bg-white"
+            maxLength={7} />
+        </div>
       </div>
-    </div>
-    <div className="flex justify-end gap-3 mt-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="md:col-span-2 space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">PCB Sr. No</label>
+          <div className="flex">
+            <input
+              type="text"
+              name="pcbSrNo"
+              value={formData.pcbSrNo || ''}
+              readOnly
+              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9 font-mono" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Tag Entry By</label>
+          <input
+            type="text"
+            value={user?.name || user?.email || ''}
+            readOnly
+            className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 text-gray-500 h-9"
+          />
+        </div>
+      </div>
+      <div className="flex justify-end gap-3 mt-4">
         <button
           type="button"
           onClick={handleClear}
-          className="px-4 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
+          className="px-4 py-1.5 text-xs font-semibold bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all shadow-sm shadow-gray-100"
         >
           Clear (Alt+C)
         </button>
         <button
           type="button"
           onClick={handleUpdate}
-          className="px-4 py-2 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700"
+          className="px-4 py-1.5 text-xs font-semibold bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-all shadow-sm shadow-amber-100"
         >
           Update (Alt+U)
         </button>
         <button
           type="button"
           onClick={handleDelete}
-          className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="px-4 py-1.5 text-xs font-semibold bg-rose-500 text-white rounded-md hover:bg-rose-600 transition-all shadow-sm shadow-rose-100 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!formData.id}
         >
           Delete (Alt+D)
         </button>
         <button
           type="submit"
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-6 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all shadow-sm shadow-blue-100"
         >
-          Save (Alt+S)
+          Save Data (Alt+S)
         </button>
       </div>
 

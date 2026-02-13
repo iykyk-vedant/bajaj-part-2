@@ -16,18 +16,18 @@ export default function TagEntryPage() {
   const [activeTab, setActiveTab] = useState<
     "tag-entry" | "dispatch" | "consumption"
   >("tag-entry");
-  
+
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  
+
   // Engineer name state that persists across tabs
   const [engineerName, setEngineerName] = useState<string>('');
-  
+
   // Initialize DC numbers - use default values initially
   const [dcNumbers, setDcNumbers] = useState<string[]>([]);
-  
+
   // Initialize DC-PartCode mappings
   const [dcPartCodes, setDcPartCodes] = useState<Record<string, string[]>>({});
 
@@ -36,11 +36,11 @@ export default function TagEntryPage() {
     const loadDcData = async () => {
       const loadedDcNumbers = await loadDcNumbersFromDb();
       const loadedDcPartCodes = await loadDcPartCodesFromDb();
-      
+
       setDcNumbers(loadedDcNumbers);
       setDcPartCodes(loadedDcPartCodes);
     };
-    
+
     loadDcData();
   }, []);
 
@@ -49,12 +49,12 @@ export default function TagEntryPage() {
     // Save to database
     try {
       const result = await addDcNumberAction(dcNo, partCode, dcNumbers, dcPartCodes);
-      
+
       if (result.success) {
         // Reload DC numbers and part codes from database to reflect the changes
         const loadedDcNumbers = await loadDcNumbersFromDb();
         const loadedDcPartCodes = await loadDcPartCodesFromDb();
-        
+
         setDcNumbers(loadedDcNumbers);
         setDcPartCodes(loadedDcPartCodes);
       } else {
@@ -72,21 +72,21 @@ export default function TagEntryPage() {
       const loadDcData = async () => {
         const loadedDcNumbers = await loadDcNumbersFromDb();
         const loadedDcPartCodes = await loadDcPartCodesFromDb();
-        
+
         setDcNumbers(loadedDcNumbers);
         setDcPartCodes(loadedDcPartCodes);
       };
-      
+
       loadDcData();
     };
-    
+
     const eventListener = (e: CustomEvent) => {
       setDcNumbers(e.detail.dcNumbers);
       setDcPartCodes(e.detail.dcPartCodes);
     };
-    
+
     window.addEventListener('refreshDcNumbers', eventListener as EventListener);
-    
+
     return () => {
       window.removeEventListener('refreshDcNumbers', eventListener as EventListener);
     };
@@ -98,14 +98,14 @@ export default function TagEntryPage() {
       if (window.location.hash === '#consumption') {
         setActiveTab('consumption');
       }
-      
+
       // Listen for hash changes
       const handleHashChange = () => {
         if (window.location.hash === '#consumption') {
           setActiveTab('consumption');
         }
       };
-      
+
       window.addEventListener('hashchange', handleHashChange);
       return () => window.removeEventListener('hashchange', handleHashChange);
     }
@@ -123,13 +123,13 @@ export default function TagEntryPage() {
         setIsCapsLockOn(e.getModifierState("CapsLock"));
       }
     };
-    
+
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.getModifierState) {
         setIsCapsLockOn(e.getModifierState("CapsLock"));
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
@@ -150,7 +150,7 @@ export default function TagEntryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
       {/* Navbar */}
       {/* <header className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between shadow">
         <h1 className="text-2xl font-bold">Bajaj Electronics - Tag Entry</h1>
@@ -171,10 +171,10 @@ export default function TagEntryPage() {
         </div>
       </header> */}
 
-      <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex flex-col flex-1 min-h-0">
+      <div className="w-full bg-white rounded-lg shadow-md p-2 mt-2 flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Tag Entry System</h2>
-          <button 
+          <button
             onClick={() => setIsPreviewOpen(true)}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
           >
@@ -185,36 +185,33 @@ export default function TagEntryPage() {
             Preview Entries
           </button>
         </div>
-        
+
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 mb-2">
+        <div className="flex border-b border-gray-200 mb-1">
           <div className="flex flex-1">
             <button
-              className={`py-2 px-4 font-medium text-sm ${
-                activeTab === "tag-entry"
-                  ? "border-b-2 border-blue-500 text-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
+              className={`py-2 px-4 font-medium text-sm ${activeTab === "tag-entry"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
               onClick={() => setActiveTab("tag-entry")}
             >
               Tag Entry
             </button>
             <button
-              className={`py-2 px-4 font-medium text-sm ${
-                activeTab === "consumption"
-                  ? "border-b-2 border-blue-500 text-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
+              className={`py-2 px-4 font-medium text-sm ${activeTab === "consumption"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
               onClick={() => setActiveTab("consumption")}
             >
               Consumption
             </button>
             <button
-              className={`py-2 px-4 font-medium text-sm ${
-                activeTab === "dispatch"
-                  ? "border-b-2 border-blue-500 text-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
+              className={`py-2 px-4 font-medium text-sm ${activeTab === "dispatch"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
               onClick={() => setActiveTab("dispatch")}
             >
               Dispatch
@@ -233,12 +230,12 @@ export default function TagEntryPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 min-h-0 mb-6">
+        <div className="flex-1 min-h-0 mb-1 overflow-hidden flex flex-col">
           {activeTab === "tag-entry" && (
-            <div className="bg-white rounded-lg shadow-md p-6 flex flex-col flex-1 min-h-0">
+            <div className="bg-white rounded-lg shadow-md p-2 flex flex-col flex-1 min-h-0">
               {/* Main Tag Entry Form */}
               <div className="flex-1 min-h-0 mb-6">
-                <TagEntryForm 
+                <TagEntryForm
                   dcNumbers={dcNumbers}
                   dcPartCodes={dcPartCodes}
                 />
@@ -246,19 +243,19 @@ export default function TagEntryPage() {
             </div>
           )}
           {activeTab === "dispatch" && (
-            <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
-              <FindTab 
+            <div className="w-full bg-white rounded-lg shadow-md p-1 flex-1 overflow-hidden flex flex-col">
+              <FindTab
                 dcNumbers={dcNumbers}
                 dcPartCodes={dcPartCodes}
-                onExportExcel={handleExportExcel} 
+                onExportExcel={handleExportExcel}
               />
             </div>
           )}
           {activeTab === "consumption" && (
-            <div className="w-full bg-white rounded-lg shadow-md p-6 mt-6 flex-1">
-              <ConsumptionTab 
-                dcNumbers={dcNumbers} 
-                dcPartCodes={dcPartCodes} 
+            <div className="w-full bg-white rounded-lg shadow-md p-1 flex-1 overflow-hidden flex flex-col">
+              <ConsumptionTab
+                dcNumbers={dcNumbers}
+                dcPartCodes={dcPartCodes}
                 engineerName={engineerName}
                 onEngineerNameChange={setEngineerName}
               />
@@ -273,10 +270,10 @@ export default function TagEntryPage() {
           isOnline={true}
         />
       </div>
-      
-      <TagEntryPreview 
-        open={isPreviewOpen} 
-        onOpenChange={setIsPreviewOpen} 
+
+      <TagEntryPreview
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
       />
     </div>
   );

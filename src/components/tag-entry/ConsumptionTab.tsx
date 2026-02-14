@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLockStore } from '@/store/lockStore';
 import { validateBomComponents, updateConsolidatedDataEntryByProductSrNoAction } from '@/app/actions/consumption-actions';
@@ -97,32 +97,32 @@ const TableRowComponent = memo(({
       className={`cursor-pointer ${isSelected ? 'bg-blue-100' : 'hover:bg-gray-50'}`}
       onClick={() => onClick(entry)}
     >
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 font-medium">{entry.srNo}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dcNo}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dcDate}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.branch}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.bccdName}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.productDescription}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.productSrNo}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dateOfPurchase}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.complaintNo}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.partCode}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.visitingTechName}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.mfgMonthYear}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.repairDate}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.testing}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.failure}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.status}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.pcbSrNo}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.analysis}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.componentChange}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.remarks}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.enggName}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dispatchDate}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.validationResult}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.tagEntryBy}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.consumptionEntryBy}</td>
-      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800">{entry.dispatchEntryBy}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 font-medium border border-gray-300">{entry.srNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.dcNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.dcDate}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.branch}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.bccdName}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.productDescription}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.productSrNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.dateOfPurchase}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.complaintNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.partCode}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.visitingTechName}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.mfgMonthYear}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.repairDate}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.testing}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.failure}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.status}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.pcbSrNo}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.analysis}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.componentChange}</td>
+      {/* <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.dispatchDate}</td> */}
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.validationResult}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.enggName}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.remarks}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.tagEntryBy}</td>
+      <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.consumptionEntryBy}</td>
+      {/* <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-800 border border-gray-300">{entry.dispatchEntryBy}</td> */}
     </tr>
   );
 });
@@ -170,7 +170,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const ITEMS_PER_PAGE = 50;
+  const ITEMS_PER_PAGE = 20;
 
   // Workflow state
   const [isPcbFound, setIsPcbFound] = useState(false);
@@ -250,6 +250,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
           tagEntryBy: entry.tag_entry_by || '',
           consumptionEntryBy: entry.consumption_entry_by || '',
           dispatchEntryBy: entry.dispatch_entry_by || '',
+          remarks: entry.remarks || '',
         }));
 
         if (isInitial) {
@@ -592,6 +593,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         consumptionEntryBy: user?.name || user?.email || '',
         tagEntryBy: selectedEntry.tagEntryBy || user?.name || user?.email || '',
         validationResult: validationResult,
+        remarks: formData.remarks,
       });
 
       const updateResult = await updateConsolidatedDataEntryByProductSrNoAction(selectedEntry.productSrNo, {
@@ -622,6 +624,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         consumptionEntryBy: user?.name || user?.email || '',
         tagEntryBy: selectedEntry.tagEntryBy || user?.name || user?.email || '',
         validationResult: validationResult,
+        remarks: formData.remarks,
       });
 
       console.log('handleConsume - Update result:', updateResult);
@@ -703,6 +706,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         consumptionEntryBy: user?.name || user?.email || '',
         tagEntryBy: selectedEntry.tagEntryBy || '',
         validationResult: validationResult,
+        remarks: formData.remarks,
       });
 
       if (!updateResult.success) {
@@ -947,6 +951,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
     ));
   }, [tableData, selectedEntryId, handleRowClick]);
 
+  // No more IntersectionObserver for infinite scroll
+  // We will use a manual "Load More" button instead
+
   return (
     <div className="bg-white w-full flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden ">
@@ -1189,39 +1196,39 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             <table className="min-w-full divide-y divide-gray-200 text-xs">
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Sr No</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">DC No</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">DC Date</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">BCCD Name</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Product Desc</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Product Sr No</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Date of Purchase</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Complaint No</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Part Code</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Visiting Tech</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Mfg Month/Year</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Repair Date</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Testing</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Failure</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">PCB Sr No</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Analysis</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Component Change</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Engg Name</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Dispatch Date</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Validation Result</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Tag Entry By</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Consumption Entry By</th>
-                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Dispatch Entry By</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Sr No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">DC No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">DC Date</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Branch</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">BCCD Name</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Product Desc</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Product Sr No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Date of Purchase</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Complaint No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Part Code</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Visiting Tech</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Mfg Month/Year</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Repair Date</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Testing</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Failure</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Status</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">PCB Sr No</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Analysis</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Component Change</th>
+                  {/* <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Dispatch Date</th> */}
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Validation Result</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Engg Name</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Remarks</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Tag Entry By</th>
+                  <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Consumption Entry By</th>
+                  {/* <th className="px-2 py-1 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border border-gray-300">Dispatch Entry By</th> */}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {memoizedTableBody}
                 {tableData.length === 0 && (
                   <tr>
-                    <td colSpan={26} className="px-2 py-1 text-center text-sm text-gray-500">
+                    <td colSpan={24} className="px-2 py-1 text-center text-sm text-gray-500 border border-gray-300">
                       No entries found
                     </td>
                   </tr>
@@ -1229,31 +1236,22 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               </tbody>
             </table>
             {(isLoadingMore || hasMore) && (
-              <div
-                ref={(el) => {
-                  if (el) {
-                    const observer = new IntersectionObserver(
-                      (entries) => {
-                        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-                          loadDataChunks(page + 1);
-                        }
-                      },
-                      { threshold: 1.0 }
-                    );
-                    observer.observe(el);
-                  }
-                }}
-                className="py-4 text-center text-gray-500 italic"
-              >
-                {isLoadingMore ? 'Loading more records...' : 'Scroll for more'}
+              <div className="py-2 text-center">
+                <button
+                  onClick={() => loadDataChunks(page + 1)}
+                  disabled={isLoadingMore}
+                  className="px-4 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors disabled:opacity-50"
+                >
+                  {isLoadingMore ? 'Loading...' : 'Show More Entries'}
+                </button>
               </div>
             )}
           </div>
         </div>
 
         {/* Bottom Action Buttons */}
-        <div className="flex justify-between items-center p-1 border-t border-gray-200">
-          <div className="flex space-x-2">
+        {/* <div className="flex justify-between items-center p-1 border-t border-gray-200">
+          <div className="flex space-x-2"> */}
             {/* <button
               onClick={handleUpdate}
               disabled={!selectedEntryId}
@@ -1264,7 +1262,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             >
               Update
             </button> */}
-            <button
+            {/* <button
               onClick={handleDelete}
               disabled={!selectedEntryId}
               className={`px-3 py-1 text-sm rounded ${selectedEntryId
@@ -1293,9 +1291,9 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
               className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"
             >
               Logout
-            </button>
-          </div>
-        </div>
+            </button> */}
+          {/* </div>
+        </div> */}
       </div>
     </div>
   );

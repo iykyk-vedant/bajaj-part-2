@@ -314,62 +314,82 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
 
         // Find the corresponding entry in tableData to get the ID
         const tableEntry = tableData.find(entry => entry.pcbSrNo === existingEntry.pcb_sr_no);
+
+        let targetEntry: TableRow;
+
         if (tableEntry) {
-          console.log('Found matching table entry, selecting it');
-          setSelectedEntryId(tableEntry.id || null);
-
-          // Populate form with the table entry data, preserving current form values if table entry fields are empty
-          setFormData(prev => ({
-            ...prev,
-            repairDate: tableEntry.repairDate || prev.repairDate || '',
-            testing: tableEntry.testing || prev.testing || '',
-            failure: tableEntry.failure || prev.failure || '',
-            status: tableEntry.status || prev.status || '',
-            pcbSrNo: tableEntry.pcbSrNo || '',
-            analysis: tableEntry.analysis || prev.analysis || '',
-            componentChange: tableEntry.componentChange || prev.componentChange || '',
-            enggName: tableEntry.enggName || prev.enggName || engineerName || '',
-            dispatchDate: tableEntry.dispatchDate || prev.dispatchDate || '',
-            validationResult: tableEntry.validationResult || prev.validationResult || '',
-            remarks: tableEntry.remarks || prev.remarks || '',
-          }));
-
-          // Also update the engineer name if it's different and exists in DB
-          if (tableEntry.enggName && tableEntry.enggName !== engineerName) {
-            onEngineerNameChange && onEngineerNameChange(tableEntry.enggName);
-          }
+          console.log('Found matching table entry locally');
+          targetEntry = tableEntry;
         } else {
-          console.log('No matching table entry found, using search result data');
-          // Fallback to using search result data
-          setFormData(prev => ({
-            ...prev,
-            pcbSrNo,
-            repairDate: existingEntry.repair_date || prev.repairDate || new Date().toISOString().split('T')[0],
-            testing: existingEntry.testing || prev.testing || 'PASS',
-            failure: existingEntry.failure || prev.failure || '',
-            status: existingEntry.status || prev.status || 'OK',
-            analysis: existingEntry.analysis || prev.analysis || '',
-            componentChange: existingEntry.component_change || prev.componentChange || '',
-            enggName: existingEntry.engg_name || prev.enggName || engineerName || '',
-            dispatchDate: existingEntry.dispatch_date || prev.dispatchDate || '',
-            validationResult: existingEntry.validation_result || prev.validationResult || '',
-            remarks: existingEntry.remarks || prev.remarks || '',
-          }));
+          console.log('No matching table entry found locally, adding from DB result');
+          // Create a TableRow object from the database result (consistent with loadDataChunks)
+          targetEntry = {
+            id: String(existingEntry.id),
+            srNo: existingEntry.sr_no || '',
+            dcNo: existingEntry.dc_no || '',
+            dcDate: existingEntry.dc_date || '',
+            branch: existingEntry.branch || '',
+            bccdName: existingEntry.bccd_name || '',
+            productDescription: existingEntry.product_description || '',
+            productSrNo: existingEntry.product_sr_no || '',
+            dateOfPurchase: existingEntry.date_of_purchase ? (typeof existingEntry.date_of_purchase === 'string' ? existingEntry.date_of_purchase : new Date(existingEntry.date_of_purchase).toISOString().split('T')[0]) : '',
+            complaintNo: existingEntry.complaint_no || '',
+            partCode: existingEntry.part_code || '',
+            defect: existingEntry.nature_of_defect || '',
+            visitingTechName: existingEntry.visiting_tech_name || '',
+            mfgMonthYear: existingEntry.mfg_month_year ? (typeof existingEntry.mfg_month_year === 'string' ? existingEntry.mfg_month_year : new Date(existingEntry.mfg_month_year).toISOString().split('T')[0]) : '',
+            repairDate: existingEntry.repair_date ? (typeof existingEntry.repair_date === 'string' ? existingEntry.repair_date : new Date(existingEntry.repair_date).toISOString().split('T')[0]) : '',
+            testing: existingEntry.testing || '',
+            failure: existingEntry.failure || '',
+            status: existingEntry.status || '',
+            pcbSrNo: existingEntry.pcb_sr_no || '',
+            analysis: existingEntry.analysis || '',
+            componentChange: existingEntry.component_change || '',
+            enggName: existingEntry.engg_name || '',
+            dispatchDate: existingEntry.dispatch_date ? (typeof existingEntry.dispatch_date === 'string' ? existingEntry.dispatch_date : new Date(existingEntry.dispatch_date).toISOString().split('T')[0]) : '',
+            validationResult: existingEntry.validation_result || '',
+            tagEntryBy: existingEntry.tag_entry_by || '',
+            consumptionEntryBy: existingEntry.consumption_entry_by || '',
+            dispatchEntryBy: existingEntry.dispatch_entry_by || '',
+            remarks: existingEntry.remarks || '',
+          };
+
+          // Prepend to table data so it's visible and searchable
+          setTableData(prev => [targetEntry, ...prev]);
         }
-      } else {
-        console.log('No existing entry found, using default values and preserving existing ones');
-        // If no existing entry is found, keep current form values for efficiency in bulk entry
+
+        // AUTO-SELECT THE ENTRY: This is the critical fix for the user
+        setSelectedEntryId(targetEntry.id || null);
+
+        // Populate form with the entry data, preserving current form values if entry fields are empty
         setFormData(prev => ({
           ...prev,
-          pcbSrNo,
-          repairDate: prev.repairDate || new Date().toISOString().split('T')[0],
-          testing: prev.testing || 'PASS',
-          status: prev.status || 'OK',
+          repairDate: targetEntry.repairDate || prev.repairDate || new Date().toISOString().split('T')[0],
+          testing: targetEntry.testing || prev.testing || 'PASS',
+          failure: targetEntry.failure || prev.failure || '',
+          status: targetEntry.status || prev.status || 'OK',
+          pcbSrNo: targetEntry.pcbSrNo || '',
+          analysis: targetEntry.analysis || prev.analysis || '',
+          componentChange: targetEntry.componentChange || prev.componentChange || '',
+          enggName: targetEntry.enggName || prev.enggName || engineerName || '',
+          dispatchDate: targetEntry.dispatchDate || prev.dispatchDate || '',
+          validationResult: targetEntry.validationResult || prev.validationResult || '',
+          remarks: targetEntry.remarks || prev.remarks || '',
         }));
-      }
 
-      console.log('Setting isPcbFound to true');
-      setIsPcbFound(true);
+        // Also update the engineer name if it's different and exists in DB
+        if (targetEntry.enggName && targetEntry.enggName !== engineerName) {
+          onEngineerNameChange && onEngineerNameChange(targetEntry.enggName);
+        }
+
+        console.log('Setting isPcbFound to true');
+        setIsPcbFound(true);
+      } else {
+        console.log('No existing entry found in database.');
+        setIsPcbFound(false);
+        setSelectedEntryId(null);
+        alert('PCB not found in database. Please ensure it has been entered in Tag Entry first.');
+      }
     } catch (error) {
       console.error('Error generating PCB number:', error);
       alert('Error generating PCB number. Please try again.');
@@ -1252,7 +1272,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
         {/* Bottom Action Buttons */}
         {/* <div className="flex justify-between items-center p-1 border-t border-gray-200">
           <div className="flex space-x-2"> */}
-            {/* <button
+        {/* <button
               onClick={handleUpdate}
               disabled={!selectedEntryId}
               className={`px-3 py-1 text-sm rounded ${selectedEntryId
@@ -1262,7 +1282,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             >
               Update
             </button> */}
-            {/* <button
+        {/* <button
               onClick={handleDelete}
               disabled={!selectedEntryId}
               className={`px-3 py-1 text-sm rounded ${selectedEntryId
@@ -1292,7 +1312,7 @@ export function ConsumptionTab({ dcNumbers = ['DC001', 'DC002'], dcPartCodes = {
             >
               Logout
             </button> */}
-          {/* </div>
+        {/* </div>
         </div> */}
       </div>
     </div>

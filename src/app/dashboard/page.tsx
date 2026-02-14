@@ -47,7 +47,7 @@ export default function DashboardPage() {
               Sign Out
             </button>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-blue-50 p-4 rounded-lg">
               <h2 className="text-lg font-semibold text-blue-800 mb-2">Session Information</h2>
@@ -55,10 +55,6 @@ export default function DashboardPage() {
                 <div>
                   <span className="font-medium text-gray-700">DC Number:</span>
                   <span className="ml-2 text-gray-900">{dcNumber || 'Not selected'}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Partcode:</span>
-                  <span className="ml-2 text-gray-900">{partCode || 'Not selected'}</span>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">User:</span>
@@ -70,19 +66,19 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-green-50 p-4 rounded-lg">
               <h2 className="text-lg font-semibold text-green-800 mb-2">Navigation</h2>
               <div className="space-y-3">
-                <Link 
-                  href="/" 
+                <Link
+                  href="/"
                   className="block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-center"
                 >
                   Main Application
                 </Link>
                 {user.role === 'ADMIN' && (
-                  <Link 
-                    href="/admin" 
+                  <Link
+                    href="/admin"
                     className="block px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-center"
                   >
                     Admin Dashboard
@@ -91,13 +87,14 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-yellow-50 p-4 rounded-lg">
             <h2 className="text-lg font-semibold text-yellow-800 mb-2">Important Notes</h2>
             <ul className="list-disc list-inside text-yellow-700 space-y-1">
-              <li>Your DC Number and Partcode selection is locked for this session</li>
-              <li>You can only access data related to your selected combination</li>
-              <li>To change your selection, please sign out and log in again</li>
+              <li>Your DC Number is locked for this session</li>
+              <li>You can only access data related to your selected DC</li>
+              <li>To change your DC Number, please sign out and log in again</li>
+              <li>Partcode can be selected and changed within each tab</li>
             </ul>
           </div>
         </div>
